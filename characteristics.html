@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ВетКлиника - Товары</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>🐾 ВетКлиника "Здоровый друг" - Товары</h1>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Главная</a></li>
+            <li><a href="catalog.html">Услуги</a></li>
+            <li><a href="characteristics.html">Товары</a></li>
+            <li><a href="payment-delivery.html">Оплата и доставка</a></li>
+            <li><a href="contacts.html">Контакты</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section>
+            <h2>Товары для животных</h2>
+
+            <article>
+                <h3>Корма</h3>
+                <table class="price-list" id="food-table">
+                    <tr><th>Товар</th><th>Цена</th><th>Описание</th><th>Действие</th></tr>
+                    <tr data-id="food1" data-price="1200">
+                        <td>Royal Canin (для кошек)</td>
+                        <td class="price">1200 руб./кг</td>
+                        <td>Премиум корм</td>
+                        <td><button onclick="addToCart('Royal Canin (для кошек)', 1200)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="food2" data-price="1300">
+                        <td>Royal Canin (для собак)</td>
+                        <td class="price">1300 руб./кг</td>
+                        <td>Премиум корм</td>
+                        <td><button onclick="addToCart('Royal Canin (для собак)', 1300)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="food3" data-price="1500">
+                        <td>Hill's (лечебный)</td>
+                        <td class="price">1500 руб./кг</td>
+                        <td>Для животных с проблемами ЖКТ</td>
+                        <td><button onclick="addToCart('Hill\'s (лечебный)', 1500)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="food4" data-price="1100">
+                        <td>Purina Pro Plan</td>
+                        <td class="price">1100 руб./кг</td>
+                        <td>Для активных собак</td>
+                        <td><button onclick="addToCart('Purina Pro Plan', 1100)" class="button">Купить</button></td>
+                    </tr>
+                </table>
+            </article>
+
+            <article>
+                <h3>Лекарства</h3>
+                <table class="price-list" id="medicine-table">
+                    <tr><th>Товар</th><th>Цена</th><th>Описание</th><th>Действие</th></tr>
+                    <tr data-id="med1" data-price="500">
+                        <td>Антибиотики</td>
+                        <td class="price">от 500 руб.</td>
+                        <td>По назначению врача</td>
+                        <td><button onclick="addToCart('Антибиотики', 500)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="med2" data-price="300">
+                        <td>Противоглистные</td>
+                        <td class="price">300 руб.</td>
+                        <td>Широкого спектра</td>
+                        <td><button onclick="addToCart('Противоглистные', 300)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="med3" data-price="450">
+                        <td>Витамины</td>
+                        <td class="price">450 руб.</td>
+                        <td>Для шерсти и кожи</td>
+                        <td><button onclick="addToCart('Витамины', 450)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="med4" data-price="400">
+                        <td>Обезболивающие</td>
+                        <td class="price">400 руб.</td>
+                        <td>Послеоперационные</td>
+                        <td><button onclick="addToCart('Обезболивающие', 400)" class="button">Купить</button></td>
+                    </tr>
+                </table>
+            </article>
+
+            <article>
+                <h3>Аксессуары</h3>
+                <table class="price-list" id="accessories-table">
+                    <tr><th>Товар</th><th>Цена</th><th>Описание</th><th>Действие</th></tr>
+                    <tr data-id="acc1" data-price="350">
+                        <td>Ошейники</td>
+                        <td class="price">350 руб.</td>
+                        <td>Регулируемые</td>
+                        <td><button onclick="addToCart('Ошейники', 350)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="acc2" data-price="250">
+                        <td>Миски</td>
+                        <td class="price">250 руб.</td>
+                        <td>Нержавеющая сталь</td>
+                        <td><button onclick="addToCart('Миски', 250)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="acc3" data-price="1200">
+                        <td>Лежаки</td>
+                        <td class="price">1200 руб.</td>
+                        <td>Мягкие, съемный чехол</td>
+                        <td><button onclick="addToCart('Лежаки', 1200)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="acc4" data-price="2000">
+                        <td>Переноски</td>
+                        <td class="price">2000 руб.</td>
+                        <td>Пластиковые</td>
+                        <td><button onclick="addToCart('Переноски', 2000)" class="button">Купить</button></td>
+                    </tr>
+                </table>
+            </article>
+
+            <article>
+                <h3>Средства гигиены</h3>
+                <table class="price-list" id="hygiene-table">
+                    <tr><th>Товар</th><th>Цена</th><th>Описание</th><th>Действие</th></tr>
+                    <tr data-id="hyg1" data-price="450">
+                        <td>Шампуни</td>
+                        <td class="price">450 руб.</td>
+                        <td>Для разных типов шерсти</td>
+                        <td><button onclick="addToCart('Шампуни', 450)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="hyg2" data-price="300">
+                        <td>Зубные пасты</td>
+                        <td class="price">300 руб.</td>
+                        <td>Съедобные</td>
+                        <td><button onclick="addToCart('Зубные пасты', 300)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="hyg3" data-price="400">
+                        <td>Когтерезки</td>
+                        <td class="price">400 руб.</td>
+                        <td>Для мелких пород</td>
+                        <td><button onclick="addToCart('Когтерезки', 400)" class="button">Купить</button></td>
+                    </tr>
+                </table>
+            </article>
+        </section>
+    </main>
+
+    <footer>
+        <p>🐕 ВетКлиника "Здоровый друг" | Забота о ваших питомцах</p>
+        <p>т. 222-22-22 | г. Воронеж, ул. Ветеринарная, д. 15</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
