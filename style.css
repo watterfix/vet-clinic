@@ -977,3 +977,171 @@ textarea.delivery-input {
         font-size: 20px;
     }
 }
+
+/* Улучшенные стили для таблиц */
+.price-list {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+    .price-list thead {
+        background: linear-gradient(135deg, #2c6e49, #1e4d2f);
+        color: white;
+    }
+
+    .price-list th {
+        padding: 12px 15px;
+        text-align: left;
+        font-weight: bold;
+        font-size: 16px;
+        border-right: 1px solid rgba(255,255,255,0.2);
+    }
+
+        .price-list th:last-child {
+            border-right: none;
+        }
+
+    .price-list tbody tr {
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.3s;
+    }
+
+        .price-list tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+
+    .price-list td {
+        padding: 12px 15px;
+        color: #333;
+        border-right: 1px solid #eee;
+    }
+
+        .price-list td:last-child {
+            border-right: none;
+        }
+
+        .price-list td.price {
+            font-weight: bold;
+            color: #2c6e49;
+            white-space: nowrap;
+        }
+
+    /* Специальные стили для таблиц с 2 колонками (услуги) */
+    .price-list:not([id]) td:first-child {
+        width: 70%;
+    }
+
+    .price-list:not([id]) td:last-child {
+        width: 30%;
+        text-align: right;
+    }
+
+    /* Стили для таблиц с 4 колонками (товары) */
+    .price-list[id] th:nth-child(1) {
+        width: 30%;
+    }
+
+    .price-list[id] th:nth-child(2) {
+        width: 15%;
+    }
+
+    .price-list[id] th:nth-child(3) {
+        width: 35%;
+    }
+
+    .price-list[id] th:nth-child(4) {
+        width: 20%;
+    }
+
+    .price-list[id] td:nth-child(1) {
+        width: 30%;
+    }
+
+    .price-list[id] td:nth-child(2) {
+        width: 15%;
+        text-align: center;
+    }
+
+    .price-list[id] td:nth-child(3) {
+        width: 35%;
+    }
+
+    .price-list[id] td:nth-child(4) {
+        width: 20%;
+        text-align: center;
+    }
+
+    /* Стили для кнопок в таблицах */
+    .price-list td .button {
+        padding: 8px 15px;
+        font-size: 14px;
+        white-space: nowrap;
+        background-color: #2c6e49;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+        .price-list td .button:hover {
+            background-color: #ffd700;
+            color: #1e4d2f;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .price-list {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+        .price-list th,
+        .price-list td {
+            padding: 10px;
+            font-size: 14px;
+        }
+
+            .price-list td .button {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+
+        /* Для таблиц с 4 колонками на мобильных */
+        .price-list[id] {
+            min-width: 600px;
+        }
+}
+
+/* Стили для aside (блок записи) */
+aside {
+    background: linear-gradient(135deg, #e8f4e8, #d4e8d4);
+    padding: 25px;
+    border-radius: 12px;
+    border-left: 5px solid #2c6e49;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+    aside h3 {
+        color: #2c6e49;
+        margin-bottom: 15px;
+        font-size: 1.3rem;
+    }
+
+    aside p {
+        margin: 10px 0;
+        color: #333;
+    }
+
+    aside strong {
+        color: #2c6e49;
+        font-size: 1.1rem;
+    }
