@@ -903,3 +903,77 @@ textarea.delivery-input {
     .checkout-btn:hover {
         background: linear-gradient(135deg, #1e4d2f, #2c6e49);
     }
+
+/* Стили для информации об оплате */
+.payment-info {
+    background-color: #fff3cd;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+    border: 2px solid #ffd700;
+}
+
+    .payment-info h3 {
+        color: #856404;
+        margin-bottom: 10px;
+    }
+
+.payment-method {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #856404;
+    margin: 10px 0;
+}
+
+.payment-note {
+    color: #856404;
+    font-style: italic;
+}
+
+.free-delivery {
+    color: #2c6e49;
+    font-weight: bold;
+    background-color: #e8f4e8;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    margin-left: 10px;
+}
+/* Стили для кнопки "Наверх" */
+.back-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #2c6e49, #1e4d2f);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    font-size: 24px;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    border: 2px solid #ffd700;
+    transition: all 0.3s ease;
+    z-index: 999;
+}
+
+    .back-to-top:hover {
+        transform: translateY(-5px);
+        background: linear-gradient(135deg, #1e4d2f, #2c6e49);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .back-to-top {
+        bottom: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+}

@@ -11,6 +11,7 @@ let isInitialized = false;
 function initProducts() {
     if (Object.keys(products).length === 0) {
         products = {
+            // Существующие товары
             food1: { name: 'Royal Canin (для кошек)', price: 1200, category: 'food' },
             food2: { name: 'Royal Canin (для собак)', price: 1300, category: 'food' },
             food3: { name: 'Hill\'s (лечебный)', price: 1500, category: 'food' },
@@ -296,6 +297,9 @@ function displayCart() {
     html += '</div>';
     html += `<div class="cart-total-detailed">Итого: ${total} руб.</div>`;
 
+    // Определяем, будет ли бесплатная доставка
+    const freeDelivery = total >= 3000;
+
     // Способы получения заказа
     html += `
         <div class="delivery-methods">
@@ -316,7 +320,7 @@ function displayCart() {
             <div class="delivery-method">
                 <div class="delivery-option">
                     <input type="radio" name="deliveryMethod" id="deliveryMethod" value="delivery" onchange="toggleDeliveryForm()">
-                    <label for="deliveryMethod"><strong>Доставка</strong> (300 руб.)</label>
+                    <label for="deliveryMethod"><strong>Доставка</strong> ${freeDelivery ? '<span class="free-delivery">(бесплатно при заказе от 3000 руб.)</span>' : '(300 руб.)'}</label>
                 </div>
                 <div id="deliveryForm" class="delivery-info" style="display: none;">
                     <div class="form-group">
@@ -332,6 +336,12 @@ function displayCart() {
                         <textarea id="deliveryComment" placeholder="Домофон, этаж, особенности проезда" class="delivery-input" rows="2"></textarea>
                     </div>
                 </div>
+            </div>
+            
+            <div class="payment-info">
+                <h3>Оплата</h3>
+                <p class="payment-method">💳 Оплата после получения товара</p>
+                <p class="payment-note">Вы сможете оплатить заказ наличными или картой при получении</p>
             </div>
             
             <button onclick="processOrder()" class="button checkout-btn">Оформить заказ</button>
@@ -367,10 +377,14 @@ function processOrder() {
     let deliveryCost = 0;
     let deliveryText = 'самовывозом';
 
+    // Проверяем, будет ли бесплатная доставка
+    const total = cart.reduce((sum, item) => sum + item.price, 0);
+    const freeDelivery = total >= 3000;
+
     if (deliveryMethod && deliveryMethod.checked) {
         deliveryValue = 'delivery';
-        deliveryCost = 300;
-        deliveryText = 'доставкой';
+        deliveryCost = freeDelivery ? 0 : 300;
+        deliveryText = 'доставкой' + (freeDelivery ? ' (бесплатно)' : '');
 
         // Проверяем заполнение данных для доставки
         const address = document.getElementById('deliveryAddress')?.value;
@@ -382,7 +396,6 @@ function processOrder() {
         }
     }
 
-    let total = cart.reduce((sum, item) => sum + item.price, 0);
     const finalTotal = total + deliveryCost;
 
     // Генерируем номер заказа
@@ -396,7 +409,11 @@ function processOrder() {
         userName: currentUser.name,
         items: [...cart],
         delivery: deliveryValue,
+        deliveryCost: deliveryCost,
+        freeDelivery: freeDelivery,
         total: finalTotal,
+        paymentMethod: 'postpaid',
+        paymentNote: 'Оплата после получения',
         date: new Date().toLocaleString()
     };
 
@@ -449,6 +466,11 @@ function processOrder() {
                     </div>
                 </div>
                 
+                <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #ffd700;">
+                    <p style="color: #856404; font-weight: bold;">💳 Оплата после получения</p>
+                    <p style="color: #856404;">Вы сможете оплатить заказ наличными или картой при получении</p>
+                </div>
+                
                 <p style="color: #666; font-style: italic;">Приезжайте за заказом в любое удобное время!</p>
             </div>
         `);
@@ -477,12 +499,17 @@ function processOrder() {
                     `).join('')}
                     <div style="display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 2px solid #2c6e49;">
                         <span style="font-weight: bold;">Стоимость доставки:</span>
-                        <span>300 руб.</span>
+                        <span>${deliveryCost > 0 ? deliveryCost + ' руб.' : 'Бесплатно'}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 18px; font-weight: bold; color: #2c6e49;">
                         <span>ИТОГО:</span>
                         <span>${finalTotal} руб.</span>
                     </div>
+                </div>
+                
+                <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #ffd700;">
+                    <p style="color: #856404; font-weight: bold;">💳 Оплата после получения</p>
+                    <p style="color: #856404;">Вы сможете оплатить заказ наличными или картой при получении</p>
                 </div>
                 
                 <p style="color: #2c6e49; font-weight: bold; font-size: 18px;">Курьер приедет в течение часа!</p>

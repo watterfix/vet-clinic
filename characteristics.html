@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
+    <header id="top">
         <h1>🐾 ВетКлиника "Здоровый друг" - Товары</h1>
     </header>
 
@@ -19,6 +19,9 @@
             <li><a href="contacts.html">Контакты</a></li>
         </ul>
     </nav>
+
+    <!-- Кнопка "Наверх" -->
+    <a href="#top" class="back-to-top" title="Наверх">↑</a>
 
     <main>
         <section>
@@ -52,6 +55,25 @@
                         <td>Для активных собак</td>
                         <td><button onclick="addToCart('Purina Pro Plan', 1100)" class="button">Купить</button></td>
                     </tr>
+                    <!-- Новые корма для собак -->
+                    <tr data-id="food5" data-price="1400">
+                        <td>Acana (для собак)</td>
+                        <td class="price">1400 руб./кг</td>
+                        <td>Беззерновой, для взрослых собак</td>
+                        <td><button onclick="addToCart('Acana (для собак)', 1400)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="food6" data-price="1600">
+                        <td>Orijen (для собак)</td>
+                        <td class="price">1600 руб./кг</td>
+                        <td>Супер-премиум, высокобелковый</td>
+                        <td><button onclick="addToCart('Orijen (для собак)', 1600)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="food7" data-price="900">
+                        <td>Pedigree (для собак)</td>
+                        <td class="price">900 руб./кг</td>
+                        <td>Для взрослых собак, с мясом</td>
+                        <td><button onclick="addToCart('Pedigree (для собак)', 900)" class="button">Купить</button></td>
+                    </tr>
                 </table>
             </article>
 
@@ -82,6 +104,31 @@
                         <td class="price">400 руб.</td>
                         <td>Послеоперационные</td>
                         <td><button onclick="addToCart('Обезболивающие', 400)" class="button">Купить</button></td>
+                    </tr>
+                    <!-- Новые лекарства для собак -->
+                    <tr data-id="med5" data-price="600">
+                        <td>Капли от блох и клещей</td>
+                        <td class="price">600 руб.</td>
+                        <td>Для собак, защита на 3 месяца</td>
+                        <td><button onclick="addToCart('Капли от блох и клещей', 600)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="med6" data-price="800">
+                        <td>Ошейник от паразитов</td>
+                        <td class="price">800 руб.</td>
+                        <td>Защита до 6 месяцев</td>
+                        <td><button onclick="addToCart('Ошейник от паразитов', 800)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="med7" data-price="550">
+                        <td>Спрей от клещей</td>
+                        <td class="price">550 руб.</td>
+                        <td>Для обработки перед прогулкой</td>
+                        <td><button onclick="addToCart('Спрей от клещей', 550)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="med8" data-price="700">
+                        <td>Хондропротекторы</td>
+                        <td class="price">700 руб.</td>
+                        <td>Для суставов крупных пород</td>
+                        <td><button onclick="addToCart('Хондропротекторы', 700)" class="button">Купить</button></td>
                     </tr>
                 </table>
             </article>
@@ -114,6 +161,37 @@
                         <td>Пластиковые</td>
                         <td><button onclick="addToCart('Переноски', 2000)" class="button">Купить</button></td>
                     </tr>
+                    <!-- Новые аксессуары для собак -->
+                    <tr data-id="acc5" data-price="450">
+                        <td>Поводок-рулетка</td>
+                        <td class="price">450 руб.</td>
+                        <td>5 метров, для средних пород</td>
+                        <td><button onclick="addToCart('Поводок-рулетка', 450)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="acc6" data-price="850">
+                        <td>Шлейка для собак</td>
+                        <td class="price">850 руб.</td>
+                        <td>Регулируемая, с мягкой подкладкой</td>
+                        <td><button onclick="addToCart('Шлейка для собак', 850)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="acc7" data-price="300">
+                        <td>Игрушка-канат</td>
+                        <td class="price">300 руб.</td>
+                        <td>Для активных игр</td>
+                        <td><button onclick="addToCart('Игрушка-канат', 300)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="acc8" data-price="500">
+                        <td>Мяч для собак</td>
+                        <td class="price">500 руб.</td>
+                        <td>Прорезиненный, прыгучий</td>
+                        <td><button onclick="addToCart('Мяч для собак', 500)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="acc9" data-price="1500">
+                        <td>Домик-будка</td>
+                        <td class="price">1500 руб.</td>
+                        <td>Утепленный, для улицы</td>
+                        <td><button onclick="addToCart('Домик-будка', 1500)" class="button">Купить</button></td>
+                    </tr>
                 </table>
             </article>
 
@@ -139,6 +217,37 @@
                         <td>Для мелких пород</td>
                         <td><button onclick="addToCart('Когтерезки', 400)" class="button">Купить</button></td>
                     </tr>
+                    <!-- Новые средства гигиены для собак -->
+                    <tr data-id="hyg4" data-price="600">
+                        <td>Когтерезка для крупных пород</td>
+                        <td class="price">600 руб.</td>
+                        <td>Усиленные лезвия</td>
+                        <td><button onclick="addToCart('Когтерезка для крупных пород', 600)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="hyg5" data-price="350">
+                        <td>Расческа-пуходерка</td>
+                        <td class="price">350 руб.</td>
+                        <td>Для подшерстка</td>
+                        <td><button onclick="addToCart('Расческа-пуходерка', 350)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="hyg6" data-price="500">
+                        <td>Фурминатор</td>
+                        <td class="price">500 руб.</td>
+                        <td>Для удаления отмершей шерсти</td>
+                        <td><button onclick="addToCart('Фурминатор', 500)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="hyg7" data-price="280">
+                        <td>Салфетки для лап</td>
+                        <td class="price">280 руб.</td>
+                        <td>После прогулки, упаковка 100 шт</td>
+                        <td><button onclick="addToCart('Салфетки для лап', 280)" class="button">Купить</button></td>
+                    </tr>
+                    <tr data-id="hyg8" data-price="750">
+                        <td>Сухой шампунь</td>
+                        <td class="price">750 руб.</td>
+                        <td>Для экстренного ухода</td>
+                        <td><button onclick="addToCart('Сухой шампунь', 750)" class="button">Купить</button></td>
+                    </tr>
                 </table>
             </article>
         </section>
@@ -146,7 +255,7 @@
 
     <footer>
         <p>🐕 ВетКлиника "Здоровый друг" | Забота о ваших питомцах</p>
-        <p>т. 222-22-22 | г. Воронеж, ул. Ветеринарная, д. 15</p>
+        <p>📞 т. 222-22-22 | 📍 г. Воронеж, ул. Ветеринарная, д. 15</p>
     </footer>
 
     <script src="script.js"></script>
