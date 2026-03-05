@@ -170,6 +170,93 @@ function generateOrderNumber() {
     return orderNumber;
 }
 
+// Функция для показа стилизованного диалогового окна
+function showStyledAlert(content) {
+    // Создаем затемненный фон
+    const overlay = document.createElement('div');
+    overlay.className = 'custom-alert-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 3000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 0.3s ease;
+    `;
+
+    // Создаем само диалоговое окно
+    const alertBox = document.createElement('div');
+    alertBox.className = 'custom-alert';
+    alertBox.style.cssText = `
+        background-color: white;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        border: 3px solid #2c6e49;
+        animation: slideUp 0.3s ease;
+    `;
+
+    // Добавляем кнопку закрытия
+    const closeButton = document.createElement('span');
+    closeButton.innerHTML = '&times;';
+    closeButton.style.cssText = `
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 28px;
+        cursor: pointer;
+        color: #999;
+        transition: color 0.3s;
+        z-index: 10;
+    `;
+    closeButton.onmouseover = () => closeButton.style.color = '#333';
+    closeButton.onmouseout = () => closeButton.style.color = '#999';
+    closeButton.onclick = () => document.body.removeChild(overlay);
+
+    // Добавляем содержимое
+    alertBox.innerHTML = content;
+    alertBox.appendChild(closeButton);
+    overlay.appendChild(alertBox);
+    document.body.appendChild(overlay);
+
+    // Добавляем анимации
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Закрытие по клику на фон
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) {
+            document.body.removeChild(overlay);
+        }
+    });
+}
+
 // Отображение корзины на странице cart.html
 function displayCart() {
     const cartContainer = document.getElementById('cartContainer');
@@ -332,53 +419,76 @@ function processOrder() {
     cart = [];
     localStorage.setItem('cart', JSON.stringify(cart));
 
-    // Показываем уведомление в зависимости от способа получения
+    // Показываем стилизованное диалоговое окно в зависимости от способа получения
     if (deliveryValue === 'pickup') {
-        showNotification(`✅ Заказ #${orderNumber} оформлен! Самовывоз с ул. Ветеринарная, 15`, 'success');
-
-        // Показываем детали самовывоза
-        setTimeout(() => {
-            alert(`
-                🎉 ЗАКАЗ #${orderNumber} ОФОРМЛЕН!
+        showStyledAlert(`
+            <div style="text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 15px;">🎉</div>
+                <h2 style="color: #2c6e49; margin-bottom: 15px;">ЗАКАЗ ОФОРМЛЕН!</h2>
+                <div style="background: linear-gradient(135deg, #2c6e49, #1e4d2f); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong style="font-size: 24px;">#${orderNumber}</strong>
+                </div>
                 
-                Способ получения: САМОВЫВОЗ
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+                    <p style="margin: 8px 0; color: #333;"><strong style="color: #2c6e49;">📍 Адрес самовывоза:</strong> г. Воронеж, ул. Ветеринарная, д. 15</p>
+                    <p style="margin: 8px 0; color: #333;"><strong style="color: #2c6e49;">🕒 Режим работы:</strong> круглосуточно</p>
+                    <p style="margin: 8px 0; color: #333;"><strong style="color: #2c6e49;">📞 Телефон:</strong> 222-22-22</p>
+                </div>
                 
-                📍 Адрес: г. Воронеж, ул. Ветеринарная, д. 15
-                🕒 Режим работы: круглосуточно
-                📞 Телефон: 222-22-22
+                <div style="background-color: #e8f4e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #2c6e49; margin-bottom: 10px;">Ваш заказ:</h3>
+                    ${order.items.map(item => `
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #2c6e49;">
+                            <span>${item.name}</span>
+                            <span style="font-weight: bold;">${item.price} руб.</span>
+                        </div>
+                    `).join('')}
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 18px; font-weight: bold; color: #2c6e49;">
+                        <span>ИТОГО:</span>
+                        <span>${finalTotal} руб.</span>
+                    </div>
+                </div>
                 
-                Товары:
-                ${order.items.map(item => `• ${item.name}: ${item.price} руб.`).join('\n')}
-                
-                Итого: ${finalTotal} руб.
-                
-                Приезжайте за заказом в любое удобное время!
-            `);
-        }, 500);
+                <p style="color: #666; font-style: italic;">Приезжайте за заказом в любое удобное время!</p>
+            </div>
+        `);
     } else {
-        showNotification(`✅ Заказ #${orderNumber} оформлен! Курьер приедет в течение часа`, 'success');
-
-        // Показываем детали доставки
-        setTimeout(() => {
-            alert(`
-                🎉 ЗАКАЗ #${orderNumber} ОФОРМЛЕН!
+        showStyledAlert(`
+            <div style="text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 15px;">🚚</div>
+                <h2 style="color: #2c6e49; margin-bottom: 15px;">ЗАКАЗ ОФОРМЛЕН!</h2>
+                <div style="background: linear-gradient(135deg, #2c6e49, #1e4d2f); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong style="font-size: 24px;">#${orderNumber}</strong>
+                </div>
                 
-                Способ получения: ДОСТАВКА
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+                    <p style="margin: 8px 0; color: #333;"><strong style="color: #2c6e49;">🚚 Адрес доставки:</strong> ${order.deliveryAddress}</p>
+                    <p style="margin: 8px 0; color: #333;"><strong style="color: #2c6e49;">📞 Телефон:</strong> ${order.deliveryPhone}</p>
+                    ${order.deliveryComment ? `<p style="margin: 8px 0; color: #333;"><strong style="color: #2c6e49;">💬 Комментарий:</strong> ${order.deliveryComment}</p>` : ''}
+                </div>
                 
-                🚚 Адрес доставки: ${order.deliveryAddress}
-                📞 Телефон: ${order.deliveryPhone}
-                ${order.deliveryComment ? `💬 Комментарий: ${order.deliveryComment}` : ''}
+                <div style="background-color: #e8f4e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #2c6e49; margin-bottom: 10px;">Ваш заказ:</h3>
+                    ${order.items.map(item => `
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #2c6e49;">
+                            <span>${item.name}</span>
+                            <span style="font-weight: bold;">${item.price} руб.</span>
+                        </div>
+                    `).join('')}
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 2px solid #2c6e49;">
+                        <span style="font-weight: bold;">Стоимость доставки:</span>
+                        <span>300 руб.</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 18px; font-weight: bold; color: #2c6e49;">
+                        <span>ИТОГО:</span>
+                        <span>${finalTotal} руб.</span>
+                    </div>
+                </div>
                 
-                Товары:
-                ${order.items.map(item => `• ${item.name}: ${item.price} руб.`).join('\n')}
-                
-                Стоимость доставки: 300 руб.
-                Итого: ${finalTotal} руб.
-                
-                Курьер приедет в течение часа!
-                Спасибо за заказ!
-            `);
-        }, 500);
+                <p style="color: #2c6e49; font-weight: bold; font-size: 18px;">Курьер приедет в течение часа!</p>
+                <p style="color: #666; font-style: italic; margin-top: 10px;">Спасибо за заказ!</p>
+            </div>
+        `);
     }
 
     // Обновляем отображение
