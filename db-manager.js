@@ -19,7 +19,11 @@ const DB_MANAGER = {
     // ЗАГРУЗКА ДАННЫХ
     // ============================================
     
-    // Загрузка всех данных с сервера
+    // Загрузка всех данных с сервера (основной метод)
+    async loadDatabase() {
+        return await this.loadAllData();
+    },
+    
     async loadAllData() {
         if (this.isLoading) return this.currentData;
         
@@ -48,9 +52,9 @@ const DB_MANAGER = {
                     settings: settings || {}
                 };
                 
-                console.log('Данные успешно загружены с сервера');
+                console.log('✅ Данные успешно загружены с сервера');
             } else {
-                console.log('API недоступен, загружаем из localStorage');
+                console.log('⚠️ API недоступен, загружаем из localStorage');
                 this.loadFromLocalStorage();
             }
             
@@ -64,7 +68,7 @@ const DB_MANAGER = {
             return this.currentData;
             
         } catch (error) {
-            console.error('Ошибка загрузки данных:', error);
+            console.error('❌ Ошибка загрузки данных:', error);
             this.loadFromLocalStorage();
             this.isLoading = false;
             return this.currentData;
@@ -80,7 +84,7 @@ const DB_MANAGER = {
             });
             return true;
         } catch (error) {
-            console.warn('API сервер недоступен');
+            console.warn('⚠️ API сервер недоступен');
             return false;
         }
     },
@@ -158,7 +162,7 @@ const DB_MANAGER = {
     
     // Загрузка из localStorage (резервный вариант)
     loadFromLocalStorage() {
-        console.log('Загрузка данных из localStorage...');
+        console.log('📁 Загрузка данных из localStorage...');
         
         try {
             // Загружаем пользователей
@@ -185,9 +189,9 @@ const DB_MANAGER = {
             // Загружаем настройки
             this.currentData.settings = JSON.parse(localStorage.getItem('settings')) || {};
             
-            console.log('Данные загружены из localStorage');
+            console.log('✅ Данные загружены из localStorage');
         } catch (error) {
-            console.error('Ошибка загрузки из localStorage:', error);
+            console.error('❌ Ошибка загрузки из localStorage:', error);
         }
     },
     
@@ -226,9 +230,9 @@ const DB_MANAGER = {
             // Создаем резервную копию
             this.createBackup();
             
-            console.log('Данные синхронизированы с localStorage');
+            console.log('💾 Данные синхронизированы с localStorage');
         } catch (error) {
-            console.error('Ошибка синхронизации с localStorage:', error);
+            console.error('❌ Ошибка синхронизации с localStorage:', error);
         }
     },
     
@@ -248,10 +252,14 @@ const DB_MANAGER = {
     
     // Добавление пользователя
     async addUser(userData) {
-        console.log('Добавление пользователя:', userData.email);
+        console.log('➕ Добавление пользователя:', userData.email);
         
         const newUser = {
-            ...userData,
+            id: userData.email,
+            email: userData.email,
+            name: userData.name,
+            password: userData.password,
+            role: userData.role || 'user',
             registered: new Date().toISOString()
         };
         
@@ -268,12 +276,12 @@ const DB_MANAGER = {
             if (response.ok) {
                 const savedUser = await response.json();
                 this.currentData.users.push(savedUser);
-                console.log('Пользователь сохранен на сервере');
+                console.log('✅ Пользователь сохранен на сервере');
             } else {
                 throw new Error('Server error');
             }
         } catch (error) {
-            console.warn('Сервер недоступен, сохраняем в localStorage');
+            console.warn('⚠️ Сервер недоступен, сохраняем в localStorage');
             
             // Сохраняем в localStorage
             let users = JSON.parse(localStorage.getItem('users')) || {};
@@ -286,11 +294,7 @@ const DB_MANAGER = {
             localStorage.setItem('users', JSON.stringify(users));
             
             // Обновляем текущие данные
-            this.currentData.users.push({
-                id: userData.email,
-                email: userData.email,
-                ...newUser
-            });
+            this.currentData.users.push(newUser);
         }
         
         // Синхронизируем и создаем бэкап
@@ -301,7 +305,7 @@ const DB_MANAGER = {
     
     // Обновление пользователя
     async updateUser(email, userData) {
-        console.log('Обновление пользователя:', email);
+        console.log('✏️ Обновление пользователя:', email);
         
         const user = this.getUserByEmail(email);
         if (!user) return false;
@@ -321,12 +325,12 @@ const DB_MANAGER = {
             if (response.ok) {
                 const index = this.currentData.users.findIndex(u => u.email === email);
                 this.currentData.users[index] = updatedUser;
-                console.log('Пользователь обновлен на сервере');
+                console.log('✅ Пользователь обновлен на сервере');
             } else {
                 throw new Error('Server error');
             }
         } catch (error) {
-            console.warn('Сервер недоступен, обновляем в localStorage');
+            console.warn('⚠️ Сервер недоступен, обновляем в localStorage');
             
             // Обновляем в localStorage
             let users = JSON.parse(localStorage.getItem('users')) || {};
@@ -346,11 +350,11 @@ const DB_MANAGER = {
     // Удаление пользователя
     async deleteUser(email) {
         if (email === 'admin@vetclinic.ru') {
-            console.warn('Попытка удалить главного администратора');
+            console.warn('⚠️ Попытка удалить главного администратора');
             return false;
         }
         
-        console.log('Удаление пользователя:', email);
+        console.log('🗑️ Удаление пользователя:', email);
         
         const user = this.getUserByEmail(email);
         if (!user) return false;
@@ -363,12 +367,12 @@ const DB_MANAGER = {
             
             if (response.ok) {
                 this.currentData.users = this.currentData.users.filter(u => u.email !== email);
-                console.log('Пользователь удален с сервера');
+                console.log('✅ Пользователь удален с сервера');
             } else {
                 throw new Error('Server error');
             }
         } catch (error) {
-            console.warn('Сервер недоступен, удаляем из localStorage');
+            console.warn('⚠️ Сервер недоступен, удаляем из localStorage');
             
             // Удаляем из localStorage
             let users = JSON.parse(localStorage.getItem('users')) || {};
@@ -390,7 +394,7 @@ const DB_MANAGER = {
     
     // Добавление товара
     async addProduct(productData) {
-        console.log('Добавление товара:', productData.id);
+        console.log('➕ Добавление товара:', productData.id);
         
         try {
             // Пытаемся сохранить на сервер
@@ -405,12 +409,12 @@ const DB_MANAGER = {
             if (response.ok) {
                 const savedProduct = await response.json();
                 this.currentData.products.push(savedProduct);
-                console.log('Товар сохранен на сервере');
+                console.log('✅ Товар сохранен на сервере');
             } else {
                 throw new Error('Server error');
             }
         } catch (error) {
-            console.warn('Сервер недоступен, сохраняем в localStorage');
+            console.warn('⚠️ Сервер недоступен, сохраняем в localStorage');
             
             // Сохраняем в localStorage
             let products = JSON.parse(localStorage.getItem('products')) || {};
@@ -427,7 +431,7 @@ const DB_MANAGER = {
     
     // Обновление товара
     async updateProduct(id, productData) {
-        console.log('Обновление товара:', id);
+        console.log('✏️ Обновление товара:', id);
         
         const product = this.currentData.products.find(p => p.id === id);
         if (!product) return false;
@@ -445,12 +449,12 @@ const DB_MANAGER = {
             if (response.ok) {
                 const index = this.currentData.products.findIndex(p => p.id === id);
                 this.currentData.products[index] = { ...product, ...productData };
-                console.log('Товар обновлен на сервере');
+                console.log('✅ Товар обновлен на сервере');
             } else {
                 throw new Error('Server error');
             }
         } catch (error) {
-            console.warn('Сервер недоступен, обновляем в localStorage');
+            console.warn('⚠️ Сервер недоступен, обновляем в localStorage');
             
             // Обновляем в localStorage
             let products = JSON.parse(localStorage.getItem('products')) || {};
@@ -469,7 +473,7 @@ const DB_MANAGER = {
     
     // Удаление товара
     async deleteProduct(id) {
-        console.log('Удаление товара:', id);
+        console.log('🗑️ Удаление товара:', id);
         
         try {
             // Пытаемся удалить с сервера
@@ -479,12 +483,12 @@ const DB_MANAGER = {
             
             if (response.ok) {
                 this.currentData.products = this.currentData.products.filter(p => p.id !== id);
-                console.log('Товар удален с сервера');
+                console.log('✅ Товар удален с сервера');
             } else {
                 throw new Error('Server error');
             }
         } catch (error) {
-            console.warn('Сервер недоступен, удаляем из localStorage');
+            console.warn('⚠️ Сервер недоступен, удаляем из localStorage');
             
             // Удаляем из localStorage
             let products = JSON.parse(localStorage.getItem('products')) || {};
@@ -506,7 +510,7 @@ const DB_MANAGER = {
     
     // Добавление заказа
     async addOrder(orderData) {
-        console.log('Добавление заказа');
+        console.log('➕ Добавление заказа');
         
         const newOrder = {
             ...orderData,
@@ -526,12 +530,12 @@ const DB_MANAGER = {
             if (response.ok) {
                 const savedOrder = await response.json();
                 this.currentData.orders.push(savedOrder);
-                console.log('Заказ сохранен на сервере');
+                console.log('✅ Заказ сохранен на сервере');
             } else {
                 throw new Error('Server error');
             }
         } catch (error) {
-            console.warn('Сервер недоступен, сохраняем в localStorage');
+            console.warn('⚠️ Сервер недоступен, сохраняем в localStorage');
             
             // Сохраняем в localStorage
             let orders = JSON.parse(localStorage.getItem('orders')) || [];
@@ -547,7 +551,7 @@ const DB_MANAGER = {
     
     // Удаление заказа
     async deleteOrder(orderId) {
-        console.log('Удаление заказа:', orderId);
+        console.log('🗑️ Удаление заказа:', orderId);
         
         try {
             // Пытаемся удалить с сервера
@@ -557,12 +561,12 @@ const DB_MANAGER = {
             
             if (response.ok) {
                 this.currentData.orders = this.currentData.orders.filter(o => o.id !== orderId);
-                console.log('Заказ удален с сервера');
+                console.log('✅ Заказ удален с сервера');
             } else {
                 throw new Error('Server error');
             }
         } catch (error) {
-            console.warn('Сервер недоступен, удаляем из localStorage');
+            console.warn('⚠️ Сервер недоступен, удаляем из localStorage');
             
             // Удаляем из localStorage
             let orders = JSON.parse(localStorage.getItem('orders')) || [];
@@ -582,7 +586,7 @@ const DB_MANAGER = {
     
     // Добавление сообщения
     async addMessage(messageData) {
-        console.log('Добавление сообщения');
+        console.log('➕ Добавление сообщения');
         
         const newMessage = {
             ...messageData,
@@ -604,12 +608,12 @@ const DB_MANAGER = {
             if (response.ok) {
                 const savedMessage = await response.json();
                 this.currentData.messages.push(savedMessage);
-                console.log('Сообщение сохранено на сервере');
+                console.log('✅ Сообщение сохранено на сервере');
             } else {
                 throw new Error('Server error');
             }
         } catch (error) {
-            console.warn('Сервер недоступен, сохраняем в localStorage');
+            console.warn('⚠️ Сервер недоступен, сохраняем в localStorage');
             
             // Сохраняем в localStorage
             let messages = JSON.parse(localStorage.getItem('messages')) || [];
@@ -671,13 +675,13 @@ const DB_MANAGER = {
     // Логирование статистики
     logStats() {
         const stats = this.getStats();
-        console.log('=== СТАТИСТИКА БД ===');
+        console.log('📊 === СТАТИСТИКА БД ===');
         console.log(`👥 Пользователей: ${stats.totalUsers} (👑 ${stats.adminCount} админов)`);
         console.log(`📦 Товаров: ${stats.totalProducts}`);
         console.log(`📋 Заказов: ${stats.totalOrders} (сегодня: ${stats.todayOrders})`);
         console.log(`💬 Сообщений: ${stats.totalMessages} (сегодня: ${stats.todayMessages})`);
         console.log(`💰 Выручка: ${stats.totalRevenue} ₽`);
-        console.log('=====================');
+        console.log('📊 ====================');
     },
     
     // ============================================
@@ -740,10 +744,10 @@ const DB_MANAGER = {
             }
             
             this.syncToLocalStorage();
-            console.log('Данные восстановлены из бэкапа');
+            console.log('✅ Данные восстановлены из бэкапа');
             return true;
         } catch (error) {
-            console.error('Ошибка восстановления из бэкапа:', error);
+            console.error('❌ Ошибка восстановления из бэкапа:', error);
             return false;
         }
     },
@@ -754,7 +758,7 @@ const DB_MANAGER = {
     
     // Сброс до начальных данных
     async resetToDefault() {
-        console.log('Сброс базы данных до начального состояния');
+        console.log('🔄 Сброс базы данных до начального состояния');
         
         const defaultUsers = [
             {
@@ -849,15 +853,15 @@ const DB_MANAGER = {
                 });
             }
             
-            console.log('Сервер синхронизирован');
+            console.log('✅ Сервер синхронизирован');
         } catch (error) {
-            console.warn('Не удалось синхронизировать с сервером');
+            console.warn('⚠️ Не удалось синхронизировать с сервером');
         }
         
         // Создаем бэкап
         this.createBackup();
         
-        console.log('База данных сброшена до начального состояния');
+        console.log('✅ База данных сброшена до начального состояния');
         this.logStats();
     }
 };
@@ -870,9 +874,9 @@ const DB_MANAGER = {
 setInterval(() => {
     if (DB_MANAGER.currentData) {
         DB_MANAGER.syncToLocalStorage();
-        console.log('Автосохранение выполнено в', new Date().toLocaleTimeString());
+        console.log('💾 Автосохранение выполнено в', new Date().toLocaleTimeString());
     }
-}, 5000);
+}, 60000);
 
 // Сохранение перед закрытием страницы
 window.addEventListener('beforeunload', () => {
