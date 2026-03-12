@@ -27,10 +27,10 @@
     <main>
         <div class="db-container">
             <div id="adminCheck" class="admin-warning">
-                ⚠️ Проверка прав доступа...
+                ⏳ Загрузка...
             </div>
 
-            <div class="export-buttons">
+            <div class="export-buttons" style="display: none;">
                 <button onclick="exportDatabase()" class="btn-export">📥 Экспортировать БД</button>
                 <button onclick="triggerFileInput()" class="btn-export">📤 Импортировать БД</button>
                 <button onclick="refreshData()" class="btn-export">🔄 Обновить</button>
@@ -40,18 +40,18 @@
 
             <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="importDatabase(this.files[0])">
 
-            <div class="import-area" onclick="document.getElementById('fileInput').click()">
+            <div class="import-area" style="display: none;" onclick="document.getElementById('fileInput').click()">
                 <p>📁 Нажмите для выбора файла базы данных или перетащите файл сюда</p>
                 <p style="color: #666; font-size: 14px; margin-top: 10px;">Поддерживаются файлы формата .json</p>
             </div>
 
             <div id="fileInfo" class="file-info" style="display: none;"></div>
 
-            <div class="stats-grid" id="statsGrid">
+            <div class="stats-grid" id="statsGrid" style="display: none;">
                 <!-- Статистика будет загружена через JS -->
             </div>
 
-            <div class="db-tabs">
+            <div class="db-tabs" style="display: none;">
                 <button class="db-tab active" onclick="switchTab('users')">👥 Пользователи</button>
                 <button class="db-tab" onclick="switchTab('products')">📦 Товары</button>
                 <button class="db-tab" onclick="switchTab('orders')">📋 Заказы</button>
@@ -59,7 +59,7 @@
             </div>
 
             <!-- Панель пользователей -->
-            <div id="usersPanel" class="db-panel active">
+            <div id="usersPanel" class="db-panel" style="display: none;">
                 <h2>👥 Управление пользователями</h2>
 
                 <div class="search-box">
@@ -106,7 +106,7 @@
             </div>
 
             <!-- Панель товаров -->
-            <div id="productsPanel" class="db-panel">
+            <div id="productsPanel" class="db-panel" style="display: none;">
                 <h2>📦 Управление товарами</h2>
 
                 <div class="search-box">
@@ -159,7 +159,7 @@
             </div>
 
             <!-- Панель заказов -->
-            <div id="ordersPanel" class="db-panel">
+            <div id="ordersPanel" class="db-panel" style="display: none;">
                 <h2>📋 Управление заказами</h2>
 
                 <div class="search-box">
@@ -187,7 +187,7 @@
             </div>
 
             <!-- Панель резервных копий -->
-            <div id="backupsPanel" class="db-panel">
+            <div id="backupsPanel" class="db-panel" style="display: none;">
                 <h2>💾 Резервные копии</h2>
 
                 <div class="export-buttons">

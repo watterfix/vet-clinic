@@ -4,32 +4,104 @@
 
 // Глобальные переменные
 let currentUser = null;
-let backups = [];
-let isInitialized = false;
+
+// Ждем полной загрузки DOM и всех скриптов
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('DOM загружен, инициализация...');
+
+    // Проверяем наличие DB_MANAGER
+    if (typeof DB_MANAGER === 'undefined') {
+        console.error('DB_MANAGER не загружен!');
+        showAdminWarning('Ошибка загрузки менеджера БД');
+        return;
+    }
+
+    // Запускаем инициализацию
+    initPage();
+});
+
+// Функция показа предупреждения
+function showAdminWarning(message) {
+    const adminCheck = document.getElementById('adminCheck');
+    if (adminCheck) {
+        adminCheck.style.display = 'block';
+        adminCheck.innerHTML = `⚠️ ${message}`;
+        adminCheck.style.backgroundColor = '#dc3545';
+        adminCheck.style.color = 'white';
+        adminCheck.style.borderColor = '#dc3545';
+    }
+}
 
 // Проверка прав администратора
 function checkAdminAccess() {
-    const adminWarning = document.getElementById('adminCheck');
-    if (!adminWarning) return false;
+    const adminCheck = document.getElementById('adminCheck');
+    if (!adminCheck) return false;
 
     currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
-    if (!currentUser || currentUser.role !== 'admin') {
-        adminWarning.style.display = 'block';
-        adminWarning.innerHTML = '⚠️ Доступ запрещен! Только администратор может просматривать эту страницу.';
-        adminWarning.style.backgroundColor = '#dc3545';
-        adminWarning.style.color = 'white';
-        adminWarning.style.borderColor = '#dc3545';
+    if (!currentUser) {
+        adminCheck.style.display = 'block';
+        adminCheck.innerHTML = '⚠️ Необходимо войти в систему!';
+        adminCheck.style.backgroundColor = '#dc3545';
+        adminCheck.style.color = 'white';
+        adminCheck.style.borderColor = '#dc3545';
+        return false;
+    }
 
-        // Скрываем все панели и кнопки
+    if (currentUser.role !== 'admin') {
+        adminCheck.style.display = 'block';
+        adminCheck.innerHTML = '⚠️ Доступ запрещен! Только администратор может просматривать эту страницу.';
+        adminCheck.style.backgroundColor = '#dc3545';
+        adminCheck.style.color = 'white';
+        adminCheck.style.borderColor = '#dc3545';
+        return false;
+    }
+
+    adminCheck.style.display = 'none';
+    return true;
+}
+
+// Инициализация страницы
+async function initPage() {
+    console.log('Инициализация страницы...');
+
+    // Показываем загрузку
+    const adminCheck = document.getElementById('adminCheck');
+    if (adminCheck) {
+        adminCheck.style.display = 'block';
+        adminCheck.innerHTML = '⏳ Проверка прав доступа...';
+        adminCheck.style.backgroundColor = '#ffc107';
+        adminCheck.style.color = '#1e4d2f';
+        adminCheck.style.borderColor = '#ffc107';
+    }
+
+    // Проверяем права
+    if (!checkAdminAccess()) {
+        return;
+    }
+
+    // Загружаем данные
+    try {
+        await DB_MANAGER.loadDatabase();
+        console.log('Данные загружены');
+
+        // Загружаем все панели
+        loadUsers();
+        loadProducts();
+        loadOrders();
+        updateStats();
+        loadBackups();
+
+        console.log('Страница инициализирована');
+
+        // Показываем интерфейс
         document.querySelectorAll('.db-panel, .export-buttons, .import-area, .db-tabs').forEach(el => {
-            if (el) el.style.display = 'none';
+            if (el) el.style.display = '';
         });
 
-        return false;
-    } else {
-        adminWarning.style.display = 'none';
-        return true;
+    } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+        showAdminWarning('Ошибка загрузки данных');
     }
 }
 
@@ -67,10 +139,6 @@ function switchTab(tabName) {
     }
 }
 
-// ============================================
-// УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ
-// ============================================
-
 // Загрузка пользователей
 function loadUsers() {
     if (!checkAdminAccess()) return;
@@ -78,14 +146,14 @@ function loadUsers() {
     const tbody = document.getElementById('usersTableBody');
     if (!tbody) return;
 
-    let html = '';
-    const users = DB_MANAGER.currentData.users || {};
+    const users = DB_MANAGER.currentData?.users || {};
 
     if (Object.keys(users).length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px;">Нет пользователей</td></tr>';
         return;
     }
 
+    let html = '';
     Object.keys(users).sort().forEach(email => {
         const user = users[email];
         const safeEmail = email.replace(/[@.]/g, '_');
@@ -112,8 +180,6 @@ function loadUsers() {
 
 // Поиск пользователей
 function searchUsers() {
-    if (!checkAdminAccess()) return;
-
     const searchText = document.getElementById('userSearch').value.toLowerCase();
     const rows = document.querySelectorAll('#usersTableBody tr');
 
@@ -125,7 +191,6 @@ function searchUsers() {
 
 // Показать форму добавления пользователя
 function showAddUserForm() {
-    if (!checkAdminAccess()) return;
     document.getElementById('addUserForm').style.display = 'block';
 }
 
@@ -136,8 +201,6 @@ function hideAddUserForm() {
 
 // Добавление пользователя
 function addUser() {
-    if (!checkAdminAccess()) return;
-
     const name = document.getElementById('newUserName').value;
     const email = document.getElementById('newUserEmail').value;
     const password = document.getElementById('newUserPassword').value;
@@ -148,14 +211,12 @@ function addUser() {
         return;
     }
 
-    // Проверяем существование
-    const users = DB_MANAGER.currentData.users || {};
+    const users = DB_MANAGER.currentData?.users || {};
     if (users[email]) {
         showNotification('Пользователь с таким email уже существует!', 'error');
         return;
     }
 
-    // Добавляем через DB_MANAGER
     const result = DB_MANAGER.addUser({
         name: name,
         email: email,
@@ -169,22 +230,17 @@ function addUser() {
         loadUsers();
         updateStats();
 
-        // Очищаем форму
         document.getElementById('newUserName').value = '';
         document.getElementById('newUserEmail').value = '';
         document.getElementById('newUserPassword').value = '';
-    } else {
-        showNotification('Ошибка при добавлении', 'error');
     }
 }
 
 // Редактирование пользователя
 function editUser(email) {
-    if (!checkAdminAccess()) return;
-
     const safeEmail = email.replace(/[@.]/g, '_');
     const row = document.getElementById(`user-${safeEmail}`);
-    const user = DB_MANAGER.currentData.users[email];
+    const user = DB_MANAGER.currentData?.users[email];
 
     if (!user) return;
 
@@ -209,8 +265,6 @@ function editUser(email) {
 
 // Сохранение редактирования пользователя
 function saveUserEdit(email) {
-    if (!checkAdminAccess()) return;
-
     const safeEmail = email.replace(/[@.]/g, '_');
     const newName = document.getElementById(`edit-name-${safeEmail}`).value;
     const newRole = document.getElementById(`edit-role-${safeEmail}`).value;
@@ -228,8 +282,6 @@ function saveUserEdit(email) {
     if (DB_MANAGER.updateUser(email, updateData)) {
         showNotification('Пользователь обновлен', 'success');
         loadUsers();
-    } else {
-        showNotification('Ошибка обновления', 'error');
     }
 }
 
@@ -240,8 +292,6 @@ function cancelUserEdit(email) {
 
 // Удаление пользователя
 function deleteUser(email) {
-    if (!checkAdminAccess()) return;
-
     if (email === 'admin@vetclinic.ru') {
         showNotification('Нельзя удалить главного администратора!', 'error');
         return;
@@ -252,31 +302,23 @@ function deleteUser(email) {
             showNotification('Пользователь удален', 'success');
             loadUsers();
             updateStats();
-        } else {
-            showNotification('Ошибка удаления', 'error');
         }
     }
 }
 
-// ============================================
-// УПРАВЛЕНИЕ ТОВАРАМИ
-// ============================================
-
 // Загрузка товаров
 function loadProducts() {
-    if (!checkAdminAccess()) return;
-
     const tbody = document.getElementById('productsTableBody');
     if (!tbody) return;
 
-    let html = '';
-    const products = DB_MANAGER.currentData.products || {};
+    const products = DB_MANAGER.currentData?.products || {};
 
     if (Object.keys(products).length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px;">Нет товаров</td></tr>';
         return;
     }
 
+    let html = '';
     Object.keys(products).sort().forEach(id => {
         const product = products[id];
         const categoryClass = `category-${product.category}`;
@@ -302,8 +344,6 @@ function loadProducts() {
 
 // Поиск товаров
 function searchProducts() {
-    if (!checkAdminAccess()) return;
-
     const searchText = document.getElementById('productSearch').value.toLowerCase();
     const rows = document.querySelectorAll('#productsTableBody tr');
 
@@ -315,7 +355,6 @@ function searchProducts() {
 
 // Показать форму добавления товара
 function showAddProductForm() {
-    if (!checkAdminAccess()) return;
     document.getElementById('addProductForm').style.display = 'block';
 }
 
@@ -326,8 +365,6 @@ function hideAddProductForm() {
 
 // Добавление товара
 function addProduct() {
-    if (!checkAdminAccess()) return;
-
     const id = document.getElementById('newProductId').value;
     const name = document.getElementById('newProductName').value;
     const price = document.getElementById('newProductPrice').value;
@@ -339,7 +376,7 @@ function addProduct() {
         return;
     }
 
-    const products = DB_MANAGER.currentData.products || {};
+    const products = DB_MANAGER.currentData?.products || {};
     if (products[id]) {
         showNotification('Товар с таким ID уже существует!', 'error');
         return;
@@ -358,22 +395,17 @@ function addProduct() {
         loadProducts();
         updateStats();
 
-        // Очищаем форму
         document.getElementById('newProductId').value = '';
         document.getElementById('newProductName').value = '';
         document.getElementById('newProductPrice').value = '';
         document.getElementById('newProductDescription').value = '';
-    } else {
-        showNotification('Ошибка при добавлении', 'error');
     }
 }
 
 // Редактирование товара
 function editProduct(productId) {
-    if (!checkAdminAccess()) return;
-
     const row = document.getElementById(`product-${productId}`);
-    const product = DB_MANAGER.currentData.products[productId];
+    const product = DB_MANAGER.currentData?.products[productId];
 
     if (!product) return;
 
@@ -399,8 +431,6 @@ function editProduct(productId) {
 
 // Сохранение редактирования товара
 function saveProductEdit(productId) {
-    if (!checkAdminAccess()) return;
-
     const newName = document.getElementById(`edit-product-name-${productId}`).value;
     const newPrice = document.getElementById(`edit-product-price-${productId}`).value;
     const newCategory = document.getElementById(`edit-product-category-${productId}`).value;
@@ -416,8 +446,6 @@ function saveProductEdit(productId) {
     if (DB_MANAGER.updateProduct(productId, updateData)) {
         showNotification('Товар обновлен', 'success');
         loadProducts();
-    } else {
-        showNotification('Ошибка обновления', 'error');
     }
 }
 
@@ -428,9 +456,7 @@ function cancelProductEdit(productId) {
 
 // Удаление товара
 function deleteProduct(productId) {
-    if (!checkAdminAccess()) return;
-
-    const product = DB_MANAGER.currentData.products[productId];
+    const product = DB_MANAGER.currentData?.products[productId];
     if (!product) return;
 
     if (confirm(`Удалить товар "${product.name}"?`)) {
@@ -438,31 +464,23 @@ function deleteProduct(productId) {
             showNotification('Товар удален', 'success');
             loadProducts();
             updateStats();
-        } else {
-            showNotification('Ошибка удаления', 'error');
         }
     }
 }
 
-// ============================================
-// УПРАВЛЕНИЕ ЗАКАЗАМИ
-// ============================================
-
 // Загрузка заказов
 function loadOrders() {
-    if (!checkAdminAccess()) return;
-
     const tbody = document.getElementById('ordersTableBody');
     if (!tbody) return;
 
-    let html = '';
-    const orders = DB_MANAGER.currentData.orders || [];
+    const orders = DB_MANAGER.currentData?.orders || [];
 
     if (orders.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px;">Нет заказов</td></tr>';
         return;
     }
 
+    let html = '';
     orders.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(order => {
         const date = new Date(order.date).toLocaleString();
         const deliveryType = order.delivery === 'pickup' ? '🚶 Самовывоз' : '🚚 Доставка';
@@ -488,8 +506,6 @@ function loadOrders() {
 
 // Поиск заказов
 function searchOrders() {
-    if (!checkAdminAccess()) return;
-
     const searchText = document.getElementById('orderSearch').value.toLowerCase();
     const rows = document.querySelectorAll('#ordersTableBody tr');
 
@@ -501,9 +517,7 @@ function searchOrders() {
 
 // Просмотр деталей заказа
 function viewOrderDetails(orderId) {
-    if (!checkAdminAccess()) return;
-
-    const order = DB_MANAGER.currentData.orders.find(o => o.id == orderId);
+    const order = DB_MANAGER.currentData?.orders.find(o => o.id == orderId);
     if (!order) return;
 
     let itemsHtml = '';
@@ -555,27 +569,17 @@ function viewOrderDetails(orderId) {
 
 // Удаление заказа
 function deleteOrder(orderId) {
-    if (!checkAdminAccess()) return;
-
     if (confirm('Удалить заказ?')) {
         if (DB_MANAGER.deleteOrder(orderId)) {
             showNotification('Заказ удален', 'success');
             loadOrders();
             updateStats();
-        } else {
-            showNotification('Ошибка удаления', 'error');
         }
     }
 }
 
-// ============================================
-// СТАТИСТИКА
-// ============================================
-
 // Обновление статистики
 function updateStats() {
-    if (!checkAdminAccess()) return;
-
     const stats = DB_MANAGER.getStats();
 
     const statsGrid = document.getElementById('statsGrid');
@@ -610,14 +614,8 @@ function updateStats() {
     }
 }
 
-// ============================================
-// РЕЗЕРВНЫЕ КОПИИ
-// ============================================
-
 // Загрузка списка бэкапов
 function loadBackups() {
-    if (!checkAdminAccess()) return;
-
     const backupsList = document.getElementById('backupsList');
     if (!backupsList) return;
 
@@ -651,8 +649,6 @@ function loadBackups() {
 
 // Создание резервной копии
 function createBackup() {
-    if (!checkAdminAccess()) return;
-
     const stats = DB_MANAGER.getStats();
     const backup = {
         id: Date.now(),
@@ -681,8 +677,6 @@ function createBackup() {
 
 // Восстановление из бэкапа
 function restoreBackup(index) {
-    if (!checkAdminAccess()) return;
-
     if (!confirm('Восстановить данные из этой резервной копии? Текущие данные будут заменены.')) {
         return;
     }
@@ -692,18 +686,15 @@ function restoreBackup(index) {
 
     if (!backup) return;
 
-    // Восстанавливаем данные
     localStorage.setItem('users', JSON.stringify(backup.data.users));
     localStorage.setItem('products', JSON.stringify(backup.data.products));
     localStorage.setItem('orders', JSON.stringify(backup.data.orders));
     localStorage.setItem('settings', JSON.stringify(backup.data.settings));
 
-    // Обновляем DB_MANAGER
     DB_MANAGER.currentData = backup.data;
 
     showNotification('Данные восстановлены', 'success');
 
-    // Обновляем все панели
     loadUsers();
     loadProducts();
     loadOrders();
@@ -712,8 +703,6 @@ function restoreBackup(index) {
 
 // Удаление бэкапа
 function deleteBackup(index) {
-    if (!checkAdminAccess()) return;
-
     if (!confirm('Удалить эту резервную копию?')) return;
 
     let backups = JSON.parse(localStorage.getItem('backups')) || [];
@@ -726,8 +715,6 @@ function deleteBackup(index) {
 
 // Восстановление из последнего бэкапа
 function restoreFromBackup() {
-    if (!checkAdminAccess()) return;
-
     const backups = JSON.parse(localStorage.getItem('backups')) || [];
     if (backups.length === 0) {
         showNotification('Нет сохраненных резервных копий', 'error');
@@ -737,20 +724,13 @@ function restoreFromBackup() {
     restoreBackup(backups.length - 1);
 }
 
-// ============================================
-// РАБОТА С ФАЙЛАМИ
-// ============================================
-
 // Экспорт базы данных
 function exportDatabase() {
-    if (!checkAdminAccess()) return;
     DB_MANAGER.exportDatabase();
 }
 
 // Импорт базы данных
 function importDatabase(file) {
-    if (!checkAdminAccess()) return;
-
     DB_MANAGER.importDatabase(file)
         .then(data => {
             const fileInfo = document.getElementById('fileInfo');
@@ -767,7 +747,6 @@ function importDatabase(file) {
                 fileInfo.style.border = '2px solid #c3e6cb';
             }
 
-            // Обновляем все панели
             loadUsers();
             loadProducts();
             loadOrders();
@@ -794,14 +773,11 @@ function importDatabase(file) {
 
 // Триггер для выбора файла
 function triggerFileInput() {
-    if (!checkAdminAccess()) return;
     document.getElementById('fileInput').click();
 }
 
 // Обновление данных
 function refreshData() {
-    if (!checkAdminAccess()) return;
-
     DB_MANAGER.loadDatabase().then(() => {
         loadUsers();
         loadProducts();
@@ -813,18 +789,12 @@ function refreshData() {
 
 // Сброс базы данных
 function resetDatabase() {
-    if (!checkAdminAccess()) return;
-
     if (confirm('Вы уверены? Все данные будут сброшены до начальных!')) {
         DB_MANAGER.resetToDefault();
         refreshData();
         showNotification('База данных сброшена', 'success');
     }
 }
-
-// ============================================
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-// ============================================
 
 // Получение названия категории
 function getCategoryName(category) {
@@ -837,92 +807,27 @@ function getCategoryName(category) {
     return categories[category] || category;
 }
 
-// Показать уведомление (используем глобальную функцию)
+// Показать уведомление
 function showNotification(message, type = 'success') {
     if (window.showNotification) {
         window.showNotification(message, type);
     } else {
-        console.log(message);
         alert(message);
     }
 }
 
-// Показать стилизованное окно (используем глобальную функцию)
+// Показать стилизованное окно
 function showStyledAlert(content) {
     if (window.showStyledAlert) {
         window.showStyledAlert(content);
     } else {
-        alert('Просмотр деталей (стилизованное окно не доступно)');
+        const div = document.createElement('div');
+        div.innerHTML = content;
+        alert(div.textContent);
     }
 }
 
-// ============================================
-// ИНИЦИАЛИЗАЦИЯ
-// ============================================
-
-// Инициализация страницы
-async function initPage() {
-    console.log('Инициализация страницы управления БД...');
-
-    // Ждем загрузки DOM
-    if (document.readyState === 'loading') {
-        await new Promise(resolve => {
-            document.addEventListener('DOMContentLoaded', resolve);
-        });
-    }
-
-    // Проверяем наличие необходимых элементов
-    const adminCheck = document.getElementById('adminCheck');
-    if (!adminCheck) {
-        console.error('Элемент adminCheck не найден!');
-        return;
-    }
-
-    // Ждем загрузки DB_MANAGER
-    if (!window.DB_MANAGER) {
-        console.log('Ожидание DB_MANAGER...');
-        await new Promise(resolve => {
-            const checkInterval = setInterval(() => {
-                if (window.DB_MANAGER) {
-                    clearInterval(checkInterval);
-                    resolve();
-                }
-            }, 100);
-        });
-    }
-
-    console.log('DB_MANAGER загружен');
-
-    // Проверяем права доступа
-    const hasAccess = checkAdminAccess();
-    console.log('Права доступа:', hasAccess);
-
-    if (!hasAccess) {
-        return;
-    }
-
-    // Загружаем данные
-    await DB_MANAGER.loadDatabase();
-    console.log('Данные загружены');
-
-    // Загружаем начальные данные
-    loadUsers();
-    loadProducts();
-    loadOrders();
-    updateStats();
-    loadBackups();
-
-    console.log('Страница управления БД инициализирована');
-}
-
-// Запускаем инициализацию
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPage);
-} else {
-    initPage();
-}
-
-// Делаем функции глобальными для доступа из HTML
+// Делаем функции глобальными
 window.switchTab = switchTab;
 window.searchUsers = searchUsers;
 window.showAddUserForm = showAddUserForm;

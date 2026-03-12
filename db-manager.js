@@ -462,4 +462,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     console.log('DB_MANAGER инициализирован');
 });
+
+// Делаем DB_MANAGER глобальным
 window.DB_MANAGER = DB_MANAGER;
