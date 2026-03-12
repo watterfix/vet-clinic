@@ -1,3 +1,6 @@
+// Делаем функции глобальными для доступа из других скриптов
+window.showNotification = showNotification;
+window.showStyledAlert = showStyledAlert;
 // Хранилище данных
 let users = JSON.parse(localStorage.getItem('users')) || {};
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
