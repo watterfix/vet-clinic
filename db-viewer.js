@@ -270,9 +270,28 @@ function restoreBackup(index) {
     }
 }
 
-// Экспорт
+// Экспорт базы данных (скачивание файла)
 function exportDatabase() {
-    DB_MANAGER.exportDatabase();
+    const data = {
+        users: DB_MANAGER.currentData.users,
+        products: DB_MANAGER.currentData.products,
+        orders: DB_MANAGER.currentData.orders,
+        messages: DB_MANAGER.currentData.messages,
+        settings: DB_MANAGER.currentData.settings,
+        exportedAt: new Date().toISOString()
+    };
+    
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `database-export-${new Date().toISOString().slice(0,10)}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    showNotification('База данных экспортирована', 'success');
 }
 
 // Импорт
