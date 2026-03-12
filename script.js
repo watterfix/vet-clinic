@@ -1,9 +1,11 @@
-const SCRIPT_VERSION = '2';
+const SCRIPT_VERSION = '4';
 
 console.log('📜 script.js загружен (версия', SCRIPT_VERSION + ')');
+
 // Делаем функции глобальными для доступа из других скриптов
 window.showNotification = showNotification;
 window.showStyledAlert = showStyledAlert;
+
 // Хранилище данных
 let users = JSON.parse(localStorage.getItem('users')) || {};
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
@@ -20,7 +22,6 @@ function validateEmail(email) {
 }
 
 function validatePhone(phone) {
-    // Поддерживаемые форматы: +7 (999) 123-45-67, 89991234567, 222-22-22 и т.д.
     const re = /^(\+7|8)?[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$|^\d{2,3}[\s\-]?\d{2}[\s\-]?\d{2}$/;
     return phone === '' || re.test(phone.trim());
 }
@@ -31,7 +32,6 @@ function validateName(name) {
 }
 
 function validateAddress(address) {
-    // Проверка адреса: минимум 10 символов, не только пробелы
     return address.trim().length >= 10;
 }
 
@@ -41,47 +41,36 @@ function validateMessage(message) {
 
 function validateContactForm(event) {
     event.preventDefault();
-
-    // Очищаем предыдущие ошибки
     clearContactErrors();
-
     let isValid = true;
 
-    // Получаем значения полей
     const name = document.getElementById('contactName').value;
     const email = document.getElementById('contactEmail').value;
     const phone = document.getElementById('contactPhone').value;
     const message = document.getElementById('contactMessage').value;
 
-    // Валидация имени
     if (!validateName(name)) {
         showContactError('nameError', 'Имя должно содержать от 2 до 30 символов (буквы, пробелы и дефисы)');
         isValid = false;
     }
 
-    // Валидация email
     if (!validateEmail(email)) {
         showContactError('emailError', 'Введите корректный email (например: name@domain.ru)');
         isValid = false;
     }
 
-    // Валидация телефона (если заполнен)
     if (phone && !validatePhone(phone)) {
         showContactError('phoneError', 'Введите корректный номер телефона');
         isValid = false;
     }
 
-    // Валидация сообщения
     if (!validateMessage(message)) {
         showContactError('messageError', 'Сообщение должно содержать от 10 до 1000 символов');
         isValid = false;
     }
 
-    // Если все поля валидны, отправляем форму
     if (isValid) {
-        // Сохраняем сообщение в локальное хранилище для истории
         saveContactMessage(name, email, phone, message);
-
         document.getElementById('contactForm').reset();
         showContactSuccess('Спасибо за обращение! Мы свяжемся с вами в ближайшее время.');
         showNotification('Сообщение отправлено!', 'success');
@@ -90,7 +79,6 @@ function validateContactForm(event) {
     return false;
 }
 
-// Сохранение сообщения из формы контактов
 function saveContactMessage(name, email, phone, message) {
     const messages = JSON.parse(localStorage.getItem('contactMessages')) || [];
     messages.push({
@@ -104,9 +92,8 @@ function saveContactMessage(name, email, phone, message) {
     });
     localStorage.setItem('contactMessages', JSON.stringify(messages));
 
-    // Сохраняем в файл базы данных
     if (window.DB_MANAGER) {
-        DB_MANAGER.exportDatabase();
+        DB_MANAGER.saveToServer();
     }
 }
 
@@ -136,19 +123,15 @@ function showContactSuccess(message) {
     if (successDiv) {
         successDiv.textContent = message;
         successDiv.style.display = 'block';
-
-        // Скрываем через 5 секунд
         setTimeout(() => {
             successDiv.style.display = 'none';
         }, 5000);
     }
 }
 
-// Инициализация товаров при первом запуске
 function initProducts() {
     if (Object.keys(products).length === 0) {
         products = {
-            // Существующие товары
             food1: { name: 'Royal Canin (для кошек)', price: 1200, category: 'food' },
             food2: { name: 'Royal Canin (для собак)', price: 1300, category: 'food' },
             food3: { name: 'Hill\'s (лечебный)', price: 1500, category: 'food' },
@@ -186,7 +169,6 @@ function initProducts() {
     }
 }
 
-// Создание admin аккаунта при первом запуске
 function initAdmin() {
     if (!users['admin@vetclinic.ru']) {
         users['admin@vetclinic.ru'] = {
@@ -198,7 +180,6 @@ function initAdmin() {
         localStorage.setItem('users', JSON.stringify(users));
     }
 
-    // Добавляем тестового пользователя если нет
     if (!users['user@example.com']) {
         users['user@example.com'] = {
             name: 'Иван Петров',
@@ -210,9 +191,7 @@ function initAdmin() {
     }
 }
 
-// Показать уведомление
 function showNotification(message, type = 'success') {
-    // Удаляем предыдущее уведомление если есть
     const oldNotification = document.querySelector('.notification');
     if (oldNotification) {
         oldNotification.remove();
@@ -228,13 +207,7 @@ function showNotification(message, type = 'success') {
         notification.remove();
     }, 3000);
 }
-// Принудительное обновление интерфейса (для отладки)
-window.refreshUI = function() {
-    console.log('🔄 Принудительное обновление интерфейса');
-    updateUI();
-};
 
-// Создать блок авторизации
 function createAuthCorner() {
     if (!document.getElementById('authCorner')) {
         const authCorner = document.createElement('div');
@@ -246,7 +219,6 @@ function createAuthCorner() {
     }
 }
 
-// Создать кнопку корзины (только для страницы товаров)
 function createCartButton() {
     const isCharacteristicsPage = window.location.pathname.includes('characteristics.html');
     if (isCharacteristicsPage && !document.getElementById('cartButton')) {
@@ -262,11 +234,9 @@ function createCartButton() {
     }
 }
 
-// Обновить интерфейс в зависимости от статуса пользователя
 function updateUI() {
     console.log('Обновление интерфейса, пользователь:', currentUser);
 
-    // Создаем блок авторизации, если его нет
     createAuthCorner();
     createCartButton();
 
@@ -278,7 +248,6 @@ function updateUI() {
     const isAdminPage = window.location.pathname.includes('db-viewer.html');
 
     if (currentUser) {
-        // Пользователь авторизован
         let adminLink = '';
         if (currentUser.role === 'admin' && !isAdminPage) {
             adminLink = `<a href="db-viewer.html" style="margin-left: 10px; color: #ffd700; text-decoration: none; font-size: 12px;">📁 Управление БД</a>`;
@@ -295,7 +264,6 @@ function updateUI() {
             </div>
         `;
 
-        // Для страницы товаров
         if (isCharacteristicsPage) {
             if (currentUser.role === 'admin') {
                 addPriceEditButtons();
@@ -304,10 +272,8 @@ function updateUI() {
             }
         }
 
-        // Обновляем счетчик корзины
         updateCartCount();
     } else {
-        // Пользователь не авторизован - ПОКАЗЫВАЕМ КНОПКИ ВХОДА И РЕГИСТРАЦИИ
         authCorner.innerHTML = `
             <div class="auth-buttons-corner" style="display: flex; gap: 8px; background-color: white; padding: 5px; border-radius: 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 2px solid #2c6e49;">
                 <button onclick="openAuthModal('login')" style="background-color: #2c6e49; color: white; border: none; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer;">Вход</button>
@@ -315,22 +281,18 @@ function updateUI() {
             </div>
         `;
 
-        // Для страницы товаров
         if (isCharacteristicsPage) {
             restoreBuyButtons();
         }
 
-        // Обновляем счетчик корзины
         updateCartCount();
     }
 
-    // Для страницы корзины
     if (isCartPage) {
         displayCart();
     }
 }
 
-// Обновить счетчик корзины
 function updateCartCount() {
     const cartCount = document.getElementById('cartCount');
     if (cartCount) {
@@ -339,23 +301,19 @@ function updateCartCount() {
     }
 }
 
-// Перейти в корзину
 function goToCart() {
     window.location.href = 'cart.html';
 }
 
-// Генерация случайного номера заказа
 function generateOrderNumber() {
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const numbers = '0123456789';
     let orderNumber = '';
 
-    // 2 буквы
     for (let i = 0; i < 2; i++) {
         orderNumber += letters.charAt(Math.floor(Math.random() * letters.length));
     }
 
-    // 4 цифры
     for (let i = 0; i < 4; i++) {
         orderNumber += numbers.charAt(Math.floor(Math.random() * numbers.length));
     }
@@ -363,9 +321,7 @@ function generateOrderNumber() {
     return orderNumber;
 }
 
-// Функция для показа стилизованного диалогового окна
 function showStyledAlert(content) {
-    // Создаем затемненный фон
     const overlay = document.createElement('div');
     overlay.className = 'custom-alert-overlay';
     overlay.style.cssText = `
@@ -382,7 +338,6 @@ function showStyledAlert(content) {
         animation: fadeIn 0.3s ease;
     `;
 
-    // Создаем само диалоговое окно
     const alertBox = document.createElement('div');
     alertBox.className = 'custom-alert';
     alertBox.style.cssText = `
@@ -399,7 +354,6 @@ function showStyledAlert(content) {
         animation: slideUp 0.3s ease;
     `;
 
-    // Добавляем кнопку закрытия
     const closeButton = document.createElement('span');
     closeButton.innerHTML = '&times;';
     closeButton.style.cssText = `
@@ -416,13 +370,11 @@ function showStyledAlert(content) {
     closeButton.onmouseout = () => closeButton.style.color = '#999';
     closeButton.onclick = () => document.body.removeChild(overlay);
 
-    // Добавляем содержимое
     alertBox.innerHTML = content;
     alertBox.appendChild(closeButton);
     overlay.appendChild(alertBox);
     document.body.appendChild(overlay);
 
-    // Добавляем анимации
     const style = document.createElement('style');
     style.textContent = `
         @keyframes fadeIn {
@@ -442,7 +394,6 @@ function showStyledAlert(content) {
     `;
     document.head.appendChild(style);
 
-    // Закрытие по клику на фон
     overlay.addEventListener('click', function (e) {
         if (e.target === overlay) {
             document.body.removeChild(overlay);
@@ -450,7 +401,6 @@ function showStyledAlert(content) {
     });
 }
 
-// Отображение корзины на странице cart.html
 function displayCart() {
     const cartContainer = document.getElementById('cartContainer');
     if (!cartContainer) return;
@@ -489,10 +439,8 @@ function displayCart() {
     html += '</div>';
     html += `<div class="cart-total-detailed">Итого: ${total} руб.</div>`;
 
-    // Определяем, будет ли бесплатная доставка
     const freeDelivery = total >= 3000;
 
-    // Способы получения заказа
     html += `
         <div class="delivery-methods">
             <h3>Способ получения</h3>
@@ -545,7 +493,6 @@ function displayCart() {
     cartContainer.innerHTML = html;
 }
 
-// Переключение между способами доставки
 function toggleDeliveryForm() {
     const pickupMethod = document.getElementById('pickupMethod');
     const deliveryForm = document.getElementById('deliveryForm');
@@ -557,7 +504,7 @@ function toggleDeliveryForm() {
     }
 }
 
-// Обработка заказа с сохранением на сервер
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ processOrder (без дублирования)
 async function processOrder() {
     if (!currentUser) {
         showNotification('Необходимо войти в систему!', 'error');
@@ -570,65 +517,6 @@ async function processOrder() {
         return;
     }
 
-    const pickupMethod = document.getElementById('pickupMethod');
-    const deliveryMethod = document.getElementById('deliveryMethod');
-
-    let deliveryValue = 'pickup';
-    let deliveryCost = 0;
-
-    const total = cart.reduce((sum, item) => sum + item.price, 0);
-    const freeDelivery = total >= 3000;
-
-    if (deliveryMethod && deliveryMethod.checked) {
-        deliveryValue = 'delivery';
-        deliveryCost = freeDelivery ? 0 : 300;
-
-        const addressError = document.getElementById('deliveryAddressError');
-        const phoneError = document.getElementById('deliveryPhoneError');
-
-        if (addressError) addressError.textContent = '';
-        if (phoneError) phoneError.textContent = '';
-
-        const address = document.getElementById('deliveryAddress')?.value;
-        const phone = document.getElementById('deliveryPhone')?.value;
-
-        let isValid = true;
-
-        if (!address || address.trim().length < 10) {
-            if (addressError) addressError.textContent = 'Введите корректный адрес (минимум 10 символов)';
-            isValid = false;
-        }
-
-        if (!phone) {
-            if (phoneError) phoneError.textContent = 'Введите номер телефона';
-            isValid = false;
-        } else if (!validatePhone(phone)) {
-            if (phoneError) phoneError.textContent = 'Введите корректный номер телефона';
-            isValid = false;
-        }
-
-        if (!isValid) {
-            return;
-        }
-    }
-
-    const finalTotal = total + deliveryCost;
-    const orderNumber = generateOrderNumber();
-
-    // Исправленная функция создания заказа
-async function processOrder() {
-    if (!currentUser) {
-        showNotification('Необходимо войти в систему!', 'error');
-        openAuthModal('login');
-        return;
-    }
-
-    if (cart.length === 0) {
-        showNotification('Корзина пуста!', 'error');
-        return;
-    }
-
-    // Показываем индикатор загрузки
     const checkoutBtn = document.querySelector('.checkout-btn');
     if (checkoutBtn) {
         checkoutBtn.textContent = 'Оформление...';
@@ -684,7 +572,6 @@ async function processOrder() {
     const finalTotal = total + deliveryCost;
     const orderNumber = generateOrderNumber();
 
-    // Создаем заказ
     const order = {
         orderNumber: orderNumber,
         user: currentUser.email,
@@ -709,17 +596,19 @@ async function processOrder() {
     }
 
     try {
-        // Сохраняем заказ
-        await DB_MANAGER.addOrder(order);
+        if (window.DB_MANAGER) {
+            await DB_MANAGER.addOrder(order);
+        } else {
+            let orders = JSON.parse(localStorage.getItem('orders')) || [];
+            orders.push(order);
+            localStorage.setItem('orders', JSON.stringify(orders));
+        }
         
-        // Очищаем корзину
         cart = [];
         localStorage.setItem('cart', JSON.stringify(cart));
         
-        // Обновляем счетчик корзины
         updateCartCount();
 
-        // Показываем подтверждение
         let deliveryInfo = '';
         if (deliveryValue === 'pickup') {
             deliveryInfo = `
@@ -767,12 +656,10 @@ async function processOrder() {
             </div>
         `);
 
-        // Обновляем отображение корзины
         if (typeof displayCart === 'function') {
             displayCart();
         }
         
-        // Оповещаем другие вкладки
         broadcastUpdate();
         
         console.log('✅ Заказ создан:', orderNumber);
@@ -781,7 +668,6 @@ async function processOrder() {
         console.error('❌ Ошибка при оформлении заказа:', error);
         showNotification('Ошибка при оформлении заказа', 'error');
     } finally {
-        // Возвращаем кнопку в исходное состояние
         if (checkoutBtn) {
             checkoutBtn.textContent = 'Оформить заказ';
             checkoutBtn.disabled = false;
@@ -789,7 +675,6 @@ async function processOrder() {
     }
 }
 
-// Восстановить кнопки покупки
 function restoreBuyButtons() {
     const tables = document.querySelectorAll('.price-list');
     tables.forEach(table => {
@@ -809,7 +694,6 @@ function restoreBuyButtons() {
     });
 }
 
-// Синхронизация состояния между вкладками
 function syncState() {
     console.log('Синхронизация состояния...');
 
@@ -841,12 +725,10 @@ function syncState() {
     }
 }
 
-// Принудительно обновить состояние на всех страницах
 function broadcastUpdate() {
     localStorage.setItem('updateTimestamp', Date.now().toString());
 }
 
-// Открыть модальное окно авторизации
 function openAuthModal(tab = 'login') {
     const modal = document.getElementById('authModal');
     if (!modal) {
@@ -857,7 +739,6 @@ function openAuthModal(tab = 'login') {
     switchAuthTab(tab);
 }
 
-// Функция закрытия модального окна
 function closeAuthModal() {
     const modal = document.getElementById('authModal');
     if (modal) {
@@ -865,7 +746,6 @@ function closeAuthModal() {
     }
 }
 
-// Переключение вкладок в модальном окне
 function switchAuthTab(tab) {
     const loginTab = document.getElementById('loginTab');
     const registerTab = document.getElementById('registerTab');
@@ -887,7 +767,6 @@ function switchAuthTab(tab) {
     }
 }
 
-// Создание модального окна авторизации
 function createAuthModal() {
     if (document.getElementById('authModal')) return;
 
@@ -930,7 +809,6 @@ function createAuthModal() {
     document.body.appendChild(modal);
 }
 
-// Добавить кнопки редактирования цен для админа
 function addPriceEditButtons() {
     const tables = document.querySelectorAll('.price-list');
     tables.forEach(table => {
@@ -952,7 +830,6 @@ function addPriceEditButtons() {
     });
 }
 
-// Обновить цену товара (только для админа)
 function updatePrice(productId) {
     if (!currentUser || currentUser.role !== 'admin') {
         showNotification('Только администратор может изменять цены!', 'error');
@@ -961,13 +838,11 @@ function updatePrice(productId) {
 
     const newPrice = document.getElementById(`price-${productId}`).value;
     if (newPrice && newPrice > 0) {
-        // Обновляем в памяти
         if (products[productId]) {
             products[productId].price = parseInt(newPrice);
             localStorage.setItem('products', JSON.stringify(products));
         }
 
-        // Обновляем в таблице
         const row = document.querySelector(`tr[data-id="${productId}"]`);
         if (row) {
             row.setAttribute('data-price', newPrice);
@@ -977,9 +852,8 @@ function updatePrice(productId) {
             }
         }
 
-        // Сохраняем в файл базы данных
         if (window.DB_MANAGER) {
-            DB_MANAGER.exportDatabase();
+            DB_MANAGER.saveToServer();
         }
 
         showNotification('Цена успешно обновлена!');
@@ -987,7 +861,6 @@ function updatePrice(productId) {
     }
 }
 
-// Исправленная функция регистрации
 async function register(event) {
     event.preventDefault();
 
@@ -995,7 +868,6 @@ async function register(event) {
     const email = document.getElementById('regEmail').value;
     const password = document.getElementById('regPassword').value;
     
-    // Валидация
     if (!validateName(name)) {
         showNotification('Имя должно содержать от 2 до 30 символов', 'error');
         return;
@@ -1012,44 +884,53 @@ async function register(event) {
     }
 
     try {
-        // Показываем индикатор загрузки
         const registerBtn = event.target.querySelector('button[type="submit"]');
-        const originalText = registerBtn.textContent;
         registerBtn.textContent = 'Регистрация...';
         registerBtn.disabled = true;
         
-        // Загружаем свежие данные
-        await DB_MANAGER.loadDatabase();
-        
-        // Проверяем существование пользователя
-        if (DB_MANAGER.userExists(email)) {
-            showNotification('Пользователь с таким email уже существует!', 'error');
-            return;
-        }
+        if (window.DB_MANAGER) {
+            await DB_MANAGER.loadDatabase();
+            
+            if (DB_MANAGER.userExists(email)) {
+                showNotification('Пользователь с таким email уже существует!', 'error');
+                return;
+            }
 
-        // Добавляем пользователя
-        await DB_MANAGER.addUser({
-            name: name,
-            email: email,
-            password: password,
-            role: 'user'
-        });
+            await DB_MANAGER.addUser({
+                name: name,
+                email: email,
+                password: password,
+                role: 'user'
+            });
+        } else {
+            let users = JSON.parse(localStorage.getItem('users')) || {};
+            
+            if (users[email]) {
+                showNotification('Пользователь с таким email уже существует!', 'error');
+                return;
+            }
+
+            users[email] = {
+                name: name,
+                password: password,
+                role: 'user',
+                registered: new Date().toISOString()
+            };
+            localStorage.setItem('users', JSON.stringify(users));
+        }
 
         showNotification('Регистрация успешна!', 'success');
         
-        // Очищаем форму
         document.getElementById('regName').value = '';
         document.getElementById('regEmail').value = '';
         document.getElementById('regPassword').value = '';
         
-        // Переключаем на вкладку входа
         switchAuthTab('login');
         
     } catch (error) {
         console.error('❌ Ошибка регистрации:', error);
         showNotification('Ошибка при регистрации', 'error');
     } finally {
-        // Возвращаем кнопку в исходное состояние
         const registerBtn = event.target.querySelector('button[type="submit"]');
         if (registerBtn) {
             registerBtn.textContent = 'Зарегистрироваться';
@@ -1057,7 +938,7 @@ async function register(event) {
         }
     }
 }
-// Исправленная функция входа
+
 async function login(event) {
     event.preventDefault();
 
@@ -1067,16 +948,26 @@ async function login(event) {
     console.log('🔐 Попытка входа:', email);
     
     try {
-        // Показываем индикатор загрузки
         const loginBtn = event.target.querySelector('button[type="submit"]');
-        const originalText = loginBtn.textContent;
         loginBtn.textContent = 'Вход...';
         loginBtn.disabled = true;
         
-        // Загружаем свежие данные
-        await DB_MANAGER.loadDatabase();
+        let user = null;
         
-        const user = DB_MANAGER.getUserByEmail(email);
+        if (window.DB_MANAGER) {
+            await DB_MANAGER.loadDatabase();
+            user = DB_MANAGER.getUserByEmail(email);
+        } else {
+            let users = JSON.parse(localStorage.getItem('users')) || {};
+            if (users[email]) {
+                user = {
+                    email: email,
+                    name: users[email].name,
+                    password: users[email].password,
+                    role: users[email].role
+                };
+            }
+        }
         
         if (user && user.password === password) {
             currentUser = {
@@ -1087,16 +978,11 @@ async function login(event) {
 
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
-            // Обновляем интерфейс
             updateUI();
-            
-            // Закрываем модальное окно
             closeAuthModal();
             
-            // Показываем уведомление
             showNotification(`Добро пожаловать, ${user.name}!`, 'success');
             
-            // Очищаем форму
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginPassword').value = '';
             
@@ -1108,7 +994,6 @@ async function login(event) {
         console.error('❌ Ошибка входа:', error);
         showNotification('Ошибка при входе', 'error');
     } finally {
-        // Возвращаем кнопку в исходное состояние
         const loginBtn = event.target.querySelector('button[type="submit"]');
         if (loginBtn) {
             loginBtn.textContent = 'Войти';
@@ -1116,7 +1001,7 @@ async function login(event) {
         }
     }
 }
-// Выход
+
 function logout() {
     currentUser = null;
     cart = [];
@@ -1133,7 +1018,6 @@ function logout() {
     }
 }
 
-// Добавить в корзину
 function addToCart(productName, price) {
     if (!currentUser) {
         showNotification('Необходимо войти в систему!', 'error');
@@ -1158,7 +1042,6 @@ function addToCart(productName, price) {
     broadcastUpdate();
 }
 
-// Удалить из корзины
 function removeFromCart(itemId) {
     cart = cart.filter(item => item.id !== itemId);
     localStorage.setItem('cart', JSON.stringify(cart));
@@ -1173,10 +1056,8 @@ function removeFromCart(itemId) {
     broadcastUpdate();
 }
 
-// Загрузка данных из файла базы данных
 async function loadDatabaseFromFile() {
     try {
-        // Пытаемся загрузить из db-manager если он есть
         if (window.DB_MANAGER) {
             const data = await DB_MANAGER.loadDatabase();
             if (data) {
@@ -1195,29 +1076,22 @@ async function loadDatabaseFromFile() {
     }
 }
 
-// Основная инициализация
 async function initialize() {
     if (isInitialized) return;
     isInitialized = true;
 
     console.log('Инициализация страницы...');
 
-    // Сначала пробуем загрузить из файла
     await loadDatabaseFromFile();
 
-    // Инициализируем продукты если их нет
     initProducts();
-
-    // Инициализируем админа если его нет
     initAdmin();
 
-    // Загружаем актуальные данные
     currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
     cart = JSON.parse(localStorage.getItem('cart')) || [];
     users = JSON.parse(localStorage.getItem('users')) || {};
     products = JSON.parse(localStorage.getItem('products')) || {};
 
-    // Восстанавливаем цены в таблицах
     if (Object.keys(products).length > 0) {
         Object.keys(products).forEach(productId => {
             const row = document.querySelector(`tr[data-id="${productId}"]`);
@@ -1235,19 +1109,15 @@ async function initialize() {
     updateUI();
 }
 
-// Запуск после полной загрузки DOM
 document.addEventListener('DOMContentLoaded', initialize);
 
-// Слушаем изменения в localStorage
 window.addEventListener('storage', function (e) {
     console.log('Изменение в localStorage:', e.key);
 
     if (e.key === 'currentUser' || e.key === 'cart' || e.key === 'updateTimestamp') {
-        // Обновляем данные
         currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
         cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-        // Обновляем интерфейс
         updateUI();
         updateCartCount();
 
@@ -1258,7 +1128,6 @@ window.addEventListener('storage', function (e) {
     }
 });
 
-// Периодическая проверка
 setInterval(function () {
     const newUser = JSON.parse(localStorage.getItem('currentUser')) || null;
     const newCart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -1278,7 +1147,6 @@ setInterval(function () {
     }
 }, 1000);
 
-// При фокусе на вкладке
 window.addEventListener('focus', function () {
     console.log('Вкладка получила фокус');
     currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
@@ -1292,7 +1160,6 @@ window.addEventListener('focus', function () {
     }
 });
 
-// При возвращении на страницу
 document.addEventListener('visibilitychange', function () {
     if (!document.hidden) {
         console.log('Страница стала видимой');
