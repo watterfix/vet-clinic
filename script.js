@@ -274,14 +274,18 @@ function updateUI() {
             adminLink = `<a href="db-viewer.html" class="admin-link" style="margin-left: 10px; color: #ffd700;">📁 Управление БД</a>`;
         }
 
+        
         authCorner.innerHTML = `
-            <div class="user-info-corner">
-                <span>👤 ${currentUser.name} ${currentUser.role === 'admin' ? '👑' : ''}</span>
-                ${adminLink}
-                <button onclick="logout()" class="button-small">Выйти</button>
-            </div>
-        `;
-
+                 <div class="user-info-corner">
+                 <div style="display: flex; flex-direction: column; gap: 2px;">
+                     <span style="font-weight: bold;">${currentUser.name} ${currentUser.role === 'admin' ? '👑' : ''}</span>
+                     <span style="font-size: 11px; color: #ffd700;">${currentUser.email}</span>
+                 </div>
+                     ${adminLink}
+                     <button onclick="logout()" class="button-small">Выйти</button>
+                </div>
+`
+            ;
         // Для страницы товаров
         if (isCharacteristicsPage) {
             if (currentUser.role === 'admin') {
@@ -544,8 +548,14 @@ function toggleDeliveryForm() {
     }
 }
 
-// Обработка заказа с сохранением в файл
-function processOrder() {
+// Обработка заказа с сохранением на сервер
+async function processOrder() {
+    if (!currentUser) {
+        showNotification('Необходимо войти в систему!', 'error');
+        openAuthModal('login');
+        return;
+    }
+
     if (cart.length === 0) {
         showNotification('Корзина пуста!', 'error');
         return;
@@ -575,7 +585,7 @@ function processOrder() {
 
         let isValid = true;
 
-        if (!address || !validateAddress(address)) {
+        if (!address || address.trim().length < 10) {
             if (addressError) addressError.textContent = 'Введите корректный адрес (минимум 10 символов)';
             isValid = false;
         }
@@ -598,7 +608,6 @@ function processOrder() {
 
     // Создаем заказ
     const order = {
-        id: Date.now(),
         orderNumber: orderNumber,
         user: currentUser.email,
         userName: currentUser.name,
@@ -621,71 +630,70 @@ function processOrder() {
         order.deliveryComment = document.getElementById('deliveryComment').value || '';
     }
 
-    // Сохраняем заказ
-    let orders = JSON.parse(localStorage.getItem('orders')) || [];
-    orders.push(order);
-    localStorage.setItem('orders', JSON.stringify(orders));
+    try {
+        // Сохраняем заказ через DB_MANAGER
+        await DB_MANAGER.addOrder(order);
 
-    // Сохраняем в файл базы данных
-    if (window.DB_MANAGER) {
-        DB_MANAGER.exportDatabase();
-    }
+        // Очищаем корзину
+        cart = [];
+        localStorage.setItem('cart', JSON.stringify(cart));
 
-    // Очищаем корзину
-    cart = [];
-    localStorage.setItem('cart', JSON.stringify(cart));
-
-    // Показываем подтверждение
-    let deliveryInfo = '';
-    if (deliveryValue === 'pickup') {
-        deliveryInfo = `
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
-                <p><strong>📍 Адрес самовывоза:</strong> г. Воронеж, ул. Ветеринарная, д. 15</p>
-                <p><strong>🕒 Режим работы:</strong> круглосуточно</p>
-                <p><strong>📞 Телефон:</strong> 222-22-22</p>
-            </div>
-        `;
-    } else {
-        deliveryInfo = `
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
-                <p><strong>🚚 Адрес доставки:</strong> ${order.deliveryAddress}</p>
-                <p><strong>📞 Телефон:</strong> ${order.deliveryPhone}</p>
-                ${order.deliveryComment ? `<p><strong>💬 Комментарий:</strong> ${order.deliveryComment}</p>` : ''}
-            </div>
-        `;
-    }
-
-    showStyledAlert(`
-        <div style="text-align: center;">
-            <div style="font-size: 48px; margin-bottom: 15px;">🎉</div>
-            <h2 style="color: #2c6e49; margin-bottom: 15px;">ЗАКАЗ ОФОРМЛЕН!</h2>
-            <div style="background: linear-gradient(135deg, #2c6e49, #1e4d2f); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <strong style="font-size: 24px;">#${orderNumber}</strong>
-            </div>
-            
-            ${deliveryInfo}
-            
-            <div style="background-color: #e8f4e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <h3 style="color: #2c6e49; margin-bottom: 10px;">Ваш заказ:</h3>
-                ${order.items.map(item => `
-                    <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #2c6e49;">
-                        <span>${item.name}</span>
-                        <span style="font-weight: bold;">${item.price} руб.</span>
-                    </div>
-                `).join('')}
-                <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 2px solid #2c6e49; font-weight: bold;">
-                    <span>ИТОГО:</span>
-                    <span>${finalTotal} руб.</span>
+        // Показываем подтверждение
+        let deliveryInfo = '';
+        if (deliveryValue === 'pickup') {
+            deliveryInfo = `
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
+                    <p><strong>📍 Адрес самовывоза:</strong> г. Воронеж, ул. Ветеринарная, д. 15</p>
+                    <p><strong>🕒 Режим работы:</strong> круглосуточно</p>
+                    <p><strong>📞 Телефон:</strong> 222-22-22</p>
                 </div>
-            </div>
-            
-            <p>✅ Заказ сохранен в базе данных</p>
-        </div>
-    `);
+            `;
+        } else {
+            deliveryInfo = `
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
+                    <p><strong>🚚 Адрес доставки:</strong> ${order.deliveryAddress}</p>
+                    <p><strong>📞 Телефон:</strong> ${order.deliveryPhone}</p>
+                    ${order.deliveryComment ? `<p><strong>💬 Комментарий:</strong> ${order.deliveryComment}</p>` : ''}
+                </div>
+            `;
+        }
 
-    displayCart();
-    updateCartCount();
-    broadcastUpdate();
+        showStyledAlert(`
+            <div style="text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 15px;">🎉</div>
+                <h2 style="color: #2c6e49; margin-bottom: 15px;">ЗАКАЗ ОФОРМЛЕН!</h2>
+                <div style="background: linear-gradient(135deg, #2c6e49, #1e4d2f); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong style="font-size: 24px;">#${orderNumber}</strong>
+                </div>
+                
+                ${deliveryInfo}
+                
+                <div style="background-color: #e8f4e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #2c6e49; margin-bottom: 10px;">Ваш заказ:</h3>
+                    ${order.items.map(item => `
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #2c6e49;">
+                            <span>${item.name}</span>
+                            <span style="font-weight: bold;">${item.price} ₽</span>
+                        </div>
+                    `).join('')}
+                    <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 2px solid #2c6e49; font-weight: bold;">
+                        <span>ИТОГО:</span>
+                        <span>${finalTotal} ₽</span>
+                    </div>
+                </div>
+                
+                <p>✅ Заказ сохранен в базе данных</p>
+            </div>
+        `);
+
+        displayCart();
+        updateCartCount();
+        broadcastUpdate();
+
+    } catch (error) {
+        console.error('Ошибка при оформлении заказа:', error);
+        showNotification('Ошибка при оформлении заказа', 'error');
+    }
 }
 
 // Восстановить кнопки покупки

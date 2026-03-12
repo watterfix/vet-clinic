@@ -55,6 +55,7 @@
                 <button class="db-tab active" onclick="switchTab('users')">👥 Пользователи</button>
                 <button class="db-tab" onclick="switchTab('products')">📦 Товары</button>
                 <button class="db-tab" onclick="switchTab('orders')">📋 Заказы</button>
+                <button class="db-tab" onclick="switchTab('messages')">💬 Сообщения</button>
                 <button class="db-tab" onclick="switchTab('backups')">💾 Резервные копии</button>
             </div>
 
@@ -186,6 +187,30 @@
                 </div>
             </div>
 
+            <!-- Панель сообщений -->
+            <div id="messagesPanel" class="db-panel" style="display: none;">
+                <h2>💬 Сообщения с формы обратной связи</h2>
+
+                <div class="table-container">
+                    <table class="db-table" id="messagesTable">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Имя</th>
+                                <th>Email</th>
+                                <th>Телефон</th>
+                                <th>Сообщение</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="messagesTableBody">
+                            <!-- Заполняется через JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Панель резервных копий -->
             <div id="backupsPanel" class="db-panel" style="display: none;">
                 <h2>💾 Резервные копии</h2>
@@ -207,8 +232,8 @@
         <p>📞 т. 222-22-22 | 📍 г. Воронеж, ул. Ветеринарная, д. 15</p>
     </footer>
 
-    <script src="script.js?v=3"></script>
-    <script src="db-manager.js?v=3"></script>
-    <script src="db-viewer.js?v=3"></script>
+    <script src="script.js?v=5"></script>
+    <script src="db-manager.js?v=5"></script>
+    <script src="db-viewer.js?v=5"></script>
 </body>
 </html>

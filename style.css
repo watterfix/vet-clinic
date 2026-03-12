@@ -1672,3 +1672,30 @@ input[type="tel"] {
     .btn-export.danger:hover {
         background-color: #c82333;
     }
+
+/* Стили для статусов сообщений */
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-new {
+    background-color: #ffd700;
+    color: #1e4d2f;
+}
+
+.status-read {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Улучшенные стили для таблицы заказов */
+.db-table td small {
+    color: #666;
+    font-size: 11px;
+    line-height: 1.4;
+    display: block;
+}
