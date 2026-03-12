@@ -4,10 +4,10 @@
 
 const DB_MANAGER = {
     // Ваши данные из JSONBin
-    BIN_ID: '69b32b80b7ec241ddc6348dd',
-    API_KEY: '$2a$10$tBa4S2lF6C0Qua271by8BuxrbzFEdlyz0lYj/oK52ynRQPDFexbC2',
+    BIN_ID: '69b32b8eb7ec241ddc6348dd',
+    API_KEY: '$2a$10$tBa4S21F6C0Qua271by8BuxrbzFEd1yzlYj/OK52ynRQPDFexbC2',
     BASE_URL: 'https://api.jsonbin.io/v3',
-
+    
     currentData: {
         users: [],
         products: [],
@@ -23,7 +23,7 @@ const DB_MANAGER = {
     // Загрузка данных с сервера
     async loadDatabase() {
         console.log('🔄 Загрузка данных с JSONBin...');
-
+        
         try {
             const response = await fetch(`${this.BASE_URL}/b/${this.BIN_ID}/latest`, {
                 headers: {
@@ -31,30 +31,67 @@ const DB_MANAGER = {
                 },
                 cache: 'no-cache'
             });
-
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-
+            
             const result = await response.json();
-            this.currentData = result.record || result;
-
-            // Убеждаемся, что все поля - массивы
-            if (!Array.isArray(this.currentData.users)) this.currentData.users = [];
-            if (!Array.isArray(this.currentData.products)) this.currentData.products = [];
-            if (!Array.isArray(this.currentData.orders)) this.currentData.orders = [];
-            if (!Array.isArray(this.currentData.messages)) this.currentData.messages = [];
-            if (!this.currentData.settings) this.currentData.settings = {};
-
+            const rawData = result.record || result;
+            
+            console.log('📦 Получены данные:', rawData);
+            
+            // Преобразуем users из объекта в массив
+            if (rawData.users && typeof rawData.users === 'object' && !Array.isArray(rawData.users)) {
+                this.currentData.users = Object.keys(rawData.users).map(email => ({
+                    id: email,
+                    email: email,
+                    name: rawData.users[email].name,
+                    password: rawData.users[email].password,
+                    role: rawData.users[email].role,
+                    registered: rawData.users[email].registered || new Date().toISOString()
+                }));
+                console.log('✅ Преобразовано пользователей:', this.currentData.users.length);
+            } else if (Array.isArray(rawData.users)) {
+                this.currentData.users = rawData.users;
+            } else {
+                this.currentData.users = [];
+            }
+            
+            // Преобразуем products из объекта в массив
+            if (rawData.products && typeof rawData.products === 'object' && !Array.isArray(rawData.products)) {
+                this.currentData.products = Object.keys(rawData.products).map(id => ({
+                    id: id,
+                    name: rawData.products[id].name,
+                    price: rawData.products[id].price,
+                    category: rawData.products[id].category,
+                    description: rawData.products[id].description || ''
+                }));
+                console.log('✅ Преобразовано товаров:', this.currentData.products.length);
+            } else if (Array.isArray(rawData.products)) {
+                this.currentData.products = rawData.products;
+            } else {
+                this.currentData.products = [];
+            }
+            
+            // Заказы (предполагаем что они уже массив)
+            this.currentData.orders = Array.isArray(rawData.orders) ? rawData.orders : [];
+            
+            // Сообщения
+            this.currentData.messages = Array.isArray(rawData.messages) ? rawData.messages : [];
+            
+            // Настройки
+            this.currentData.settings = rawData.settings || {};
+            
             console.log(`✅ Загружено пользователей: ${this.currentData.users.length}`);
             console.log(`✅ Загружено товаров: ${this.currentData.products.length}`);
             console.log(`✅ Загружено заказов: ${this.currentData.orders.length}`);
-
+            
             // Сохраняем в localStorage для совместимости
             this.saveToLocalStorage();
-
+            
             return this.currentData;
-
+            
         } catch (error) {
             console.error('❌ Ошибка загрузки:', error);
             this.loadFromLocalStorage();
@@ -65,39 +102,70 @@ const DB_MANAGER = {
     // Сохранение данных на сервер
     async saveToServer() {
         console.log('💾 Сохранение данных...');
-
+        
         try {
+            // Преобразуем данные обратно в объектный формат для сохранения
+            const saveData = {
+                users: {},
+                products: {},
+                orders: this.currentData.orders,
+                messages: this.currentData.messages,
+                settings: this.currentData.settings
+            };
+            
+            // Преобразуем users из массива в объект
+            this.currentData.users.forEach(user => {
+                saveData.users[user.email] = {
+                    name: user.name,
+                    password: user.password,
+                    role: user.role,
+                    registered: user.registered
+                };
+            });
+            
+            // Преобразуем products из массива в объект
+            this.currentData.products.forEach(product => {
+                saveData.products[product.id] = {
+                    name: product.name,
+                    price: product.price,
+                    category: product.category,
+                    description: product.description
+                };
+            });
+            
             const response = await fetch(`${this.BASE_URL}/b/${this.BIN_ID}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Master-Key': this.API_KEY
                 },
-                body: JSON.stringify(this.currentData)
+                body: JSON.stringify(saveData)
             });
-
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-
+            
             console.log('✅ Данные сохранены');
             this.saveToLocalStorage();
             return true;
-
+            
         } catch (error) {
             console.error('❌ Ошибка сохранения:', error);
             return false;
         }
     },
 
-    // Сохранение в localStorage (для совместимости со старым кодом)
+    // Сохранение в localStorage (для совместимости)
     saveToLocalStorage() {
         try {
-            // Сохраняем полный бэкап
+            // Сохраняем в обоих форматах для совместимости
             localStorage.setItem('db_backup', JSON.stringify(this.currentData));
-
-            // Конвертируем пользователей в объект для старого формата
+            
+            // Старый формат (объекты)
             const usersObj = {};
+            const productsObj = {};
+            
             this.currentData.users.forEach(user => {
                 usersObj[user.email] = {
                     name: user.name,
@@ -106,9 +174,7 @@ const DB_MANAGER = {
                     registered: user.registered
                 };
             });
-
-            // Конвертируем товары в объект для старого формата
-            const productsObj = {};
+            
             this.currentData.products.forEach(product => {
                 productsObj[product.id] = {
                     name: product.name,
@@ -117,12 +183,12 @@ const DB_MANAGER = {
                     description: product.description
                 };
             });
-
+            
             localStorage.setItem('users', JSON.stringify(usersObj));
             localStorage.setItem('products', JSON.stringify(productsObj));
             localStorage.setItem('orders', JSON.stringify(this.currentData.orders));
             localStorage.setItem('messages', JSON.stringify(this.currentData.messages));
-
+            
         } catch (error) {
             console.error('Ошибка сохранения в localStorage:', error);
         }
@@ -147,12 +213,12 @@ const DB_MANAGER = {
 
     // Получение пользователя по email
     getUserByEmail(email) {
-        return this.currentData.users.find(u => u.email === email);
+        return this.currentData.users.find(u => u.email.toLowerCase() === email.toLowerCase());
     },
 
     // Проверка существования пользователя
     userExists(email) {
-        return this.currentData.users.some(u => u.email === email);
+        return this.currentData.users.some(u => u.email.toLowerCase() === email.toLowerCase());
     },
 
     // Добавление пользователя
@@ -165,7 +231,7 @@ const DB_MANAGER = {
             role: userData.role || 'user',
             registered: new Date().toISOString()
         };
-
+        
         this.currentData.users.push(newUser);
         await this.saveToServer();
         return newUser;
@@ -173,14 +239,14 @@ const DB_MANAGER = {
 
     // Обновление пользователя
     async updateUser(email, userData) {
-        const index = this.currentData.users.findIndex(u => u.email === email);
+        const index = this.currentData.users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
         if (index === -1) return false;
-
+        
         this.currentData.users[index] = {
             ...this.currentData.users[index],
             ...userData
         };
-
+        
         await this.saveToServer();
         return true;
     },
@@ -191,7 +257,7 @@ const DB_MANAGER = {
             console.warn('Нельзя удалить главного администратора');
             return false;
         }
-
+        
         this.currentData.users = this.currentData.users.filter(u => u.email !== email);
         await this.saveToServer();
         return true;
@@ -212,12 +278,12 @@ const DB_MANAGER = {
     async updateProduct(id, productData) {
         const index = this.currentData.products.findIndex(p => p.id === id);
         if (index === -1) return false;
-
+        
         this.currentData.products[index] = {
             ...this.currentData.products[index],
             ...productData
         };
-
+        
         await this.saveToServer();
         return true;
     },
@@ -245,7 +311,7 @@ const DB_MANAGER = {
             id: Date.now().toString(),
             date: new Date().toISOString()
         };
-
+        
         this.currentData.orders.push(newOrder);
         await this.saveToServer();
         return newOrder;
@@ -280,22 +346,17 @@ const DB_MANAGER = {
             date: new Date().toISOString(),
             status: 'new'
         };
-
+        
         this.currentData.messages.push(newMessage);
         await this.saveToServer();
         return newMessage;
-    },
-
-    // Получение всех сообщений
-    getMessages() {
-        return this.currentData.messages;
     },
 
     // Отметить сообщение как прочитанное
     async markMessageAsRead(messageId) {
         const index = this.currentData.messages.findIndex(m => m.id === messageId);
         if (index === -1) return false;
-
+        
         this.currentData.messages[index].status = 'read';
         await this.saveToServer();
         return true;
@@ -318,19 +379,19 @@ const DB_MANAGER = {
         const totalOrders = this.currentData.orders.length;
         const totalProducts = this.currentData.products.length;
         const totalMessages = this.currentData.messages.length;
-
+        
         const totalRevenue = this.currentData.orders.reduce((sum, order) => sum + (order.total || 0), 0);
         const adminCount = this.currentData.users.filter(u => u.role === 'admin').length;
-
+        
         const today = new Date().toDateString();
         const todayOrders = this.currentData.orders.filter(o => new Date(o.date).toDateString() === today).length;
-
+        
         // Статистика по категориям товаров
         const productsByCategory = {};
         this.currentData.products.forEach(p => {
             productsByCategory[p.category] = (productsByCategory[p.category] || 0) + 1;
         });
-
+        
         return {
             totalUsers,
             totalOrders,
@@ -345,35 +406,23 @@ const DB_MANAGER = {
         };
     },
 
-    // ============================================
-    // МЕТОДЫ ДЛЯ РЕЗЕРВНОГО КОПИРОВАНИЯ
-    // ============================================
-
     // Создание резервной копии
     createBackup() {
         const backup = {
             id: Date.now(),
             date: new Date().toISOString(),
             name: `Backup ${new Date().toLocaleString()}`,
-            data: {
-                users: this.currentData.users,
-                products: this.currentData.products,
-                orders: this.currentData.orders,
-                messages: this.currentData.messages,
-                settings: this.currentData.settings
-            },
+            data: this.currentData,
             stats: this.getStats()
         };
-
-        // Сохраняем в историю бэкапов
+        
         let backups = JSON.parse(localStorage.getItem('backups')) || [];
         backups.push(backup);
-
-        // Оставляем только последние 10 бэкапов
+        
         if (backups.length > 10) {
             backups = backups.slice(-10);
         }
-
+        
         localStorage.setItem('backups', JSON.stringify(backups));
         return backup;
     },
@@ -386,11 +435,11 @@ const DB_MANAGER = {
             } else {
                 this.currentData = backupData;
             }
-
+            
             await this.saveToServer();
             this.saveToLocalStorage();
             return true;
-
+            
         } catch (error) {
             console.error('Ошибка восстановления:', error);
             return false;
@@ -415,7 +464,7 @@ const DB_MANAGER = {
             messages: [],
             settings: {}
         };
-
+        
         await this.saveToServer();
         this.createBackup();
         return this.currentData;
@@ -424,7 +473,7 @@ const DB_MANAGER = {
 
 // Делаем глобальным
 window.DB_MANAGER = DB_MANAGER;
-console.log('✅ DB_MANAGER готов (полная версия)');
+console.log('✅ DB_MANAGER готов (с поддержкой объектного формата)');
 
 // Автоматическая загрузка данных
 DB_MANAGER.loadDatabase();
