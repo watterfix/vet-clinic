@@ -888,55 +888,76 @@ function register(event) {
     const email = document.getElementById('regEmail').value;
     const password = document.getElementById('regPassword').value;
 
-    // Валидация имени
+    // Валидация
     if (!validateName(name)) {
         showNotification('Имя должно содержать от 2 до 30 символов (буквы, пробелы и дефисы)', 'error');
         return;
     }
 
-    // Валидация email
     if (!validateEmail(email)) {
         showNotification('Введите корректный email адрес', 'error');
         return;
     }
 
-    // Валидация пароля (минимум 6 символов)
     if (password.length < 6) {
         showNotification('Пароль должен содержать не менее 6 символов', 'error');
         return;
     }
 
-    // Загружаем текущих пользователей
-    let users = JSON.parse(localStorage.getItem('users')) || {};
-
-    if (users[email]) {
-        showNotification('Пользователь с таким email уже существует!', 'error');
-        return;
-    }
-
-    // Создаем нового пользователя
-    const newUser = {
-        name: name,
-        password: password,
-        role: 'user',
-        registered: new Date().toISOString()
-    };
-
-    users[email] = newUser;
-    localStorage.setItem('users', JSON.stringify(users));
-
-    // Сохраняем в файл базы данных
+    // Используем DB_MANAGER для добавления пользователя
     if (window.DB_MANAGER) {
-        DB_MANAGER.exportDatabase();
+        // Проверяем, существует ли уже пользователь
+        const users = JSON.parse(localStorage.getItem('users')) || {};
+
+        if (users[email]) {
+            showNotification('Пользователь с таким email уже существует!', 'error');
+            return;
+        }
+
+        // Добавляем через DB_MANAGER
+        const result = DB_MANAGER.addUser({
+            name: name,
+            email: email,
+            password: password,
+            role: 'user'
+        });
+
+        if (result) {
+            showNotification('Регистрация успешна! Теперь вы можете войти.', 'success');
+            switchAuthTab('login');
+
+            // Очищаем форму
+            document.getElementById('regName').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regPassword').value = '';
+        } else {
+            showNotification('Ошибка при регистрации', 'error');
+        }
+    } else {
+        // Fallback на старый метод
+        let users = JSON.parse(localStorage.getItem('users')) || {};
+
+        if (users[email]) {
+            showNotification('Пользователь с таким email уже существует!', 'error');
+            return;
+        }
+
+        users[email] = {
+            name: name,
+            password: password,
+            role: 'user',
+            registered: new Date().toISOString()
+        };
+
+        localStorage.setItem('users', JSON.stringify(users));
+
+        showNotification('Регистрация успешна! Теперь вы можете войти.', 'success');
+        switchAuthTab('login');
+
+        document.getElementById('regName').value = '';
+        document.getElementById('regEmail').value = '';
+        document.getElementById('regPassword').value = '';
     }
-
-    showNotification('Регистрация успешна! Теперь вы можете войти.');
-    switchAuthTab('login');
-
-    // Очищаем форму
-    document.getElementById('regName').value = '';
-    document.getElementById('regEmail').value = '';
-    document.getElementById('regPassword').value = '';
 }
 
 // Вход

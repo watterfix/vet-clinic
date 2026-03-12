@@ -2,204 +2,12 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>ВетКлиника - Просмотр БД</title>
+    <title>ВетКлиника - Управление БД</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        .db-viewer {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .db-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-            .db-controls button {
-                padding: 12px 25px;
-                background: linear-gradient(135deg, #2c6e49, #1e4d2f);
-                color: white;
-                border: none;
-                border-radius: 30px;
-                cursor: pointer;
-                font-weight: bold;
-                transition: all 0.3s;
-            }
-
-                .db-controls button:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                }
-
-                .db-controls button.danger {
-                    background: linear-gradient(135deg, #dc3545, #c82333);
-                }
-
-                .db-controls button.warning {
-                    background: linear-gradient(135deg, #ffc107, #e0a800);
-                    color: #1e4d2f;
-                }
-
-        .db-section {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-            .db-section h2 {
-                color: #2c6e49;
-                margin-bottom: 15px;
-                border-bottom: 2px solid #ffd700;
-                padding-bottom: 10px;
-            }
-
-        .json-viewer {
-            background: #f5f5f5;
-            padding: 20px;
-            border-radius: 8px;
-            overflow-x: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.5;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-
-            .json-viewer pre {
-                margin: 0;
-                color: #333;
-            }
-
-            .json-viewer .string {
-                color: #2c6e49;
-            }
-
-            .json-viewer .number {
-                color: #007bff;
-            }
-
-            .json-viewer .boolean {
-                color: #dc3545;
-            }
-
-            .json-viewer .null {
-                color: #6c757d;
-            }
-
-            .json-viewer .key {
-                color: #1e4d2f;
-                font-weight: bold;
-            }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            border-left: 4px solid #2c6e49;
-        }
-
-            .stat-card h3 {
-                color: #2c6e49;
-                margin-bottom: 10px;
-                font-size: 1rem;
-            }
-
-            .stat-card .stat-value {
-                font-size: 2rem;
-                font-weight: bold;
-                color: #1e4d2f;
-            }
-
-        .import-area {
-            border: 2px dashed #2c6e49;
-            padding: 30px;
-            text-align: center;
-            border-radius: 12px;
-            background: #f8f9fa;
-            margin-bottom: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-            .import-area:hover {
-                background: #e9ecef;
-                border-color: #ffd700;
-            }
-
-            .import-area input[type="file"] {
-                display: none;
-            }
-
-        .backup-list {
-            list-style: none;
-            padding: 0;
-        }
-
-            .backup-list li {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 15px;
-                border-bottom: 1px solid #eee;
-            }
-
-                .backup-list li:last-child {
-                    border-bottom: none;
-                }
-
-        .backup-info {
-            flex: 1;
-        }
-
-        .backup-actions button {
-            padding: 8px 15px;
-            margin-left: 10px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .backup-actions .restore {
-            background-color: #2c6e49;
-            color: white;
-        }
-
-        .backup-actions .delete {
-            background-color: #dc3545;
-            color: white;
-        }
-
-        .backup-actions button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-
-        .file-info {
-            margin-top: 10px;
-            padding: 10px;
-            background: #e8f4e8;
-            border-radius: 6px;
-            color: #2c6e49;
-        }
-    </style>
 </head>
 <body>
     <header id="top">
-        <h1>🐾 ВетКлиника "Здоровый друг" - Просмотр и редактирование БД</h1>
+        <h1>🐾 ВетКлиника "Здоровый друг" - Управление базой данных</h1>
     </header>
 
     <nav>
@@ -209,7 +17,7 @@
             <li><a href="characteristics.html">Товары</a></li>
             <li><a href="payment-delivery.html">Оплата и доставка</a></li>
             <li><a href="contacts.html">Контакты</a></li>
-            <li><a href="db-viewer.html" style="background-color: #ffd700; color: #1e4d2f;">📁 Управление БД</a></li>
+            <li><a href="db-viewer.html" style="background-color: #ffd700; color: #1e4d2f;">📊 Управление БД</a></li>
         </ul>
     </nav>
 
@@ -217,16 +25,17 @@
     <a href="#top" class="back-to-top" title="Наверх">↑</a>
 
     <main>
-        <div class="db-viewer">
-            <div id="adminCheck" class="admin-warning" style="display: none;">
-                ⚠️ Доступ только для администратора
+        <div class="db-container">
+            <div id="adminCheck" class="admin-warning">
+                ⚠️ Проверка прав доступа...
             </div>
 
-            <div class="db-controls">
-                <button onclick="exportDatabase()">📥 Экспортировать БД в файл</button>
-                <button onclick="triggerFileInput()" class="warning">📤 Импортировать БД из файла</button>
-                <button onclick="refreshView()" class="warning">🔄 Обновить просмотр</button>
-                <button onclick="resetDatabase()" class="danger">⚠️ Сбросить БД до начальной</button>
+            <div class="export-buttons">
+                <button onclick="exportDatabase()" class="btn-export">📥 Экспортировать БД</button>
+                <button onclick="triggerFileInput()" class="btn-export">📤 Импортировать БД</button>
+                <button onclick="refreshData()" class="btn-export">🔄 Обновить</button>
+                <button onclick="createBackup()" class="btn-export">💾 Создать бэкап</button>
+                <button onclick="resetDatabase()" class="btn-export danger">⚠️ Сбросить</button>
             </div>
 
             <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="importDatabase(this.files[0])">
@@ -238,37 +47,157 @@
 
             <div id="fileInfo" class="file-info" style="display: none;"></div>
 
-            <div class="stats-grid" id="statsGrid"></div>
-
-            <div class="db-section">
-                <h2>📊 Статистика использования</h2>
-                <div id="detailedStats"></div>
+            <div class="stats-grid" id="statsGrid">
+                <!-- Статистика будет загружена через JS -->
             </div>
 
-            <div class="db-section">
-                <h2>👥 Пользователи</h2>
-                <div class="json-viewer" id="usersView"></div>
+            <div class="db-tabs">
+                <button class="db-tab active" onclick="switchTab('users')">👥 Пользователи</button>
+                <button class="db-tab" onclick="switchTab('products')">📦 Товары</button>
+                <button class="db-tab" onclick="switchTab('orders')">📋 Заказы</button>
+                <button class="db-tab" onclick="switchTab('backups')">💾 Резервные копии</button>
             </div>
 
-            <div class="db-section">
-                <h2>📦 Товары</h2>
-                <div class="json-viewer" id="productsView"></div>
+            <!-- Панель пользователей -->
+            <div id="usersPanel" class="db-panel active">
+                <h2>👥 Управление пользователями</h2>
+
+                <div class="search-box">
+                    <input type="text" id="userSearch" placeholder="🔍 Поиск по имени или email..." onkeyup="searchUsers()">
+                </div>
+
+                <button onclick="showAddUserForm()" class="btn-add">➕ Добавить пользователя</button>
+
+                <div id="addUserForm" class="add-form" style="display: none;">
+                    <h3>Добавление нового пользователя</h3>
+                    <div class="form-row">
+                        <input type="text" id="newUserName" placeholder="Имя">
+                        <input type="email" id="newUserEmail" placeholder="Email">
+                    </div>
+                    <div class="form-row">
+                        <input type="password" id="newUserPassword" placeholder="Пароль">
+                        <select id="newUserRole">
+                            <option value="user">Пользователь</option>
+                            <option value="admin">Администратор</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <button onclick="addUser()" class="btn-save">Сохранить</button>
+                        <button onclick="hideAddUserForm()" class="btn-delete">Отмена</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="db-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Имя</th>
+                                <th>Роль</th>
+                                <th>Дата регистрации</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Заполняется через JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div class="db-section">
-                <h2>📋 Заказы</h2>
-                <div class="json-viewer" id="ordersView"></div>
+            <!-- Панель товаров -->
+            <div id="productsPanel" class="db-panel">
+                <h2>📦 Управление товарами</h2>
+
+                <div class="search-box">
+                    <input type="text" id="productSearch" placeholder="🔍 Поиск по названию..." onkeyup="searchProducts()">
+                </div>
+
+                <button onclick="showAddProductForm()" class="btn-add">➕ Добавить товар</button>
+
+                <div id="addProductForm" class="add-form" style="display: none;">
+                    <h3>Добавление нового товара</h3>
+                    <div class="form-row">
+                        <input type="text" id="newProductId" placeholder="ID товара (например: food9)">
+                        <input type="text" id="newProductName" placeholder="Название товара">
+                    </div>
+                    <div class="form-row">
+                        <input type="number" id="newProductPrice" placeholder="Цена" min="0">
+                        <select id="newProductCategory">
+                            <option value="food">🍖 Корма</option>
+                            <option value="medicine">💊 Лекарства</option>
+                            <option value="accessories">🪀 Аксессуары</option>
+                            <option value="hygiene">🧼 Гигиена</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <input type="text" id="newProductDescription" placeholder="Описание товара">
+                    </div>
+                    <div class="form-row">
+                        <button onclick="addProduct()" class="btn-save">Сохранить</button>
+                        <button onclick="hideAddProductForm()" class="btn-delete">Отмена</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="db-table" id="productsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Название</th>
+                                <th>Цена</th>
+                                <th>Категория</th>
+                                <th>Описание</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody">
+                            <!-- Заполняется через JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div class="db-section">
-                <h2>⚙️ Настройки</h2>
-                <div class="json-viewer" id="settingsView"></div>
+            <!-- Панель заказов -->
+            <div id="ordersPanel" class="db-panel">
+                <h2>📋 Управление заказами</h2>
+
+                <div class="search-box">
+                    <input type="text" id="orderSearch" placeholder="🔍 Поиск по номеру заказа или email..." onkeyup="searchOrders()">
+                </div>
+
+                <div class="table-container">
+                    <table class="db-table" id="ordersTable">
+                        <thead>
+                            <tr>
+                                <th>№ заказа</th>
+                                <th>Дата</th>
+                                <th>Пользователь</th>
+                                <th>Сумма</th>
+                                <th>Доставка</th>
+                                <th>Товаров</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                            <!-- Заполняется через JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div class="db-section">
+            <!-- Панель резервных копий -->
+            <div id="backupsPanel" class="db-panel">
                 <h2>💾 Резервные копии</h2>
-                <div id="backupsList"></div>
-                <button onclick="createBackup()" class="db-controls button" style="margin-top: 15px;">📀 Создать резервную копию</button>
+
+                <div class="export-buttons">
+                    <button onclick="createBackup()" class="btn-export">📀 Создать резервную копию</button>
+                    <button onclick="restoreFromBackup()" class="btn-export">🔄 Восстановить из последней</button>
+                </div>
+
+                <div id="backupsList" class="backup-list">
+                    <!-- Список бэкапов будет загружен через JS -->
+                </div>
             </div>
         </div>
     </main>
@@ -280,131 +209,702 @@
 
     <script src="script.js"></script>
     <script src="db-manager.js"></script>
-    <script>// Проверка прав администратора
+    <script>
+        // Глобальные переменные
+        let currentUser = null;
+        let backups = [];
+
+        // Проверка прав администратора
         function checkAdminAccess() {
-            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            currentUser = JSON.parse(localStorage.getItem('currentUser'));
             const adminWarning = document.getElementById('adminCheck');
 
             if (!currentUser || currentUser.role !== 'admin') {
                 adminWarning.style.display = 'block';
-                // Скрываем все элементы управления
-                document.querySelectorAll('.db-controls button, .import-area, .db-section').forEach(el => {
-                    el.style.opacity = '0.5';
-                    el.style.pointerEvents = 'none';
+                adminWarning.innerHTML = '⚠️ Доступ запрещен! Только администратор может просматривать эту страницу.';
+
+                // Скрываем все панели
+                document.querySelectorAll('.db-panel, .export-buttons, .import-area').forEach(el => {
+                    el.style.display = 'none';
                 });
+
                 return false;
             } else {
                 adminWarning.style.display = 'none';
-                document.querySelectorAll('.db-controls button, .import-area, .db-section').forEach(el => {
-                    el.style.opacity = '1';
-                    el.style.pointerEvents = 'auto';
-                });
                 return true;
             }
         }
 
-        // Обновление просмотра
-        function refreshView() {
-            if (!checkAdminAccess()) return;
+        // Переключение вкладок
+        function switchTab(tabName) {
+            // Обновляем активные вкладки
+            document.querySelectorAll('.db-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
 
-            // Получаем данные из localStorage
-            const users = JSON.parse(localStorage.getItem('users')) || {};
-            const products = JSON.parse(localStorage.getItem('products')) || {};
-            const orders = JSON.parse(localStorage.getItem('orders')) || [];
-            const settings = JSON.parse(localStorage.getItem('settings')) || {};
+            // Показываем соответствующую панель
+            document.querySelectorAll('.db-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            document.getElementById(tabName + 'Panel').classList.add('active');
 
-            // Форматируем JSON для отображения
-            document.getElementById('usersView').innerHTML = syntaxHighlight(JSON.stringify(users, null, 2));
-            document.getElementById('productsView').innerHTML = syntaxHighlight(JSON.stringify(products, null, 2));
-            document.getElementById('ordersView').innerHTML = syntaxHighlight(JSON.stringify(orders, null, 2));
-            document.getElementById('settingsView').innerHTML = syntaxHighlight(JSON.stringify(settings, null, 2));
-
-            // Обновляем статистику
-            updateStats();
+            // Загружаем данные для панели
+            switch (tabName) {
+                case 'users':
+                    loadUsers();
+                    break;
+                case 'products':
+                    loadProducts();
+                    break;
+                case 'orders':
+                    loadOrders();
+                    break;
+                case 'backups':
+                    loadBackups();
+                    break;
+            }
         }
 
-        // Подсветка синтаксиса JSON
-        function syntaxHighlight(json) {
-            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-                let cls = 'number';
-                if (/^"/.test(match)) {
-                    if (/:$/.test(match)) {
-                        cls = 'key';
-                    } else {
-                        cls = 'string';
-                    }
-                } else if (/true|false/.test(match)) {
-                    cls = 'boolean';
-                } else if (/null/.test(match)) {
-                    cls = 'null';
-                }
-                return '<span class="' + cls + '">' + match + '</span>';
+        // ============================================
+        // УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ
+        // ============================================
+
+        // Загрузка пользователей
+        function loadUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            if (!tbody) return;
+
+            let html = '';
+            const users = DB_MANAGER.currentData.users || {};
+
+            Object.keys(users).sort().forEach(email => {
+                const user = users[email];
+                const safeEmail = email.replace(/[@.]/g, '_');
+                const registered = user.registered ? new Date(user.registered).toLocaleString() : 'Н/Д';
+                const roleClass = user.role === 'admin' ? 'role-admin' : 'role-user';
+                const roleText = user.role === 'admin' ? '👑 Админ' : '👤 Пользователь';
+
+                html += `
+                        <tr id="user-${safeEmail}">
+                            <td>${email}</td>
+                            <td>${user.name}</td>
+                            <td><span class="role-badge ${roleClass}">${roleText}</span></td>
+                            <td>${registered}</td>
+                            <td class="action-buttons">
+                                <button onclick="editUser('${email}')" class="btn-edit">✏️ Ред.</button>
+                                <button onclick="deleteUser('${email}')" class="btn-delete" ${email === 'admin@vetclinic.ru' ? 'disabled' : ''}>🗑️ Удал.</button>
+                            </td>
+                        </tr>
+                    `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // Поиск пользователей
+        function searchUsers() {
+            const searchText = document.getElementById('userSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#usersTableBody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchText) ? '' : 'none';
             });
         }
+
+        // Показать форму добавления пользователя
+        function showAddUserForm() {
+            document.getElementById('addUserForm').style.display = 'block';
+        }
+
+        // Скрыть форму добавления пользователя
+        function hideAddUserForm() {
+            document.getElementById('addUserForm').style.display = 'none';
+        }
+
+        // Добавление пользователя
+        function addUser() {
+            const name = document.getElementById('newUserName').value;
+            const email = document.getElementById('newUserEmail').value;
+            const password = document.getElementById('newUserPassword').value;
+            const role = document.getElementById('newUserRole').value;
+
+            if (!name || !email || !password) {
+                showNotification('Заполните все поля!', 'error');
+                return;
+            }
+
+            // Проверяем существование
+            const users = DB_MANAGER.currentData.users || {};
+            if (users[email]) {
+                showNotification('Пользователь с таким email уже существует!', 'error');
+                return;
+            }
+
+            // Добавляем через DB_MANAGER
+            const result = DB_MANAGER.addUser({
+                name: name,
+                email: email,
+                password: password,
+                role: role
+            });
+
+            if (result) {
+                showNotification('Пользователь добавлен!', 'success');
+                hideAddUserForm();
+                loadUsers();
+                updateStats();
+
+                // Очищаем форму
+                document.getElementById('newUserName').value = '';
+                document.getElementById('newUserEmail').value = '';
+                document.getElementById('newUserPassword').value = '';
+            } else {
+                showNotification('Ошибка при добавлении', 'error');
+            }
+        }
+
+        // Редактирование пользователя
+        function editUser(email) {
+            const safeEmail = email.replace(/[@.]/g, '_');
+            const row = document.getElementById(`user-${safeEmail}`);
+            const user = DB_MANAGER.currentData.users[email];
+
+            if (!user) return;
+
+            row.innerHTML = `
+                    <td>${email}</td>
+                    <td><input type="text" id="edit-name-${safeEmail}" value="${user.name}" class="edit-input"></td>
+                    <td>
+                        <select id="edit-role-${safeEmail}" class="edit-input">
+                            <option value="user" ${user.role === 'user' ? 'selected' : ''}>Пользователь</option>
+                            <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Администратор</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="password" id="edit-password-${safeEmail}" value="" class="edit-input" placeholder="Новый пароль">
+                    </td>
+                    <td class="action-buttons">
+                        <button onclick="saveUserEdit('${email}')" class="btn-save">💾 Сохр.</button>
+                        <button onclick="cancelUserEdit('${email}')" class="btn-delete">✖ Отм.</button>
+                    </td>
+                `;
+        }
+
+        // Сохранение редактирования пользователя
+        function saveUserEdit(email) {
+            const safeEmail = email.replace(/[@.]/g, '_');
+            const newName = document.getElementById(`edit-name-${safeEmail}`).value;
+            const newRole = document.getElementById(`edit-role-${safeEmail}`).value;
+            const newPassword = document.getElementById(`edit-password-${safeEmail}`).value;
+
+            const updateData = {
+                name: newName,
+                role: newRole
+            };
+
+            if (newPassword) {
+                updateData.password = newPassword;
+            }
+
+            if (DB_MANAGER.updateUser(email, updateData)) {
+                showNotification('Пользователь обновлен', 'success');
+                loadUsers();
+            } else {
+                showNotification('Ошибка обновления', 'error');
+            }
+        }
+
+        // Отмена редактирования пользователя
+        function cancelUserEdit(email) {
+            loadUsers();
+        }
+
+        // Удаление пользователя
+        function deleteUser(email) {
+            if (email === 'admin@vetclinic.ru') {
+                showNotification('Нельзя удалить главного администратора!', 'error');
+                return;
+            }
+
+            if (confirm(`Удалить пользователя ${email}?`)) {
+                if (DB_MANAGER.deleteUser(email)) {
+                    showNotification('Пользователь удален', 'success');
+                    loadUsers();
+                    updateStats();
+                } else {
+                    showNotification('Ошибка удаления', 'error');
+                }
+            }
+        }
+
+        // ============================================
+        // УПРАВЛЕНИЕ ТОВАРАМИ
+        // ============================================
+
+        // Загрузка товаров
+        function loadProducts() {
+            const tbody = document.getElementById('productsTableBody');
+            if (!tbody) return;
+
+            let html = '';
+            const products = DB_MANAGER.currentData.products || {};
+
+            Object.keys(products).sort().forEach(id => {
+                const product = products[id];
+                const categoryClass = `category-${product.category}`;
+                const categoryName = getCategoryName(product.category);
+
+                html += `
+                        <tr id="product-${id}">
+                            <td><code>${id}</code></td>
+                            <td><strong>${product.name}</strong></td>
+                            <td><strong style="color: #2c6e49;">${product.price} ₽</strong></td>
+                            <td><span class="category-badge ${categoryClass}">${categoryName}</span></td>
+                            <td>${product.description || '—'}</td>
+                            <td class="action-buttons">
+                                <button onclick="editProduct('${id}')" class="btn-edit">✏️ Ред.</button>
+                                <button onclick="deleteProduct('${id}')" class="btn-delete">🗑️ Удал.</button>
+                            </td>
+                        </tr>
+                    `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // Поиск товаров
+        function searchProducts() {
+            const searchText = document.getElementById('productSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#productsTableBody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchText) ? '' : 'none';
+            });
+        }
+
+        // Показать форму добавления товара
+        function showAddProductForm() {
+            document.getElementById('addProductForm').style.display = 'block';
+        }
+
+        // Скрыть форму добавления товара
+        function hideAddProductForm() {
+            document.getElementById('addProductForm').style.display = 'none';
+        }
+
+        // Добавление товара
+        function addProduct() {
+            const id = document.getElementById('newProductId').value;
+            const name = document.getElementById('newProductName').value;
+            const price = document.getElementById('newProductPrice').value;
+            const category = document.getElementById('newProductCategory').value;
+            const description = document.getElementById('newProductDescription').value;
+
+            if (!id || !name || !price) {
+                showNotification('Заполните обязательные поля!', 'error');
+                return;
+            }
+
+            const products = DB_MANAGER.currentData.products || {};
+            if (products[id]) {
+                showNotification('Товар с таким ID уже существует!', 'error');
+                return;
+            }
+
+            const result = DB_MANAGER.addProduct(id, {
+                name: name,
+                price: parseInt(price),
+                category: category,
+                description: description
+            });
+
+            if (result) {
+                showNotification('Товар добавлен!', 'success');
+                hideAddProductForm();
+                loadProducts();
+                updateStats();
+
+                // Очищаем форму
+                document.getElementById('newProductId').value = '';
+                document.getElementById('newProductName').value = '';
+                document.getElementById('newProductPrice').value = '';
+                document.getElementById('newProductDescription').value = '';
+            } else {
+                showNotification('Ошибка при добавлении', 'error');
+            }
+        }
+
+        // Редактирование товара
+        function editProduct(productId) {
+            const row = document.getElementById(`product-${productId}`);
+            const product = DB_MANAGER.currentData.products[productId];
+
+            if (!product) return;
+
+            row.innerHTML = `
+                    <td><code>${productId}</code></td>
+                    <td><input type="text" id="edit-product-name-${productId}" value="${product.name}" class="edit-input"></td>
+                    <td><input type="number" id="edit-product-price-${productId}" value="${product.price}" class="edit-input" min="0"></td>
+                    <td>
+                        <select id="edit-product-category-${productId}" class="edit-input">
+                            <option value="food" ${product.category === 'food' ? 'selected' : ''}>🍖 Корма</option>
+                            <option value="medicine" ${product.category === 'medicine' ? 'selected' : ''}>💊 Лекарства</option>
+                            <option value="accessories" ${product.category === 'accessories' ? 'selected' : ''}>🪀 Аксессуары</option>
+                            <option value="hygiene" ${product.category === 'hygiene' ? 'selected' : ''}>🧼 Гигиена</option>
+                        </select>
+                    </td>
+                    <td><input type="text" id="edit-product-desc-${productId}" value="${product.description || ''}" class="edit-input" placeholder="Описание"></td>
+                    <td class="action-buttons">
+                        <button onclick="saveProductEdit('${productId}')" class="btn-save">💾 Сохр.</button>
+                        <button onclick="cancelProductEdit('${productId}')" class="btn-delete">✖ Отм.</button>
+                    </td>
+                `;
+        }
+
+        // Сохранение редактирования товара
+        function saveProductEdit(productId) {
+            const newName = document.getElementById(`edit-product-name-${productId}`).value;
+            const newPrice = document.getElementById(`edit-product-price-${productId}`).value;
+            const newCategory = document.getElementById(`edit-product-category-${productId}`).value;
+            const newDesc = document.getElementById(`edit-product-desc-${productId}`).value;
+
+            const updateData = {
+                name: newName,
+                price: parseInt(newPrice),
+                category: newCategory,
+                description: newDesc
+            };
+
+            if (DB_MANAGER.updateProduct(productId, updateData)) {
+                showNotification('Товар обновлен', 'success');
+                loadProducts();
+            } else {
+                showNotification('Ошибка обновления', 'error');
+            }
+        }
+
+        // Отмена редактирования товара
+        function cancelProductEdit(productId) {
+            loadProducts();
+        }
+
+        // Удаление товара
+        function deleteProduct(productId) {
+            const product = DB_MANAGER.currentData.products[productId];
+            if (!product) return;
+
+            if (confirm(`Удалить товар "${product.name}"?`)) {
+                if (DB_MANAGER.deleteProduct(productId)) {
+                    showNotification('Товар удален', 'success');
+                    loadProducts();
+                    updateStats();
+                } else {
+                    showNotification('Ошибка удаления', 'error');
+                }
+            }
+        }
+
+        // ============================================
+        // УПРАВЛЕНИЕ ЗАКАЗАМИ
+        // ============================================
+
+        // Загрузка заказов
+        function loadOrders() {
+            const tbody = document.getElementById('ordersTableBody');
+            if (!tbody) return;
+
+            let html = '';
+            const orders = DB_MANAGER.currentData.orders || [];
+
+            orders.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(order => {
+                const date = new Date(order.date).toLocaleString();
+                const deliveryType = order.delivery === 'pickup' ? '🚶 Самовывоз' : '🚚 Доставка';
+
+                html += `
+                        <tr id="order-${order.id}">
+                            <td><strong>#${order.orderNumber}</strong></td>
+                            <td>${date}</td>
+                            <td>${order.userName}<br><small style="color: #666;">${order.user}</small></td>
+                            <td><strong style="color: #2c6e49;">${order.total} ₽</strong></td>
+                            <td>${deliveryType}</td>
+                            <td>${order.items ? order.items.length : 0} шт.</td>
+                            <td class="action-buttons">
+                                <button onclick="viewOrderDetails('${order.id}')" class="btn-view">👁️ Дет.</button>
+                                <button onclick="deleteOrder('${order.id}')" class="btn-delete">🗑️ Удал.</button>
+                            </td>
+                        </tr>
+                    `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // Поиск заказов
+        function searchOrders() {
+            const searchText = document.getElementById('orderSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#ordersTableBody tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchText) ? '' : 'none';
+            });
+        }
+
+        // Просмотр деталей заказа
+        function viewOrderDetails(orderId) {
+            const order = DB_MANAGER.currentData.orders.find(o => o.id == orderId);
+            if (!order) return;
+
+            let itemsHtml = '';
+            order.items.forEach(item => {
+                itemsHtml += `<div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #2c6e49;">
+                        <span>${item.name}</span>
+                        <span style="font-weight: bold;">${item.price} ₽</span>
+                    </div>`;
+            });
+
+            let deliveryInfo = '';
+            if (order.delivery === 'pickup') {
+                deliveryInfo = `
+                        <p><strong>📍 Адрес самовывоза:</strong> ${order.pickupAddress}</p>
+                        <p><strong>📞 Телефон:</strong> ${order.pickupPhone}</p>
+                    `;
+            } else {
+                deliveryInfo = `
+                        <p><strong>🚚 Адрес доставки:</strong> ${order.deliveryAddress}</p>
+                        <p><strong>📞 Телефон:</strong> ${order.deliveryPhone}</p>
+                        ${order.deliveryComment ? `<p><strong>💬 Комментарий:</strong> ${order.deliveryComment}</p>` : ''}
+                    `;
+            }
+
+            showStyledAlert(`
+                    <div style="text-align: center;">
+                        <h2 style="color: #2c6e49;">Заказ #${order.orderNumber}</h2>
+                        <p><strong>Дата:</strong> ${new Date(order.date).toLocaleString()}</p>
+                        <p><strong>Пользователь:</strong> ${order.userName} (${order.user})</p>
+
+                        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
+                            <h3>Информация о доставке</h3>
+                            ${deliveryInfo}
+                        </div>
+
+                        <div style="background-color: #e8f4e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                            <h3>Состав заказа</h3>
+                            ${itemsHtml}
+                            <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 2px solid #2c6e49; font-weight: bold;">
+                                <span>ИТОГО:</span>
+                                <span>${order.total} ₽</span>
+                            </div>
+                        </div>
+
+                        <p><strong>Способ оплаты:</strong> ${order.paymentNote}</p>
+                    </div>
+                `);
+        }
+
+        // Удаление заказа
+        function deleteOrder(orderId) {
+            if (confirm('Удалить заказ?')) {
+                if (DB_MANAGER.deleteOrder(orderId)) {
+                    showNotification('Заказ удален', 'success');
+                    loadOrders();
+                    updateStats();
+                } else {
+                    showNotification('Ошибка удаления', 'error');
+                }
+            }
+        }
+
+        // ============================================
+        // СТАТИСТИКА
+        // ============================================
 
         // Обновление статистики
         function updateStats() {
             const stats = DB_MANAGER.getStats();
 
             const statsGrid = document.getElementById('statsGrid');
-            statsGrid.innerHTML = `
-                <div class="stat-card">
-                    <h3>Пользователи</h3>
-                    <div class="stat-value">${stats.totalUsers}</div>
-                    <div style="color: #666;">👑 Админов: ${stats.adminCount}</div>
-                    <div style="color: #666;">👤 Пользователей: ${stats.userCount}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Заказы</h3>
-                    <div class="stat-value">${stats.totalOrders}</div>
-                    <div style="color: #666;">Сегодня: ${stats.todayOrders}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Выручка</h3>
-                    <div class="stat-value">${stats.totalRevenue} ₽</div>
-                    <div style="color: #666;">Средний чек: ${stats.averageOrderValue} ₽</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Товары</h3>
-                    <div class="stat-value">${stats.totalProducts}</div>
-                    <div style="color: #666;">В наличии</div>
-                </div>
-            `;
-
-            const detailedStats = document.getElementById('detailedStats');
-            detailedStats.innerHTML = `
-                <p><strong>Всего пользователей:</strong> ${stats.totalUsers}</p>
-                <p><strong>Всего заказов:</strong> ${stats.totalOrders}</p>
-                <p><strong>Общая выручка:</strong> ${stats.totalRevenue} руб.</p>
-                <p><strong>Средний чек:</strong> ${stats.averageOrderValue} руб.</p>
-                <p><strong>Заказов сегодня:</strong> ${stats.todayOrders}</p>
-                <p><strong>Товаров в каталоге:</strong> ${stats.totalProducts}</p>
-            `;
+            if (statsGrid) {
+                statsGrid.innerHTML = `
+                        <div class="stat-card">
+                            <h3>👥 Пользователи</h3>
+                            <div class="stat-value">${stats.totalUsers}</div>
+                            <div>👑 Админов: ${stats.adminCount}</div>
+                            <div>👤 Пользователей: ${stats.userCount}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>📦 Товары</h3>
+                            <div class="stat-value">${stats.totalProducts}</div>
+                            <div>🍖 Корма: ${stats.productsByCategory?.food || 0}</div>
+                            <div>💊 Лекарства: ${stats.productsByCategory?.medicine || 0}</div>
+                            <div>🪀 Аксессуары: ${stats.productsByCategory?.accessories || 0}</div>
+                            <div>🧼 Гигиена: ${stats.productsByCategory?.hygiene || 0}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>📋 Заказы</h3>
+                            <div class="stat-value">${stats.totalOrders}</div>
+                            <div>Сегодня: ${stats.todayOrders}</div>
+                            <div>Средний чек: ${stats.averageOrderValue} ₽</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>💰 Выручка</h3>
+                            <div class="stat-value">${stats.totalRevenue} ₽</div>
+                            <div>Всего продано</div>
+                        </div>
+                    `;
+            }
         }
+
+        // ============================================
+        // РЕЗЕРВНЫЕ КОПИИ
+        // ============================================
+
+        // Загрузка списка бэкапов
+        function loadBackups() {
+            const backupsList = document.getElementById('backupsList');
+            const backups = JSON.parse(localStorage.getItem('backups')) || [];
+
+            if (backups.length === 0) {
+                backupsList.innerHTML = '<p style="text-align: center; color: #666;">Нет сохраненных резервных копий</p>';
+                return;
+            }
+
+            let html = '<ul class="backup-list">';
+            backups.reverse().forEach((backup, index) => {
+                const date = new Date(backup.date).toLocaleString();
+                html += `
+                        <li>
+                            <div class="backup-info">
+                                <strong>${backup.name}</strong><br>
+                                <small>${date} | Пользователей: ${backup.stats?.users || 0} | Товаров: ${backup.stats?.products || 0} | Заказов: ${backup.stats?.orders || 0}</small>
+                            </div>
+                            <div class="backup-actions">
+                                <button onclick="restoreBackup(${index})" class="btn-save">🔄 Восст.</button>
+                                <button onclick="deleteBackup(${index})" class="btn-delete">🗑️ Удал.</button>
+                            </div>
+                        </li>
+                    `;
+            });
+            html += '</ul>';
+
+            backupsList.innerHTML = html;
+        }
+
+        // Создание резервной копии
+        function createBackup() {
+            const stats = DB_MANAGER.getStats();
+            const backup = {
+                id: Date.now(),
+                name: `Backup ${new Date().toLocaleString()}`,
+                date: new Date().toISOString(),
+                data: {
+                    users: DB_MANAGER.currentData.users,
+                    products: DB_MANAGER.currentData.products,
+                    orders: DB_MANAGER.currentData.orders,
+                    settings: DB_MANAGER.currentData.settings
+                },
+                stats: {
+                    users: stats.totalUsers,
+                    products: stats.totalProducts,
+                    orders: stats.totalOrders
+                }
+            };
+
+            let backups = JSON.parse(localStorage.getItem('backups')) || [];
+            backups.push(backup);
+            localStorage.setItem('backups', JSON.stringify(backups));
+
+            showNotification('Резервная копия создана', 'success');
+            loadBackups();
+        }
+
+        // Восстановление из бэкапа
+        function restoreBackup(index) {
+            if (!confirm('Восстановить данные из этой резервной копии? Текущие данные будут заменены.')) {
+                return;
+            }
+
+            const backups = JSON.parse(localStorage.getItem('backups')) || [];
+            const backup = backups[index];
+
+            if (!backup) return;
+
+            // Восстанавливаем данные
+            localStorage.setItem('users', JSON.stringify(backup.data.users));
+            localStorage.setItem('products', JSON.stringify(backup.data.products));
+            localStorage.setItem('orders', JSON.stringify(backup.data.orders));
+            localStorage.setItem('settings', JSON.stringify(backup.data.settings));
+
+            // Обновляем DB_MANAGER
+            DB_MANAGER.currentData = backup.data;
+
+            showNotification('Данные восстановлены', 'success');
+
+            // Обновляем все панели
+            loadUsers();
+            loadProducts();
+            loadOrders();
+            updateStats();
+        }
+
+        // Удаление бэкапа
+        function deleteBackup(index) {
+            if (!confirm('Удалить эту резервную копию?')) return;
+
+            let backups = JSON.parse(localStorage.getItem('backups')) || [];
+            backups.splice(index, 1);
+            localStorage.setItem('backups', JSON.stringify(backups));
+
+            showNotification('Резервная копия удалена', 'success');
+            loadBackups();
+        }
+
+        // Восстановление из последнего бэкапа
+        function restoreFromBackup() {
+            const backups = JSON.parse(localStorage.getItem('backups')) || [];
+            if (backups.length === 0) {
+                showNotification('Нет сохраненных резервных копий', 'error');
+                return;
+            }
+
+            restoreBackup(backups.length - 1);
+        }
+
+        // ============================================
+        // РАБОТА С ФАЙЛАМИ
+        // ============================================
 
         // Экспорт базы данных
         function exportDatabase() {
-            if (!checkAdminAccess()) return;
             DB_MANAGER.exportDatabase();
-            showNotification('База данных экспортирована', 'success');
         }
 
         // Импорт базы данных
         function importDatabase(file) {
-            if (!checkAdminAccess()) return;
-
             DB_MANAGER.importDatabase(file)
                 .then(data => {
                     document.getElementById('fileInfo').style.display = 'block';
                     document.getElementById('fileInfo').innerHTML = `
-                        ✅ Файл успешно загружен!<br>
-                        Пользователей: ${Object.keys(data.users).length}<br>
-                        Товаров: ${Object.keys(data.products).length}<br>
-                        Заказов: ${data.orders ? data.orders.length : 0}
-                    `;
-                    refreshView();
+                            ✅ Файл успешно загружен!<br>
+                            Пользователей: ${Object.keys(data.users).length}<br>
+                            Товаров: ${Object.keys(data.products).length}<br>
+                            Заказов: ${data.orders ? data.orders.length : 0}
+                        `;
+
+                    // Обновляем все панели
+                    loadUsers();
+                    loadProducts();
+                    loadOrders();
+                    updateStats();
+
                     showNotification('База данных импортирована', 'success');
+
+                    setTimeout(() => {
+                        document.getElementById('fileInfo').style.display = 'none';
+                    }, 5000);
                 })
                 .catch(error => {
                     document.getElementById('fileInfo').style.display = 'block';
@@ -413,56 +913,156 @@
                 });
         }
 
+        // Триггер для выбора файла
         function triggerFileInput() {
             document.getElementById('fileInput').click();
         }
 
-        // Сброс базы данных до начальной
-        function resetDatabase() {
-            if (!checkAdminAccess()) return;
+        // Обновление данных
+        function refreshData() {
+            DB_MANAGER.loadDatabase().then(() => {
+                loadUsers();
+                loadProducts();
+                loadOrders();
+                updateStats();
+                showNotification('Данные обновлены', 'success');
+            });
+        }
 
+        // Сброс базы данных
+        function resetDatabase() {
             if (confirm('Вы уверены? Все данные будут сброшены до начальных!')) {
-                localStorage.clear();
-                location.reload();
+                DB_MANAGER.resetToDefault();
+                refreshData();
+                showNotification('База данных сброшена', 'success');
             }
         }
 
-        // Создание резервной копии
-        function createBackup() {
-            if (!checkAdminAccess()) return;
+        // ============================================
+        // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        // ============================================
 
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const data = {
-                users: JSON.parse(localStorage.getItem('users')) || {},
-                products: JSON.parse(localStorage.getItem('products')) || {},
-                orders: JSON.parse(localStorage.getItem('orders')) || [],
-                settings: JSON.parse(localStorage.getItem('settings')) || {},
-                backupDate: new Date().toISOString()
+        // Получение названия категории
+        function getCategoryName(category) {
+            const categories = {
+                'food': '🍖 Корма',
+                'medicine': '💊 Лекарства',
+                'accessories': '🪀 Аксессуары',
+                'hygiene': '🧼 Гигиена'
             };
-
-            const jsonData = JSON.stringify(data, null, 2);
-            const blob = new Blob([jsonData], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `backup-${timestamp}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            showNotification('Резервная копия создана', 'success');
+            return categories[category] || category;
         }
 
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Загружаем данные из файла при старте
+        // Показать уведомление
+        function showNotification(message, type = 'success') {
+            // Используем глобальную функцию из script.js если она есть
+            if (window.showNotification) {
+                window.showNotification(message, type);
+                return;
+            }
+
+            // Своя реализация если нет глобальной
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.backgroundColor = type === 'success' ? '#2c6e49' : '#dc3545';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Показать стилизованное окно
+        function showStyledAlert(content) {
+            // Используем глобальную функцию из script.js если она есть
+            if (window.showStyledAlert) {
+                window.showStyledAlert(content);
+                return;
+            }
+
+            // Своя реализация
+            const overlay = document.createElement('div');
+            overlay.className = 'custom-alert-overlay';
+            overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    z-index: 3000;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                `;
+
+            const alertBox = document.createElement('div');
+            alertBox.className = 'custom-alert';
+            alertBox.style.cssText = `
+                    background-color: white;
+                    border-radius: 12px;
+                    padding: 30px;
+                    max-width: 500px;
+                    width: 90%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    position: relative;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                    border: 3px solid #2c6e49;
+                `;
+
+            const closeButton = document.createElement('span');
+            closeButton.innerHTML = '&times;';
+            closeButton.style.cssText = `
+                    position: absolute;
+                    top: 10px;
+                    right: 15px;
+                    font-size: 28px;
+                    cursor: pointer;
+                    color: #999;
+                    z-index: 10;
+                `;
+            closeButton.onclick = () => document.body.removeChild(overlay);
+
+            alertBox.innerHTML = content;
+            alertBox.appendChild(closeButton);
+            overlay.appendChild(alertBox);
+            document.body.appendChild(overlay);
+
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) {
+                    document.body.removeChild(overlay);
+                }
+            });
+        }
+
+        // ============================================
+        // ИНИЦИАЛИЗАЦИЯ
+        // ============================================
+
+        // Инициализация страницы
+        async function initPage() {
+            // Проверяем права доступа
+            if (!checkAdminAccess()) {
+                return;
+            }
+
+            // Загружаем данные
             await DB_MANAGER.loadDatabase();
 
-            // Проверяем права и обновляем просмотр
-            checkAdminAccess();
-            refreshView();
-        });</script>
+            // Загружаем начальные данные
+            loadUsers();
+            loadProducts();
+            loadOrders();
+            updateStats();
+            loadBackups();
+
+            console.log('Страница управления БД инициализирована');
+        }
+
+        // Запускаем при загрузке страницы
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
 </body>
 </html>
