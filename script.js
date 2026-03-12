@@ -963,31 +963,52 @@ function register(event) {
     }
 }
 
-// Вход
-function login(event) {
+// Исправленная функция входа
+async function login(event) {
     event.preventDefault();
 
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
+    
+    console.log('🔐 Попытка входа:', email);
+    
+    try {
+        // Загружаем свежие данные с сервера
+        await DB_MANAGER.loadDatabase();
+        
+        console.log('📦 Текущие пользователи:', DB_MANAGER.currentData.users);
+        
+        // Ищем пользователя
+        const user = DB_MANAGER.currentData.users.find(u => u.email === email);
+        
+        if (user) {
+            console.log('✅ Пользователь найден:', user);
+            console.log('🔑 Введенный пароль:', password);
+            console.log('🔑 Пароль в БД:', user.password);
+            
+            if (user.password === password) {
+                currentUser = {
+                    email: user.email,
+                    name: user.name,
+                    role: user.role
+                };
 
-    // Загружаем актуальных пользователей
-    let users = JSON.parse(localStorage.getItem('users')) || {};
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showNotification('Вход выполнен успешно!', 'success');
 
-    if (users[email] && users[email].password === password) {
-        currentUser = {
-            email: email,
-            name: users[email].name,
-            role: users[email].role
-        };
-
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        showNotification('Вход выполнен успешно!');
-
-        closeAuthModal();
-        updateUI();
-        broadcastUpdate();
-    } else {
-        showNotification('Неверный email или пароль!', 'error');
+                closeAuthModal();
+                updateUI();
+            } else {
+                console.log('❌ Пароль не совпадает');
+                showNotification('Неверный пароль!', 'error');
+            }
+        } else {
+            console.log('❌ Пользователь не найден');
+            showNotification('Пользователь не найден!', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка при входе:', error);
+        showNotification('Ошибка при входе', 'error');
     }
 }
 
