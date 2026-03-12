@@ -1,6 +1,10 @@
 // ============================================
 // ПРОСТОЙ СКРИПТ ДЛЯ УПРАВЛЕНИЯ БД
 // ============================================
+// Алиас для обратной совместимости
+if (!DB_MANAGER.loadDatabase) {
+    DB_MANAGER.loadDatabase = DB_MANAGER.loadAllData;
+}
 
 console.log('db-viewer.js загружен');
 
@@ -41,7 +45,7 @@ async function loadAllData() {
     showMessage('⏳ Загрузка данных...');
 
     try {
-        await DB_MANAGER.loadAllData();
+        await DB_MANAGER.loadDatabase();
 
         // Показываем интерфейс
         document.querySelectorAll('.export-buttons, .import-area, .db-tabs, .stats-grid, .db-panel').forEach(el => {
