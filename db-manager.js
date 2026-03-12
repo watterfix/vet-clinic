@@ -872,7 +872,7 @@ setInterval(() => {
         DB_MANAGER.syncToLocalStorage();
         console.log('Автосохранение выполнено в', new Date().toLocaleTimeString());
     }
-}, 60000);
+}, 5000);
 
 // Сохранение перед закрытием страницы
 window.addEventListener('beforeunload', () => {
