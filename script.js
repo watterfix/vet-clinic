@@ -606,6 +606,75 @@ async function processOrder() {
     const finalTotal = total + deliveryCost;
     const orderNumber = generateOrderNumber();
 
+    // Исправленная функция создания заказа
+async function processOrder() {
+    if (!currentUser) {
+        showNotification('Необходимо войти в систему!', 'error');
+        openAuthModal('login');
+        return;
+    }
+
+    if (cart.length === 0) {
+        showNotification('Корзина пуста!', 'error');
+        return;
+    }
+
+    // Показываем индикатор загрузки
+    const checkoutBtn = document.querySelector('.checkout-btn');
+    if (checkoutBtn) {
+        checkoutBtn.textContent = 'Оформление...';
+        checkoutBtn.disabled = true;
+    }
+
+    const pickupMethod = document.getElementById('pickupMethod');
+    const deliveryMethod = document.getElementById('deliveryMethod');
+
+    let deliveryValue = 'pickup';
+    let deliveryCost = 0;
+
+    const total = cart.reduce((sum, item) => sum + item.price, 0);
+    const freeDelivery = total >= 3000;
+
+    if (deliveryMethod && deliveryMethod.checked) {
+        deliveryValue = 'delivery';
+        deliveryCost = freeDelivery ? 0 : 300;
+
+        const addressError = document.getElementById('deliveryAddressError');
+        const phoneError = document.getElementById('deliveryPhoneError');
+        
+        if (addressError) addressError.textContent = '';
+        if (phoneError) phoneError.textContent = '';
+        
+        const address = document.getElementById('deliveryAddress')?.value;
+        const phone = document.getElementById('deliveryPhone')?.value;
+        
+        let isValid = true;
+
+        if (!address || address.trim().length < 10) {
+            if (addressError) addressError.textContent = 'Введите корректный адрес (минимум 10 символов)';
+            isValid = false;
+        }
+
+        if (!phone) {
+            if (phoneError) phoneError.textContent = 'Введите номер телефона';
+            isValid = false;
+        } else if (!validatePhone(phone)) {
+            if (phoneError) phoneError.textContent = 'Введите корректный номер телефона';
+            isValid = false;
+        }
+
+        if (!isValid) {
+            if (checkoutBtn) {
+                checkoutBtn.textContent = 'Оформить заказ';
+                checkoutBtn.disabled = false;
+            }
+            return;
+        }
+    }
+
+    const finalTotal = total + deliveryCost;
+    const orderNumber = generateOrderNumber();
+
     // Создаем заказ
     const order = {
         orderNumber: orderNumber,
@@ -631,12 +700,15 @@ async function processOrder() {
     }
 
     try {
-        // Сохраняем заказ через DB_MANAGER
+        // Сохраняем заказ
         await DB_MANAGER.addOrder(order);
-
+        
         // Очищаем корзину
         cart = [];
         localStorage.setItem('cart', JSON.stringify(cart));
+        
+        // Обновляем счетчик корзины
+        updateCartCount();
 
         // Показываем подтверждение
         let deliveryInfo = '';
@@ -686,13 +758,25 @@ async function processOrder() {
             </div>
         `);
 
-        displayCart();
-        updateCartCount();
+        // Обновляем отображение корзины
+        if (typeof displayCart === 'function') {
+            displayCart();
+        }
+        
+        // Оповещаем другие вкладки
         broadcastUpdate();
-
+        
+        console.log('✅ Заказ создан:', orderNumber);
+        
     } catch (error) {
-        console.error('Ошибка при оформлении заказа:', error);
+        console.error('❌ Ошибка при оформлении заказа:', error);
         showNotification('Ошибка при оформлении заказа', 'error');
+    } finally {
+        // Возвращаем кнопку в исходное состояние
+        if (checkoutBtn) {
+            checkoutBtn.textContent = 'Оформить заказ';
+            checkoutBtn.disabled = false;
+        }
     }
 }
 
@@ -764,7 +848,7 @@ function openAuthModal(tab = 'login') {
     switchAuthTab(tab);
 }
 
-// Закрыть модальное окно авторизации
+// Функция закрытия модального окна
 function closeAuthModal() {
     const modal = document.getElementById('authModal');
     if (modal) {
@@ -894,86 +978,76 @@ function updatePrice(productId) {
     }
 }
 
-// Регистрация с валидацией и сохранением в файл
-function register(event) {
+// Исправленная функция регистрации
+async function register(event) {
     event.preventDefault();
 
     const name = document.getElementById('regName').value;
     const email = document.getElementById('regEmail').value;
     const password = document.getElementById('regPassword').value;
-
+    
     // Валидация
     if (!validateName(name)) {
-        showNotification('Имя должно содержать от 2 до 30 символов (буквы, пробелы и дефисы)', 'error');
+        showNotification('Имя должно содержать от 2 до 30 символов', 'error');
         return;
     }
-
+    
     if (!validateEmail(email)) {
-        showNotification('Введите корректный email адрес', 'error');
+        showNotification('Введите корректный email', 'error');
         return;
     }
-
+    
     if (password.length < 6) {
         showNotification('Пароль должен содержать не менее 6 символов', 'error');
         return;
     }
 
-    // Используем DB_MANAGER для добавления пользователя
-    if (window.DB_MANAGER) {
-        // Проверяем, существует ли уже пользователь
-        const users = JSON.parse(localStorage.getItem('users')) || {};
-
-        if (users[email]) {
+    try {
+        // Показываем индикатор загрузки
+        const registerBtn = event.target.querySelector('button[type="submit"]');
+        const originalText = registerBtn.textContent;
+        registerBtn.textContent = 'Регистрация...';
+        registerBtn.disabled = true;
+        
+        // Загружаем свежие данные
+        await DB_MANAGER.loadDatabase();
+        
+        // Проверяем существование пользователя
+        if (DB_MANAGER.userExists(email)) {
             showNotification('Пользователь с таким email уже существует!', 'error');
             return;
         }
 
-        // Добавляем через DB_MANAGER
-        const result = DB_MANAGER.addUser({
+        // Добавляем пользователя
+        await DB_MANAGER.addUser({
             name: name,
             email: email,
             password: password,
             role: 'user'
         });
 
-        if (result) {
-            showNotification('Регистрация успешна! Теперь вы можете войти.', 'success');
-            switchAuthTab('login');
-
-            // Очищаем форму
-            document.getElementById('regName').value = '';
-            document.getElementById('regEmail').value = '';
-            document.getElementById('regPassword').value = '';
-        } else {
-            showNotification('Ошибка при регистрации', 'error');
-        }
-    } else {
-        // Fallback на старый метод
-        let users = JSON.parse(localStorage.getItem('users')) || {};
-
-        if (users[email]) {
-            showNotification('Пользователь с таким email уже существует!', 'error');
-            return;
-        }
-
-        users[email] = {
-            name: name,
-            password: password,
-            role: 'user',
-            registered: new Date().toISOString()
-        };
-
-        localStorage.setItem('users', JSON.stringify(users));
-
-        showNotification('Регистрация успешна! Теперь вы можете войти.', 'success');
-        switchAuthTab('login');
-
+        showNotification('Регистрация успешна!', 'success');
+        
+        // Очищаем форму
         document.getElementById('regName').value = '';
         document.getElementById('regEmail').value = '';
         document.getElementById('regPassword').value = '';
+        
+        // Переключаем на вкладку входа
+        switchAuthTab('login');
+        
+    } catch (error) {
+        console.error('❌ Ошибка регистрации:', error);
+        showNotification('Ошибка при регистрации', 'error');
+    } finally {
+        // Возвращаем кнопку в исходное состояние
+        const registerBtn = event.target.querySelector('button[type="submit"]');
+        if (registerBtn) {
+            registerBtn.textContent = 'Зарегистрироваться';
+            registerBtn.disabled = false;
+        }
     }
 }
-
 // Исправленная функция входа
 async function login(event) {
     event.preventDefault();
