@@ -41,7 +41,7 @@ async function loadAllData() {
     showMessage('⏳ Загрузка данных...');
 
     try {
-        await DB_MANAGER.loadDatabase();
+        await DB_MANAGER.loadAllData();
 
         // Показываем интерфейс
         document.querySelectorAll('.export-buttons, .import-area, .db-tabs, .stats-grid, .db-panel').forEach(el => {
