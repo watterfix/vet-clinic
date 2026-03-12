@@ -462,3 +462,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     console.log('DB_MANAGER инициализирован');
 });
+window.DB_MANAGER = DB_MANAGER;
