@@ -1,3 +1,6 @@
+const SCRIPT_VERSION = '2';
+
+console.log('📜 script.js загружен (версия', SCRIPT_VERSION + ')');
 // Делаем функции глобальными для доступа из других скриптов
 window.showNotification = showNotification;
 window.showStyledAlert = showStyledAlert;
