@@ -259,10 +259,13 @@ function createCartButton() {
 function updateUI() {
     console.log('Обновление интерфейса, пользователь:', currentUser);
 
+    // Создаем блок авторизации, если его нет
     createAuthCorner();
     createCartButton();
 
     const authCorner = document.getElementById('authCorner');
+    if (!authCorner) return;
+
     const isCharacteristicsPage = window.location.pathname.includes('characteristics.html');
     const isCartPage = window.location.pathname.includes('cart.html');
     const isAdminPage = window.location.pathname.includes('db-viewer.html');
@@ -271,21 +274,20 @@ function updateUI() {
         // Пользователь авторизован
         let adminLink = '';
         if (currentUser.role === 'admin' && !isAdminPage) {
-            adminLink = `<a href="db-viewer.html" class="admin-link" style="margin-left: 10px; color: #ffd700;">📁 Управление БД</a>`;
+            adminLink = `<a href="db-viewer.html" style="margin-left: 10px; color: #ffd700; text-decoration: none; font-size: 12px;">📁 Управление БД</a>`;
         }
-
         
         authCorner.innerHTML = `
-                 <div class="user-info-corner">
-                 <div style="display: flex; flex-direction: column; gap: 2px;">
-                     <span style="font-weight: bold;">${currentUser.name} ${currentUser.role === 'admin' ? '👑' : ''}</span>
-                     <span style="font-size: 11px; color: #ffd700;">${currentUser.email}</span>
-                 </div>
-                     ${adminLink}
-                     <button onclick="logout()" class="button-small">Выйти</button>
+            <div class="user-info-corner" style="background: linear-gradient(135deg, #2c6e49, #1e4d2f); color: white; padding: 8px 15px; border-radius: 30px; display: flex; align-items: center; gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-weight: bold;">${currentUser.name} ${currentUser.role === 'admin' ? '👑' : ''}</span>
+                    <span style="font-size: 11px; color: #ffd700;">${currentUser.email}</span>
                 </div>
-`
-            ;
+                ${adminLink}
+                <button onclick="logout()" style="background-color: #ffd700; color: #1e4d2f; border: none; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer;">Выйти</button>
+            </div>
+        `;
+
         // Для страницы товаров
         if (isCharacteristicsPage) {
             if (currentUser.role === 'admin') {
@@ -298,11 +300,11 @@ function updateUI() {
         // Обновляем счетчик корзины
         updateCartCount();
     } else {
-        // Пользователь не авторизован
+        // Пользователь не авторизован - ПОКАЗЫВАЕМ КНОПКИ ВХОДА И РЕГИСТРАЦИИ
         authCorner.innerHTML = `
-            <div class="auth-buttons-corner">
-                <button onclick="openAuthModal('login')" class="button-small">Вход</button>
-                <button onclick="openAuthModal('register')" class="button-small">Регистрация</button>
+            <div class="auth-buttons-corner" style="display: flex; gap: 8px; background-color: white; padding: 5px; border-radius: 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 2px solid #2c6e49;">
+                <button onclick="openAuthModal('login')" style="background-color: #2c6e49; color: white; border: none; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer;">Вход</button>
+                <button onclick="openAuthModal('register')" style="background-color: #2c6e49; color: white; border: none; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer;">Регистрация</button>
             </div>
         `;
 
