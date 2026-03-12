@@ -1,163 +1,81 @@
 // ============================================
-// СКРИПТ ДЛЯ УПРАВЛЕНИЯ БАЗОЙ ДАННЫХ (db-viewer)
+// ПРОСТОЙ СКРИПТ ДЛЯ УПРАВЛЕНИЯ БД
 // ============================================
 
-// Глобальные переменные
-let currentUser = null;
+console.log('db-viewer.js загружен');
 
-// Ждем полной загрузки DOM и всех скриптов
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('DOM загружен, инициализация...');
-
-    // Проверяем наличие DB_MANAGER
-    if (typeof DB_MANAGER === 'undefined') {
-        console.error('DB_MANAGER не загружен!');
-        showAdminWarning('Ошибка загрузки менеджера БД');
-        return;
-    }
-
-    // Запускаем инициализацию
-    initPage();
-});
-
-// Функция показа предупреждения
-function showAdminWarning(message) {
-    const adminCheck = document.getElementById('adminCheck');
-    if (adminCheck) {
-        adminCheck.style.display = 'block';
-        adminCheck.innerHTML = `⚠️ ${message}`;
-        adminCheck.style.backgroundColor = '#dc3545';
-        adminCheck.style.color = 'white';
-        adminCheck.style.borderColor = '#dc3545';
+// Функция показа уведомлений
+function showMessage(text, isError = false) {
+    const msgDiv = document.getElementById('adminCheck');
+    if (msgDiv) {
+        msgDiv.style.display = 'block';
+        msgDiv.innerHTML = text;
+        msgDiv.style.backgroundColor = isError ? '#dc3545' : '#ffc107';
+        msgDiv.style.color = isError ? 'white' : '#1e4d2f';
+        msgDiv.style.borderColor = isError ? '#dc3545' : '#ffc107';
     }
 }
 
-// Проверка прав администратора
-function checkAdminAccess() {
-    const adminCheck = document.getElementById('adminCheck');
-    if (!adminCheck) return false;
+// Проверка прав
+function checkAccess() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    const msgDiv = document.getElementById('adminCheck');
 
-    currentUser = JSON.parse(localStorage.getItem('currentUser'));
-
-    if (!currentUser) {
-        adminCheck.style.display = 'block';
-        adminCheck.innerHTML = '⚠️ Необходимо войти в систему!';
-        adminCheck.style.backgroundColor = '#dc3545';
-        adminCheck.style.color = 'white';
-        adminCheck.style.borderColor = '#dc3545';
+    if (!user) {
+        showMessage('⚠️ Необходимо войти в систему', true);
         return false;
     }
 
-    if (currentUser.role !== 'admin') {
-        adminCheck.style.display = 'block';
-        adminCheck.innerHTML = '⚠️ Доступ запрещен! Только администратор может просматривать эту страницу.';
-        adminCheck.style.backgroundColor = '#dc3545';
-        adminCheck.style.color = 'white';
-        adminCheck.style.borderColor = '#dc3545';
+    if (user.role !== 'admin') {
+        showMessage('⚠️ Доступ только для администратора', true);
         return false;
     }
 
-    adminCheck.style.display = 'none';
     return true;
 }
 
-// Инициализация страницы
-async function initPage() {
-    console.log('Инициализация страницы...');
+// Загрузка данных
+async function loadAllData() {
+    if (!checkAccess()) return;
 
-    // Показываем загрузку
-    const adminCheck = document.getElementById('adminCheck');
-    if (adminCheck) {
-        adminCheck.style.display = 'block';
-        adminCheck.innerHTML = '⏳ Проверка прав доступа...';
-        adminCheck.style.backgroundColor = '#ffc107';
-        adminCheck.style.color = '#1e4d2f';
-        adminCheck.style.borderColor = '#ffc107';
-    }
+    showMessage('⏳ Загрузка данных...');
 
-    // Проверяем права
-    if (!checkAdminAccess()) {
-        return;
-    }
-
-    // Загружаем данные
     try {
         await DB_MANAGER.loadDatabase();
-        console.log('Данные загружены');
 
-        // Загружаем все панели
+        // Показываем интерфейс
+        document.querySelectorAll('.export-buttons, .import-area, .db-tabs, .stats-grid, .db-panel').forEach(el => {
+            if (el) el.style.display = '';
+        });
+
+        // Загружаем данные в таблицы
         loadUsers();
         loadProducts();
         loadOrders();
         updateStats();
         loadBackups();
 
-        console.log('Страница инициализирована');
-
-        // Показываем интерфейс
-        document.querySelectorAll('.db-panel, .export-buttons, .import-area, .db-tabs').forEach(el => {
-            if (el) el.style.display = '';
-        });
+        showMessage('✅ Данные загружены');
+        setTimeout(() => {
+            document.getElementById('adminCheck').style.display = 'none';
+        }, 2000);
 
     } catch (error) {
-        console.error('Ошибка загрузки данных:', error);
-        showAdminWarning('Ошибка загрузки данных');
-    }
-}
-
-// Переключение вкладок
-function switchTab(tabName) {
-    if (!checkAdminAccess()) return;
-
-    // Обновляем активные вкладки
-    document.querySelectorAll('.db-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    event.target.classList.add('active');
-
-    // Показываем соответствующую панель
-    document.querySelectorAll('.db-panel').forEach(panel => {
-        panel.classList.remove('active');
-    });
-    const panel = document.getElementById(tabName + 'Panel');
-    if (panel) panel.classList.add('active');
-
-    // Загружаем данные для панели
-    switch (tabName) {
-        case 'users':
-            loadUsers();
-            break;
-        case 'products':
-            loadProducts();
-            break;
-        case 'orders':
-            loadOrders();
-            break;
-        case 'backups':
-            loadBackups();
-            break;
+        showMessage('❌ Ошибка загрузки: ' + error.message, true);
     }
 }
 
 // Загрузка пользователей
 function loadUsers() {
-    if (!checkAdminAccess()) return;
-
     const tbody = document.getElementById('usersTableBody');
     if (!tbody) return;
 
-    const users = DB_MANAGER.currentData?.users || {};
-
-    if (Object.keys(users).length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px;">Нет пользователей</td></tr>';
-        return;
-    }
-
+    const users = DB_MANAGER.currentData.users || {};
     let html = '';
-    Object.keys(users).sort().forEach(email => {
+
+    Object.keys(users).forEach(email => {
         const user = users[email];
         const safeEmail = email.replace(/[@.]/g, '_');
-        const registered = user.registered ? new Date(user.registered).toLocaleString() : 'Н/Д';
         const roleClass = user.role === 'admin' ? 'role-admin' : 'role-user';
         const roleText = user.role === 'admin' ? '👑 Админ' : '👤 Пользователь';
 
@@ -166,35 +84,240 @@ function loadUsers() {
                 <td>${email}</td>
                 <td>${user.name}</td>
                 <td><span class="role-badge ${roleClass}">${roleText}</span></td>
-                <td>${registered}</td>
-                <td class="action-buttons">
-                    <button onclick="editUser('${email}')" class="btn-edit">✏️ Ред.</button>
-                    <button onclick="deleteUser('${email}')" class="btn-delete" ${email === 'admin@vetclinic.ru' ? 'disabled' : ''}>🗑️ Удал.</button>
+                <td>${user.registered ? new Date(user.registered).toLocaleDateString() : 'Н/Д'}</td>
+                <td>
+                    <button onclick="deleteUser('${email}')" class="btn-delete" ${email === 'admin@vetclinic.ru' ? 'disabled' : ''}>🗑️</button>
                 </td>
             </tr>
         `;
     });
 
-    tbody.innerHTML = html;
+    tbody.innerHTML = html || '<tr><td colspan="5" style="text-align: center;">Нет пользователей</td></tr>';
 }
 
-// Поиск пользователей
-function searchUsers() {
-    const searchText = document.getElementById('userSearch').value.toLowerCase();
-    const rows = document.querySelectorAll('#usersTableBody tr');
+// Загрузка товаров
+function loadProducts() {
+    const tbody = document.getElementById('productsTableBody');
+    if (!tbody) return;
 
-    rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchText) ? '' : 'none';
+    const products = DB_MANAGER.currentData.products || {};
+    let html = '';
+
+    Object.keys(products).forEach(id => {
+        const p = products[id];
+        html += `
+            <tr>
+                <td>${id}</td>
+                <td>${p.name}</td>
+                <td>${p.price} ₽</td>
+                <td>${p.category}</td>
+                <td>${p.description || ''}</td>
+                <td>
+                    <button onclick="deleteProduct('${id}')" class="btn-delete">🗑️</button>
+                </td>
+            </tr>
+        `;
     });
+
+    tbody.innerHTML = html || '<tr><td colspan="6" style="text-align: center;">Нет товаров</td></tr>';
 }
 
-// Показать форму добавления пользователя
+// Загрузка заказов
+function loadOrders() {
+    const tbody = document.getElementById('ordersTableBody');
+    if (!tbody) return;
+
+    const orders = DB_MANAGER.currentData.orders || [];
+    let html = '';
+
+    orders.forEach(order => {
+        html += `
+            <tr>
+                <td>#${order.orderNumber}</td>
+                <td>${new Date(order.date).toLocaleString()}</td>
+                <td>${order.userName}</td>
+                <td>${order.total} ₽</td>
+                <td>${order.delivery === 'pickup' ? 'Самовывоз' : 'Доставка'}</td>
+                <td>${order.items?.length || 0}</td>
+                <td>
+                    <button onclick="deleteOrder('${order.id}')" class="btn-delete">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html || '<tr><td colspan="7" style="text-align: center;">Нет заказов</td></tr>';
+}
+
+// Обновление статистики
+function updateStats() {
+    const stats = DB_MANAGER.getStats();
+    const grid = document.getElementById('statsGrid');
+
+    grid.innerHTML = `
+        <div class="stat-card">
+            <h3>Пользователи</h3>
+            <div class="stat-value">${stats.totalUsers}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Товары</h3>
+            <div class="stat-value">${stats.totalProducts}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Заказы</h3>
+            <div class="stat-value">${stats.totalOrders}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Выручка</h3>
+            <div class="stat-value">${stats.totalRevenue} ₽</div>
+        </div>
+    `;
+}
+
+// Загрузка бэкапов
+function loadBackups() {
+    const list = document.getElementById('backupsList');
+    const backups = JSON.parse(localStorage.getItem('backups')) || [];
+
+    if (backups.length === 0) {
+        list.innerHTML = '<p>Нет бэкапов</p>';
+        return;
+    }
+
+    let html = '<ul>';
+    backups.forEach((b, i) => {
+        html += `<li>${b.name} <button onclick="restoreBackup(${i})">↩️</button></li>`;
+    });
+    html += '</ul>';
+    list.innerHTML = html;
+}
+
+// Удаление пользователя
+function deleteUser(email) {
+    if (email === 'admin@vetclinic.ru') {
+        alert('Нельзя удалить админа');
+        return;
+    }
+    if (confirm('Удалить пользователя?')) {
+        DB_MANAGER.deleteUser(email);
+        loadUsers();
+        updateStats();
+    }
+}
+
+// Удаление товара
+function deleteProduct(id) {
+    if (confirm('Удалить товар?')) {
+        DB_MANAGER.deleteProduct(id);
+        loadProducts();
+        updateStats();
+    }
+}
+
+// Удаление заказа
+function deleteOrder(id) {
+    if (confirm('Удалить заказ?')) {
+        DB_MANAGER.deleteOrder(id);
+        loadOrders();
+        updateStats();
+    }
+}
+
+// Создание бэкапа
+function createBackup() {
+    const stats = DB_MANAGER.getStats();
+    const backup = {
+        name: 'Backup ' + new Date().toLocaleString(),
+        date: new Date().toISOString(),
+        data: {
+            users: DB_MANAGER.currentData.users,
+            products: DB_MANAGER.currentData.products,
+            orders: DB_MANAGER.currentData.orders
+        },
+        stats: stats
+    };
+
+    let backups = JSON.parse(localStorage.getItem('backups')) || [];
+    backups.push(backup);
+    localStorage.setItem('backups', JSON.stringify(backups));
+
+    alert('Бэкап создан');
+    loadBackups();
+}
+
+// Восстановление бэкапа
+function restoreBackup(index) {
+    let backups = JSON.parse(localStorage.getItem('backups')) || [];
+    const backup = backups[index];
+
+    if (backup && confirm('Восстановить?')) {
+        localStorage.setItem('users', JSON.stringify(backup.data.users));
+        localStorage.setItem('products', JSON.stringify(backup.data.products));
+        localStorage.setItem('orders', JSON.stringify(backup.data.orders));
+
+        DB_MANAGER.currentData = backup.data;
+
+        loadUsers();
+        loadProducts();
+        loadOrders();
+        updateStats();
+
+        alert('Восстановлено');
+    }
+}
+
+// Экспорт
+function exportDatabase() {
+    DB_MANAGER.exportDatabase();
+}
+
+// Импорт
+function importDatabase(file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            localStorage.setItem('users', JSON.stringify(data.users));
+            localStorage.setItem('products', JSON.stringify(data.products));
+            localStorage.setItem('orders', JSON.stringify(data.orders));
+
+            DB_MANAGER.currentData = data;
+
+            loadUsers();
+            loadProducts();
+            loadOrders();
+            updateStats();
+
+            alert('Импорт выполнен');
+        } catch (err) {
+            alert('Ошибка: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
+// Сброс
+function resetDatabase() {
+    if (confirm('Сбросить все данные?')) {
+        DB_MANAGER.resetToDefault();
+        loadAllData();
+    }
+}
+
+// Переключение вкладок
+function switchTab(tab) {
+    document.querySelectorAll('.db-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+
+    document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(tab + 'Panel').classList.add('active');
+}
+
+// Функции для показа форм
 function showAddUserForm() {
     document.getElementById('addUserForm').style.display = 'block';
 }
 
-// Скрыть форму добавления пользователя
 function hideAddUserForm() {
     document.getElementById('addUserForm').style.display = 'none';
 }
@@ -203,650 +326,84 @@ function hideAddUserForm() {
 function addUser() {
     const name = document.getElementById('newUserName').value;
     const email = document.getElementById('newUserEmail').value;
-    const password = document.getElementById('newUserPassword').value;
+    const pass = document.getElementById('newUserPassword').value;
     const role = document.getElementById('newUserRole').value;
 
-    if (!name || !email || !password) {
-        showNotification('Заполните все поля!', 'error');
+    if (!name || !email || !pass) {
+        alert('Заполните все поля');
         return;
     }
 
-    const users = DB_MANAGER.currentData?.users || {};
-    if (users[email]) {
-        showNotification('Пользователь с таким email уже существует!', 'error');
-        return;
-    }
-
-    const result = DB_MANAGER.addUser({
-        name: name,
-        email: email,
-        password: password,
-        role: role
-    });
-
-    if (result) {
-        showNotification('Пользователь добавлен!', 'success');
-        hideAddUserForm();
-        loadUsers();
-        updateStats();
-
-        document.getElementById('newUserName').value = '';
-        document.getElementById('newUserEmail').value = '';
-        document.getElementById('newUserPassword').value = '';
-    }
-}
-
-// Редактирование пользователя
-function editUser(email) {
-    const safeEmail = email.replace(/[@.]/g, '_');
-    const row = document.getElementById(`user-${safeEmail}`);
-    const user = DB_MANAGER.currentData?.users[email];
-
-    if (!user) return;
-
-    row.innerHTML = `
-        <td>${email}</td>
-        <td><input type="text" id="edit-name-${safeEmail}" value="${user.name}" class="edit-input"></td>
-        <td>
-            <select id="edit-role-${safeEmail}" class="edit-input">
-                <option value="user" ${user.role === 'user' ? 'selected' : ''}>Пользователь</option>
-                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Администратор</option>
-            </select>
-        </td>
-        <td>
-            <input type="password" id="edit-password-${safeEmail}" value="" class="edit-input" placeholder="Новый пароль">
-        </td>
-        <td class="action-buttons">
-            <button onclick="saveUserEdit('${email}')" class="btn-save">💾 Сохр.</button>
-            <button onclick="cancelUserEdit('${email}')" class="btn-delete">✖ Отм.</button>
-        </td>
-    `;
-}
-
-// Сохранение редактирования пользователя
-function saveUserEdit(email) {
-    const safeEmail = email.replace(/[@.]/g, '_');
-    const newName = document.getElementById(`edit-name-${safeEmail}`).value;
-    const newRole = document.getElementById(`edit-role-${safeEmail}`).value;
-    const newPassword = document.getElementById(`edit-password-${safeEmail}`).value;
-
-    const updateData = {
-        name: newName,
-        role: newRole
-    };
-
-    if (newPassword) {
-        updateData.password = newPassword;
-    }
-
-    if (DB_MANAGER.updateUser(email, updateData)) {
-        showNotification('Пользователь обновлен', 'success');
-        loadUsers();
-    }
-}
-
-// Отмена редактирования пользователя
-function cancelUserEdit(email) {
+    DB_MANAGER.addUser({ name, email, password: pass, role });
+    hideAddUserForm();
     loadUsers();
+    updateStats();
+
+    document.getElementById('newUserName').value = '';
+    document.getElementById('newUserEmail').value = '';
+    document.getElementById('newUserPassword').value = '';
 }
 
-// Удаление пользователя
-function deleteUser(email) {
-    if (email === 'admin@vetclinic.ru') {
-        showNotification('Нельзя удалить главного администратора!', 'error');
-        return;
-    }
-
-    if (confirm(`Удалить пользователя ${email}?`)) {
-        if (DB_MANAGER.deleteUser(email)) {
-            showNotification('Пользователь удален', 'success');
-            loadUsers();
-            updateStats();
-        }
-    }
-}
-
-// Загрузка товаров
-function loadProducts() {
-    const tbody = document.getElementById('productsTableBody');
-    if (!tbody) return;
-
-    const products = DB_MANAGER.currentData?.products || {};
-
-    if (Object.keys(products).length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px;">Нет товаров</td></tr>';
-        return;
-    }
-
-    let html = '';
-    Object.keys(products).sort().forEach(id => {
-        const product = products[id];
-        const categoryClass = `category-${product.category}`;
-        const categoryName = getCategoryName(product.category);
-
-        html += `
-            <tr id="product-${id}">
-                <td><code>${id}</code></td>
-                <td><strong>${product.name}</strong></td>
-                <td><strong style="color: #2c6e49;">${product.price} ₽</strong></td>
-                <td><span class="category-badge ${categoryClass}">${categoryName}</span></td>
-                <td>${product.description || '—'}</td>
-                <td class="action-buttons">
-                    <button onclick="editProduct('${id}')" class="btn-edit">✏️ Ред.</button>
-                    <button onclick="deleteProduct('${id}')" class="btn-delete">🗑️ Удал.</button>
-                </td>
-            </tr>
-        `;
-    });
-
-    tbody.innerHTML = html;
-}
-
-// Поиск товаров
-function searchProducts() {
-    const searchText = document.getElementById('productSearch').value.toLowerCase();
-    const rows = document.querySelectorAll('#productsTableBody tr');
-
-    rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchText) ? '' : 'none';
-    });
-}
-
-// Показать форму добавления товара
 function showAddProductForm() {
     document.getElementById('addProductForm').style.display = 'block';
 }
 
-// Скрыть форму добавления товара
 function hideAddProductForm() {
     document.getElementById('addProductForm').style.display = 'none';
 }
 
-// Добавление товара
 function addProduct() {
     const id = document.getElementById('newProductId').value;
     const name = document.getElementById('newProductName').value;
     const price = document.getElementById('newProductPrice').value;
-    const category = document.getElementById('newProductCategory').value;
-    const description = document.getElementById('newProductDescription').value;
+    const cat = document.getElementById('newProductCategory').value;
+    const desc = document.getElementById('newProductDescription').value;
 
     if (!id || !name || !price) {
-        showNotification('Заполните обязательные поля!', 'error');
+        alert('Заполните обязательные поля');
         return;
     }
 
-    const products = DB_MANAGER.currentData?.products || {};
-    if (products[id]) {
-        showNotification('Товар с таким ID уже существует!', 'error');
-        return;
-    }
-
-    const result = DB_MANAGER.addProduct(id, {
-        name: name,
-        price: parseInt(price),
-        category: category,
-        description: description
-    });
-
-    if (result) {
-        showNotification('Товар добавлен!', 'success');
-        hideAddProductForm();
-        loadProducts();
-        updateStats();
-
-        document.getElementById('newProductId').value = '';
-        document.getElementById('newProductName').value = '';
-        document.getElementById('newProductPrice').value = '';
-        document.getElementById('newProductDescription').value = '';
-    }
-}
-
-// Редактирование товара
-function editProduct(productId) {
-    const row = document.getElementById(`product-${productId}`);
-    const product = DB_MANAGER.currentData?.products[productId];
-
-    if (!product) return;
-
-    row.innerHTML = `
-        <td><code>${productId}</code></td>
-        <td><input type="text" id="edit-product-name-${productId}" value="${product.name}" class="edit-input"></td>
-        <td><input type="number" id="edit-product-price-${productId}" value="${product.price}" class="edit-input" min="0"></td>
-        <td>
-            <select id="edit-product-category-${productId}" class="edit-input">
-                <option value="food" ${product.category === 'food' ? 'selected' : ''}>🍖 Корма</option>
-                <option value="medicine" ${product.category === 'medicine' ? 'selected' : ''}>💊 Лекарства</option>
-                <option value="accessories" ${product.category === 'accessories' ? 'selected' : ''}>🪀 Аксессуары</option>
-                <option value="hygiene" ${product.category === 'hygiene' ? 'selected' : ''}>🧼 Гигиена</option>
-            </select>
-        </td>
-        <td><input type="text" id="edit-product-desc-${productId}" value="${product.description || ''}" class="edit-input" placeholder="Описание"></td>
-        <td class="action-buttons">
-            <button onclick="saveProductEdit('${productId}')" class="btn-save">💾 Сохр.</button>
-            <button onclick="cancelProductEdit('${productId}')" class="btn-delete">✖ Отм.</button>
-        </td>
-    `;
-}
-
-// Сохранение редактирования товара
-function saveProductEdit(productId) {
-    const newName = document.getElementById(`edit-product-name-${productId}`).value;
-    const newPrice = document.getElementById(`edit-product-price-${productId}`).value;
-    const newCategory = document.getElementById(`edit-product-category-${productId}`).value;
-    const newDesc = document.getElementById(`edit-product-desc-${productId}`).value;
-
-    const updateData = {
-        name: newName,
-        price: parseInt(newPrice),
-        category: newCategory,
-        description: newDesc
-    };
-
-    if (DB_MANAGER.updateProduct(productId, updateData)) {
-        showNotification('Товар обновлен', 'success');
-        loadProducts();
-    }
-}
-
-// Отмена редактирования товара
-function cancelProductEdit(productId) {
+    DB_MANAGER.addProduct(id, { name, price, category: cat, description: desc });
+    hideAddProductForm();
     loadProducts();
-}
-
-// Удаление товара
-function deleteProduct(productId) {
-    const product = DB_MANAGER.currentData?.products[productId];
-    if (!product) return;
-
-    if (confirm(`Удалить товар "${product.name}"?`)) {
-        if (DB_MANAGER.deleteProduct(productId)) {
-            showNotification('Товар удален', 'success');
-            loadProducts();
-            updateStats();
-        }
-    }
-}
-
-// Загрузка заказов
-function loadOrders() {
-    const tbody = document.getElementById('ordersTableBody');
-    if (!tbody) return;
-
-    const orders = DB_MANAGER.currentData?.orders || [];
-
-    if (orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px;">Нет заказов</td></tr>';
-        return;
-    }
-
-    let html = '';
-    orders.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(order => {
-        const date = new Date(order.date).toLocaleString();
-        const deliveryType = order.delivery === 'pickup' ? '🚶 Самовывоз' : '🚚 Доставка';
-
-        html += `
-            <tr id="order-${order.id}">
-                <td><strong>#${order.orderNumber}</strong></td>
-                <td>${date}</td>
-                <td>${order.userName}<br><small style="color: #666;">${order.user}</small></td>
-                <td><strong style="color: #2c6e49;">${order.total} ₽</strong></td>
-                <td>${deliveryType}</td>
-                <td>${order.items ? order.items.length : 0} шт.</td>
-                <td class="action-buttons">
-                    <button onclick="viewOrderDetails('${order.id}')" class="btn-view">👁️ Дет.</button>
-                    <button onclick="deleteOrder('${order.id}')" class="btn-delete">🗑️ Удал.</button>
-                </td>
-            </tr>
-        `;
-    });
-
-    tbody.innerHTML = html;
-}
-
-// Поиск заказов
-function searchOrders() {
-    const searchText = document.getElementById('orderSearch').value.toLowerCase();
-    const rows = document.querySelectorAll('#ordersTableBody tr');
-
-    rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchText) ? '' : 'none';
-    });
-}
-
-// Просмотр деталей заказа
-function viewOrderDetails(orderId) {
-    const order = DB_MANAGER.currentData?.orders.find(o => o.id == orderId);
-    if (!order) return;
-
-    let itemsHtml = '';
-    order.items.forEach(item => {
-        itemsHtml += `<div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #2c6e49;">
-            <span>${item.name}</span>
-            <span style="font-weight: bold;">${item.price} ₽</span>
-        </div>`;
-    });
-
-    let deliveryInfo = '';
-    if (order.delivery === 'pickup') {
-        deliveryInfo = `
-            <p><strong>📍 Адрес самовывоза:</strong> ${order.pickupAddress}</p>
-            <p><strong>📞 Телефон:</strong> ${order.pickupPhone}</p>
-        `;
-    } else {
-        deliveryInfo = `
-            <p><strong>🚚 Адрес доставки:</strong> ${order.deliveryAddress}</p>
-            <p><strong>📞 Телефон:</strong> ${order.deliveryPhone}</p>
-            ${order.deliveryComment ? `<p><strong>💬 Комментарий:</strong> ${order.deliveryComment}</p>` : ''}
-        `;
-    }
-
-    showStyledAlert(`
-        <div style="text-align: center;">
-            <h2 style="color: #2c6e49;">Заказ #${order.orderNumber}</h2>
-            <p><strong>Дата:</strong> ${new Date(order.date).toLocaleString()}</p>
-            <p><strong>Пользователь:</strong> ${order.userName} (${order.user})</p>
-            
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
-                <h3>Информация о доставке</h3>
-                ${deliveryInfo}
-            </div>
-            
-            <div style="background-color: #e8f4e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <h3>Состав заказа</h3>
-                ${itemsHtml}
-                <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 2px solid #2c6e49; font-weight: bold;">
-                    <span>ИТОГО:</span>
-                    <span>${order.total} ₽</span>
-                </div>
-            </div>
-            
-            <p><strong>Способ оплаты:</strong> ${order.paymentNote}</p>
-        </div>
-    `);
-}
-
-// Удаление заказа
-function deleteOrder(orderId) {
-    if (confirm('Удалить заказ?')) {
-        if (DB_MANAGER.deleteOrder(orderId)) {
-            showNotification('Заказ удален', 'success');
-            loadOrders();
-            updateStats();
-        }
-    }
-}
-
-// Обновление статистики
-function updateStats() {
-    const stats = DB_MANAGER.getStats();
-
-    const statsGrid = document.getElementById('statsGrid');
-    if (statsGrid) {
-        statsGrid.innerHTML = `
-            <div class="stat-card">
-                <h3>👥 Пользователи</h3>
-                <div class="stat-value">${stats.totalUsers}</div>
-                <div>👑 Админов: ${stats.adminCount}</div>
-                <div>👤 Пользователей: ${stats.userCount}</div>
-            </div>
-            <div class="stat-card">
-                <h3>📦 Товары</h3>
-                <div class="stat-value">${stats.totalProducts}</div>
-                <div>🍖 Корма: ${stats.productsByCategory?.food || 0}</div>
-                <div>💊 Лекарства: ${stats.productsByCategory?.medicine || 0}</div>
-                <div>🪀 Аксессуары: ${stats.productsByCategory?.accessories || 0}</div>
-                <div>🧼 Гигиена: ${stats.productsByCategory?.hygiene || 0}</div>
-            </div>
-            <div class="stat-card">
-                <h3>📋 Заказы</h3>
-                <div class="stat-value">${stats.totalOrders}</div>
-                <div>Сегодня: ${stats.todayOrders}</div>
-                <div>Средний чек: ${stats.averageOrderValue} ₽</div>
-            </div>
-            <div class="stat-card">
-                <h3>💰 Выручка</h3>
-                <div class="stat-value">${stats.totalRevenue} ₽</div>
-                <div>Всего продано</div>
-            </div>
-        `;
-    }
-}
-
-// Загрузка списка бэкапов
-function loadBackups() {
-    const backupsList = document.getElementById('backupsList');
-    if (!backupsList) return;
-
-    const backups = JSON.parse(localStorage.getItem('backups')) || [];
-
-    if (backups.length === 0) {
-        backupsList.innerHTML = '<p style="text-align: center; color: #666; padding: 30px;">Нет сохраненных резервных копий</p>';
-        return;
-    }
-
-    let html = '<ul class="backup-list">';
-    backups.reverse().forEach((backup, index) => {
-        const date = new Date(backup.date).toLocaleString();
-        html += `
-            <li>
-                <div class="backup-info">
-                    <strong>${backup.name}</strong><br>
-                    <small>${date} | Пользователей: ${backup.stats?.users || 0} | Товаров: ${backup.stats?.products || 0} | Заказов: ${backup.stats?.orders || 0}</small>
-                </div>
-                <div class="backup-actions">
-                    <button onclick="restoreBackup(${index})" class="btn-save">🔄 Восст.</button>
-                    <button onclick="deleteBackup(${index})" class="btn-delete">🗑️ Удал.</button>
-                </div>
-            </li>
-        `;
-    });
-    html += '</ul>';
-
-    backupsList.innerHTML = html;
-}
-
-// Создание резервной копии
-function createBackup() {
-    const stats = DB_MANAGER.getStats();
-    const backup = {
-        id: Date.now(),
-        name: `Backup ${new Date().toLocaleString()}`,
-        date: new Date().toISOString(),
-        data: {
-            users: DB_MANAGER.currentData.users,
-            products: DB_MANAGER.currentData.products,
-            orders: DB_MANAGER.currentData.orders,
-            settings: DB_MANAGER.currentData.settings
-        },
-        stats: {
-            users: stats.totalUsers,
-            products: stats.totalProducts,
-            orders: stats.totalOrders
-        }
-    };
-
-    let backups = JSON.parse(localStorage.getItem('backups')) || [];
-    backups.push(backup);
-    localStorage.setItem('backups', JSON.stringify(backups));
-
-    showNotification('Резервная копия создана', 'success');
-    loadBackups();
-}
-
-// Восстановление из бэкапа
-function restoreBackup(index) {
-    if (!confirm('Восстановить данные из этой резервной копии? Текущие данные будут заменены.')) {
-        return;
-    }
-
-    const backups = JSON.parse(localStorage.getItem('backups')) || [];
-    const backup = backups[index];
-
-    if (!backup) return;
-
-    localStorage.setItem('users', JSON.stringify(backup.data.users));
-    localStorage.setItem('products', JSON.stringify(backup.data.products));
-    localStorage.setItem('orders', JSON.stringify(backup.data.orders));
-    localStorage.setItem('settings', JSON.stringify(backup.data.settings));
-
-    DB_MANAGER.currentData = backup.data;
-
-    showNotification('Данные восстановлены', 'success');
-
-    loadUsers();
-    loadProducts();
-    loadOrders();
     updateStats();
+
+    document.getElementById('newProductId').value = '';
+    document.getElementById('newProductName').value = '';
+    document.getElementById('newProductPrice').value = '';
+    document.getElementById('newProductDescription').value = '';
 }
 
-// Удаление бэкапа
-function deleteBackup(index) {
-    if (!confirm('Удалить эту резервную копию?')) return;
-
-    let backups = JSON.parse(localStorage.getItem('backups')) || [];
-    backups.splice(index, 1);
-    localStorage.setItem('backups', JSON.stringify(backups));
-
-    showNotification('Резервная копия удалена', 'success');
-    loadBackups();
-}
-
-// Восстановление из последнего бэкапа
-function restoreFromBackup() {
-    const backups = JSON.parse(localStorage.getItem('backups')) || [];
-    if (backups.length === 0) {
-        showNotification('Нет сохраненных резервных копий', 'error');
-        return;
-    }
-
-    restoreBackup(backups.length - 1);
-}
-
-// Экспорт базы данных
-function exportDatabase() {
-    DB_MANAGER.exportDatabase();
-}
-
-// Импорт базы данных
-function importDatabase(file) {
-    DB_MANAGER.importDatabase(file)
-        .then(data => {
-            const fileInfo = document.getElementById('fileInfo');
-            if (fileInfo) {
-                fileInfo.style.display = 'block';
-                fileInfo.innerHTML = `
-                    ✅ Файл успешно загружен!<br>
-                    Пользователей: ${Object.keys(data.users).length}<br>
-                    Товаров: ${Object.keys(data.products).length}<br>
-                    Заказов: ${data.orders ? data.orders.length : 0}
-                `;
-                fileInfo.style.backgroundColor = '#d4edda';
-                fileInfo.style.color = '#155724';
-                fileInfo.style.border = '2px solid #c3e6cb';
-            }
-
-            loadUsers();
-            loadProducts();
-            loadOrders();
-            updateStats();
-
-            showNotification('База данных импортирована', 'success');
-
-            setTimeout(() => {
-                if (fileInfo) fileInfo.style.display = 'none';
-            }, 5000);
-        })
-        .catch(error => {
-            const fileInfo = document.getElementById('fileInfo');
-            if (fileInfo) {
-                fileInfo.style.display = 'block';
-                fileInfo.innerHTML = `❌ Ошибка: ${error.message}`;
-                fileInfo.style.backgroundColor = '#f8d7da';
-                fileInfo.style.color = '#721c24';
-                fileInfo.style.border = '2px solid #f5c6cb';
-            }
-            showNotification('Ошибка импорта', 'error');
-        });
-}
-
-// Триггер для выбора файла
 function triggerFileInput() {
     document.getElementById('fileInput').click();
 }
 
-// Обновление данных
 function refreshData() {
-    DB_MANAGER.loadDatabase().then(() => {
-        loadUsers();
-        loadProducts();
-        loadOrders();
-        updateStats();
-        showNotification('Данные обновлены', 'success');
-    });
+    loadAllData();
 }
 
-// Сброс базы данных
-function resetDatabase() {
-    if (confirm('Вы уверены? Все данные будут сброшены до начальных!')) {
-        DB_MANAGER.resetToDefault();
-        refreshData();
-        showNotification('База данных сброшена', 'success');
+function restoreFromBackup() {
+    const backups = JSON.parse(localStorage.getItem('backups')) || [];
+    if (backups.length > 0) {
+        restoreBackup(backups.length - 1);
     }
 }
 
-// Получение названия категории
-function getCategoryName(category) {
-    const categories = {
-        'food': '🍖 Корма',
-        'medicine': '💊 Лекарства',
-        'accessories': '🪀 Аксессуары',
-        'hygiene': '🧼 Гигиена'
-    };
-    return categories[category] || category;
-}
-
-// Показать уведомление
-function showNotification(message, type = 'success') {
-    if (window.showNotification) {
-        window.showNotification(message, type);
-    } else {
-        alert(message);
-    }
-}
-
-// Показать стилизованное окно
-function showStyledAlert(content) {
-    if (window.showStyledAlert) {
-        window.showStyledAlert(content);
-    } else {
-        const div = document.createElement('div');
-        div.innerHTML = content;
-        alert(div.textContent);
-    }
-}
+function searchUsers() { }
+function searchProducts() { }
+function searchOrders() { }
 
 // Делаем функции глобальными
 window.switchTab = switchTab;
-window.searchUsers = searchUsers;
 window.showAddUserForm = showAddUserForm;
 window.hideAddUserForm = hideAddUserForm;
 window.addUser = addUser;
-window.editUser = editUser;
-window.saveUserEdit = saveUserEdit;
-window.cancelUserEdit = cancelUserEdit;
-window.deleteUser = deleteUser;
-window.searchProducts = searchProducts;
 window.showAddProductForm = showAddProductForm;
 window.hideAddProductForm = hideAddProductForm;
 window.addProduct = addProduct;
-window.editProduct = editProduct;
-window.saveProductEdit = saveProductEdit;
-window.cancelProductEdit = cancelProductEdit;
+window.deleteUser = deleteUser;
 window.deleteProduct = deleteProduct;
-window.searchOrders = searchOrders;
-window.viewOrderDetails = viewOrderDetails;
 window.deleteOrder = deleteOrder;
 window.exportDatabase = exportDatabase;
 window.triggerFileInput = triggerFileInput;
@@ -855,5 +412,13 @@ window.refreshData = refreshData;
 window.createBackup = createBackup;
 window.restoreFromBackup = restoreFromBackup;
 window.restoreBackup = restoreBackup;
-window.deleteBackup = deleteBackup;
 window.resetDatabase = resetDatabase;
+window.searchUsers = searchUsers;
+window.searchProducts = searchProducts;
+window.searchOrders = searchOrders;
+
+// Запуск при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Страница загружена, запуск...');
+    setTimeout(loadAllData, 500); // Небольшая задержка для гарантии
+});
