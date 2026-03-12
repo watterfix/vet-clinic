@@ -3,7 +3,7 @@
 // ============================================
 
 // Глобальные переменные
-let currentUser = null;
+let adminCurrentUser = null;
 
 // Ждем полной загрузки DOM и всех скриптов
 document.addEventListener('DOMContentLoaded', function () {
