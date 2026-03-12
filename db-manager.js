@@ -1,5 +1,5 @@
 // ============================================
-// МЕНЕДЖЕР БАЗЫ ДАННЫХ (с перманентным сохранением)
+// МЕНЕДЖЕР БАЗЫ ДАННЫХ (без автоскачивания)
 // ============================================
 
 const DB_MANAGER = {
@@ -19,7 +19,7 @@ const DB_MANAGER = {
     // ЗАГРУЗКА ДАННЫХ
     // ============================================
     
-    // Загрузка всех данных с сервера (основной метод)
+    // Загрузка всех данных
     async loadDatabase() {
         return await this.loadAllData();
     },
@@ -28,141 +28,29 @@ const DB_MANAGER = {
         if (this.isLoading) return this.currentData;
         
         this.isLoading = true;
-        console.log('Загрузка данных с сервера...');
+        console.log('Загрузка данных...');
         
         try {
-            // Проверяем доступность API
-            const isApiAvailable = await this.checkApiAvailability();
+            // Загружаем из localStorage
+            this.loadFromLocalStorage();
             
-            if (isApiAvailable) {
-                // Загружаем все данные параллельно
-                const [users, products, orders, messages, settings] = await Promise.all([
-                    this.loadUsers(),
-                    this.loadProducts(),
-                    this.loadOrders(),
-                    this.loadMessages(),
-                    this.loadSettings()
-                ]);
-                
-                this.currentData = {
-                    users: users || [],
-                    products: products || [],
-                    orders: orders || [],
-                    messages: messages || [],
-                    settings: settings || {}
-                };
-                
-                console.log('✅ Данные успешно загружены с сервера');
-            } else {
-                console.log('⚠️ API недоступен, загружаем из localStorage');
-                this.loadFromLocalStorage();
-            }
-            
-            // Синхронизируем с localStorage
-            this.syncToLocalStorage();
-            
-            // Показываем статистику
-            this.logStats();
+            // Пытаемся загрузить с сервера, если доступен
+            await this.tryLoadFromServer();
             
             this.isLoading = false;
             return this.currentData;
             
         } catch (error) {
-            console.error('❌ Ошибка загрузки данных:', error);
+            console.error('Ошибка загрузки данных:', error);
             this.loadFromLocalStorage();
             this.isLoading = false;
             return this.currentData;
         }
     },
     
-    // Проверка доступности API
-    async checkApiAvailability() {
-        try {
-            const response = await fetch('http://localhost:3000', {
-                method: 'HEAD',
-                mode: 'no-cors'
-            });
-            return true;
-        } catch (error) {
-            console.warn('⚠️ API сервер недоступен');
-            return false;
-        }
-    },
-    
-    // Загрузка пользователей
-    async loadUsers() {
-        try {
-            const response = await fetch('http://localhost:3000/users');
-            if (response.ok) {
-                return await response.json();
-            }
-            throw new Error('Failed to load users');
-        } catch (error) {
-            console.error('Ошибка загрузки пользователей:', error);
-            return null;
-        }
-    },
-    
-    // Загрузка товаров
-    async loadProducts() {
-        try {
-            const response = await fetch('http://localhost:3000/products');
-            if (response.ok) {
-                return await response.json();
-            }
-            throw new Error('Failed to load products');
-        } catch (error) {
-            console.error('Ошибка загрузки товаров:', error);
-            return null;
-        }
-    },
-    
-    // Загрузка заказов
-    async loadOrders() {
-        try {
-            const response = await fetch('http://localhost:3000/orders');
-            if (response.ok) {
-                return await response.json();
-            }
-            throw new Error('Failed to load orders');
-        } catch (error) {
-            console.error('Ошибка загрузки заказов:', error);
-            return null;
-        }
-    },
-    
-    // Загрузка сообщений
-    async loadMessages() {
-        try {
-            const response = await fetch('http://localhost:3000/messages');
-            if (response.ok) {
-                return await response.json();
-            }
-            throw new Error('Failed to load messages');
-        } catch (error) {
-            console.error('Ошибка загрузки сообщений:', error);
-            return null;
-        }
-    },
-    
-    // Загрузка настроек
-    async loadSettings() {
-        try {
-            const response = await fetch('http://localhost:3000/settings');
-            if (response.ok) {
-                const settings = await response.json();
-                return settings[0] || {};
-            }
-            throw new Error('Failed to load settings');
-        } catch (error) {
-            console.error('Ошибка загрузки настроек:', error);
-            return {};
-        }
-    },
-    
-    // Загрузка из localStorage (резервный вариант)
+    // Загрузка из localStorage
     loadFromLocalStorage() {
-        console.log('📁 Загрузка данных из localStorage...');
+        console.log('Загрузка данных из localStorage...');
         
         try {
             // Загружаем пользователей
@@ -189,14 +77,30 @@ const DB_MANAGER = {
             // Загружаем настройки
             this.currentData.settings = JSON.parse(localStorage.getItem('settings')) || {};
             
-            console.log('✅ Данные загружены из localStorage');
+            console.log('Данные загружены из localStorage');
         } catch (error) {
-            console.error('❌ Ошибка загрузки из localStorage:', error);
+            console.error('Ошибка загрузки из localStorage:', error);
         }
     },
     
-    // Синхронизация с localStorage
-    syncToLocalStorage() {
+    // Попытка загрузки с сервера
+    async tryLoadFromServer() {
+        try {
+            const response = await fetch('http://localhost:3000');
+            if (!response.ok) return;
+            
+            console.log('Сервер доступен, синхронизация...');
+            
+            // Здесь можно добавить синхронизацию с сервером
+            // Но пока оставляем только localStorage
+            
+        } catch (error) {
+            console.log('Сервер недоступен, работаем в офлайн режиме');
+        }
+    },
+    
+    // Сохранение в localStorage
+    saveToLocalStorage() {
         try {
             // Конвертируем пользователей в объект
             const usersObj = {};
@@ -227,12 +131,9 @@ const DB_MANAGER = {
             localStorage.setItem('messages', JSON.stringify(this.currentData.messages));
             localStorage.setItem('settings', JSON.stringify(this.currentData.settings));
             
-            // Создаем резервную копию
-            this.createBackup();
-            
-            console.log('💾 Данные синхронизированы с localStorage');
+            console.log('Данные сохранены в localStorage');
         } catch (error) {
-            console.error('❌ Ошибка синхронизации с localStorage:', error);
+            console.error('Ошибка сохранения в localStorage:', error);
         }
     },
     
@@ -251,8 +152,8 @@ const DB_MANAGER = {
     },
     
     // Добавление пользователя
-    async addUser(userData) {
-        console.log('➕ Добавление пользователя:', userData.email);
+    addUser(userData) {
+        console.log('Добавление пользователя:', userData.email);
         
         const newUser = {
             id: userData.email,
@@ -263,128 +164,43 @@ const DB_MANAGER = {
             registered: new Date().toISOString()
         };
         
-        try {
-            // Пытаемся сохранить на сервер
-            const response = await fetch('http://localhost:3000/users', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newUser)
-            });
-            
-            if (response.ok) {
-                const savedUser = await response.json();
-                this.currentData.users.push(savedUser);
-                console.log('✅ Пользователь сохранен на сервере');
-            } else {
-                throw new Error('Server error');
-            }
-        } catch (error) {
-            console.warn('⚠️ Сервер недоступен, сохраняем в localStorage');
-            
-            // Сохраняем в localStorage
-            let users = JSON.parse(localStorage.getItem('users')) || {};
-            users[userData.email] = {
-                name: userData.name,
-                password: userData.password,
-                role: userData.role || 'user',
-                registered: newUser.registered
-            };
-            localStorage.setItem('users', JSON.stringify(users));
-            
-            // Обновляем текущие данные
-            this.currentData.users.push(newUser);
-        }
+        // Добавляем в массив
+        this.currentData.users.push(newUser);
         
-        // Синхронизируем и создаем бэкап
-        this.syncToLocalStorage();
+        // Сохраняем в localStorage
+        this.saveToLocalStorage();
         
         return newUser;
     },
     
     // Обновление пользователя
-    async updateUser(email, userData) {
-        console.log('✏️ Обновление пользователя:', email);
+    updateUser(email, userData) {
+        console.log('Обновление пользователя:', email);
         
-        const user = this.getUserByEmail(email);
-        if (!user) return false;
+        const index = this.currentData.users.findIndex(u => u.email === email);
+        if (index === -1) return false;
         
-        const updatedUser = { ...user, ...userData };
+        this.currentData.users[index] = {
+            ...this.currentData.users[index],
+            ...userData
+        };
         
-        try {
-            // Пытаемся обновить на сервере
-            const response = await fetch(`http://localhost:3000/users/${user.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(updatedUser)
-            });
-            
-            if (response.ok) {
-                const index = this.currentData.users.findIndex(u => u.email === email);
-                this.currentData.users[index] = updatedUser;
-                console.log('✅ Пользователь обновлен на сервере');
-            } else {
-                throw new Error('Server error');
-            }
-        } catch (error) {
-            console.warn('⚠️ Сервер недоступен, обновляем в localStorage');
-            
-            // Обновляем в localStorage
-            let users = JSON.parse(localStorage.getItem('users')) || {};
-            if (users[email]) {
-                users[email] = { ...users[email], ...userData };
-                localStorage.setItem('users', JSON.stringify(users));
-                
-                const index = this.currentData.users.findIndex(u => u.email === email);
-                this.currentData.users[index] = updatedUser;
-            }
-        }
-        
-        this.syncToLocalStorage();
+        this.saveToLocalStorage();
         return true;
     },
     
     // Удаление пользователя
-    async deleteUser(email) {
+    deleteUser(email) {
         if (email === 'admin@vetclinic.ru') {
-            console.warn('⚠️ Попытка удалить главного администратора');
+            console.warn('Нельзя удалить главного администратора');
             return false;
         }
         
-        console.log('🗑️ Удаление пользователя:', email);
+        console.log('Удаление пользователя:', email);
         
-        const user = this.getUserByEmail(email);
-        if (!user) return false;
+        this.currentData.users = this.currentData.users.filter(u => u.email !== email);
+        this.saveToLocalStorage();
         
-        try {
-            // Пытаемся удалить с сервера
-            const response = await fetch(`http://localhost:3000/users/${user.id}`, {
-                method: 'DELETE'
-            });
-            
-            if (response.ok) {
-                this.currentData.users = this.currentData.users.filter(u => u.email !== email);
-                console.log('✅ Пользователь удален с сервера');
-            } else {
-                throw new Error('Server error');
-            }
-        } catch (error) {
-            console.warn('⚠️ Сервер недоступен, удаляем из localStorage');
-            
-            // Удаляем из localStorage
-            let users = JSON.parse(localStorage.getItem('users')) || {};
-            if (users[email]) {
-                delete users[email];
-                localStorage.setItem('users', JSON.stringify(users));
-                
-                this.currentData.users = this.currentData.users.filter(u => u.email !== email);
-            }
-        }
-        
-        this.syncToLocalStorage();
         return true;
     },
     
@@ -393,114 +209,38 @@ const DB_MANAGER = {
     // ============================================
     
     // Добавление товара
-    async addProduct(productData) {
-        console.log('➕ Добавление товара:', productData.id);
+    addProduct(productData) {
+        console.log('Добавление товара:', productData.id);
         
-        try {
-            // Пытаемся сохранить на сервер
-            const response = await fetch('http://localhost:3000/products', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(productData)
-            });
-            
-            if (response.ok) {
-                const savedProduct = await response.json();
-                this.currentData.products.push(savedProduct);
-                console.log('✅ Товар сохранен на сервере');
-            } else {
-                throw new Error('Server error');
-            }
-        } catch (error) {
-            console.warn('⚠️ Сервер недоступен, сохраняем в localStorage');
-            
-            // Сохраняем в localStorage
-            let products = JSON.parse(localStorage.getItem('products')) || {};
-            products[productData.id] = productData;
-            localStorage.setItem('products', JSON.stringify(products));
-            
-            // Обновляем текущие данные
-            this.currentData.products.push(productData);
-        }
+        this.currentData.products.push(productData);
+        this.saveToLocalStorage();
         
-        this.syncToLocalStorage();
         return productData;
     },
     
     // Обновление товара
-    async updateProduct(id, productData) {
-        console.log('✏️ Обновление товара:', id);
+    updateProduct(id, productData) {
+        console.log('Обновление товара:', id);
         
-        const product = this.currentData.products.find(p => p.id === id);
-        if (!product) return false;
+        const index = this.currentData.products.findIndex(p => p.id === id);
+        if (index === -1) return false;
         
-        try {
-            // Пытаемся обновить на сервере
-            const response = await fetch(`http://localhost:3000/products/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ ...product, ...productData })
-            });
-            
-            if (response.ok) {
-                const index = this.currentData.products.findIndex(p => p.id === id);
-                this.currentData.products[index] = { ...product, ...productData };
-                console.log('✅ Товар обновлен на сервере');
-            } else {
-                throw new Error('Server error');
-            }
-        } catch (error) {
-            console.warn('⚠️ Сервер недоступен, обновляем в localStorage');
-            
-            // Обновляем в localStorage
-            let products = JSON.parse(localStorage.getItem('products')) || {};
-            if (products[id]) {
-                products[id] = { ...products[id], ...productData };
-                localStorage.setItem('products', JSON.stringify(products));
-                
-                const index = this.currentData.products.findIndex(p => p.id === id);
-                this.currentData.products[index] = { ...product, ...productData };
-            }
-        }
+        this.currentData.products[index] = {
+            ...this.currentData.products[index],
+            ...productData
+        };
         
-        this.syncToLocalStorage();
+        this.saveToLocalStorage();
         return true;
     },
     
     // Удаление товара
-    async deleteProduct(id) {
-        console.log('🗑️ Удаление товара:', id);
+    deleteProduct(id) {
+        console.log('Удаление товара:', id);
         
-        try {
-            // Пытаемся удалить с сервера
-            const response = await fetch(`http://localhost:3000/products/${id}`, {
-                method: 'DELETE'
-            });
-            
-            if (response.ok) {
-                this.currentData.products = this.currentData.products.filter(p => p.id !== id);
-                console.log('✅ Товар удален с сервера');
-            } else {
-                throw new Error('Server error');
-            }
-        } catch (error) {
-            console.warn('⚠️ Сервер недоступен, удаляем из localStorage');
-            
-            // Удаляем из localStorage
-            let products = JSON.parse(localStorage.getItem('products')) || {};
-            if (products[id]) {
-                delete products[id];
-                localStorage.setItem('products', JSON.stringify(products));
-                
-                this.currentData.products = this.currentData.products.filter(p => p.id !== id);
-            }
-        }
+        this.currentData.products = this.currentData.products.filter(p => p.id !== id);
+        this.saveToLocalStorage();
         
-        this.syncToLocalStorage();
         return true;
     },
     
@@ -509,74 +249,27 @@ const DB_MANAGER = {
     // ============================================
     
     // Добавление заказа
-    async addOrder(orderData) {
-        console.log('➕ Добавление заказа');
+    addOrder(orderData) {
+        console.log('Добавление заказа');
         
         const newOrder = {
             ...orderData,
             id: Date.now().toString()
         };
         
-        try {
-            // Пытаемся сохранить на сервер
-            const response = await fetch('http://localhost:3000/orders', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newOrder)
-            });
-            
-            if (response.ok) {
-                const savedOrder = await response.json();
-                this.currentData.orders.push(savedOrder);
-                console.log('✅ Заказ сохранен на сервере');
-            } else {
-                throw new Error('Server error');
-            }
-        } catch (error) {
-            console.warn('⚠️ Сервер недоступен, сохраняем в localStorage');
-            
-            // Сохраняем в localStorage
-            let orders = JSON.parse(localStorage.getItem('orders')) || [];
-            orders.push(newOrder);
-            localStorage.setItem('orders', JSON.stringify(orders));
-            
-            this.currentData.orders.push(newOrder);
-        }
+        this.currentData.orders.push(newOrder);
+        this.saveToLocalStorage();
         
-        this.syncToLocalStorage();
         return newOrder;
     },
     
     // Удаление заказа
-    async deleteOrder(orderId) {
-        console.log('🗑️ Удаление заказа:', orderId);
+    deleteOrder(orderId) {
+        console.log('Удаление заказа:', orderId);
         
-        try {
-            // Пытаемся удалить с сервера
-            const response = await fetch(`http://localhost:3000/orders/${orderId}`, {
-                method: 'DELETE'
-            });
-            
-            if (response.ok) {
-                this.currentData.orders = this.currentData.orders.filter(o => o.id !== orderId);
-                console.log('✅ Заказ удален с сервера');
-            } else {
-                throw new Error('Server error');
-            }
-        } catch (error) {
-            console.warn('⚠️ Сервер недоступен, удаляем из localStorage');
-            
-            // Удаляем из localStorage
-            let orders = JSON.parse(localStorage.getItem('orders')) || [];
-            orders = orders.filter(o => o.id !== orderId);
-            localStorage.setItem('orders', JSON.stringify(orders));
-            
-            this.currentData.orders = this.currentData.orders.filter(o => o.id !== orderId);
-        }
+        this.currentData.orders = this.currentData.orders.filter(o => o.id !== orderId);
+        this.saveToLocalStorage();
         
-        this.syncToLocalStorage();
         return true;
     },
     
@@ -585,8 +278,8 @@ const DB_MANAGER = {
     // ============================================
     
     // Добавление сообщения
-    async addMessage(messageData) {
-        console.log('➕ Добавление сообщения');
+    addMessage(messageData) {
+        console.log('Добавление сообщения');
         
         const newMessage = {
             ...messageData,
@@ -595,35 +288,9 @@ const DB_MANAGER = {
             status: 'new'
         };
         
-        try {
-            // Пытаемся сохранить на сервер
-            const response = await fetch('http://localhost:3000/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newMessage)
-            });
-            
-            if (response.ok) {
-                const savedMessage = await response.json();
-                this.currentData.messages.push(savedMessage);
-                console.log('✅ Сообщение сохранено на сервере');
-            } else {
-                throw new Error('Server error');
-            }
-        } catch (error) {
-            console.warn('⚠️ Сервер недоступен, сохраняем в localStorage');
-            
-            // Сохраняем в localStorage
-            let messages = JSON.parse(localStorage.getItem('messages')) || [];
-            messages.push(newMessage);
-            localStorage.setItem('messages', JSON.stringify(messages));
-            
-            this.currentData.messages.push(newMessage);
-        }
+        this.currentData.messages.push(newMessage);
+        this.saveToLocalStorage();
         
-        this.syncToLocalStorage();
         return newMessage;
     },
     
@@ -651,11 +318,6 @@ const DB_MANAGER = {
             productsByCategory[p.category] = (productsByCategory[p.category] || 0) + 1;
         });
         
-        // Последние заказы
-        const recentOrders = [...this.currentData.orders]
-            .sort((a, b) => new Date(b.date) - new Date(a.date))
-            .slice(0, 5);
-        
         return {
             totalUsers,
             totalOrders,
@@ -667,28 +329,26 @@ const DB_MANAGER = {
             todayOrders,
             todayMessages,
             averageOrderValue: totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0,
-            productsByCategory,
-            recentOrders
+            productsByCategory
         };
     },
     
     // Логирование статистики
     logStats() {
         const stats = this.getStats();
-        console.log('📊 === СТАТИСТИКА БД ===');
-        console.log(`👥 Пользователей: ${stats.totalUsers} (👑 ${stats.adminCount} админов)`);
-        console.log(`📦 Товаров: ${stats.totalProducts}`);
-        console.log(`📋 Заказов: ${stats.totalOrders} (сегодня: ${stats.todayOrders})`);
-        console.log(`💬 Сообщений: ${stats.totalMessages} (сегодня: ${stats.todayMessages})`);
-        console.log(`💰 Выручка: ${stats.totalRevenue} ₽`);
-        console.log('📊 ====================');
+        console.log('=== СТАТИСТИКА БД ===');
+        console.log('Пользователей:', stats.totalUsers);
+        console.log('Товаров:', stats.totalProducts);
+        console.log('Заказов:', stats.totalOrders);
+        console.log('Выручка:', stats.totalRevenue, '₽');
+        console.log('====================');
     },
     
     // ============================================
-    // РЕЗЕРВНОЕ КОПИРОВАНИЕ
+    // РЕЗЕРВНОЕ КОПИРОВАНИЕ (только по запросу)
     // ============================================
     
-    // Создание резервной копии
+    // Создание резервной копии (только в localStorage)
     createBackup() {
         const backup = {
             id: Date.now(),
@@ -713,14 +373,12 @@ const DB_MANAGER = {
         }
         
         localStorage.setItem('backups', JSON.stringify(backups));
-        
-        // Создаем файл для скачивания (опционально)
-        this.downloadBackup(backup);
+        console.log('Резервная копия создана в localStorage');
         
         return backup;
     },
     
-    // Скачивание бэкапа
+    // Скачивание бэкапа (только по кнопке)
     downloadBackup(backup) {
         const dataStr = JSON.stringify(backup, null, 2);
         const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
@@ -739,15 +397,14 @@ const DB_MANAGER = {
             if (backupData.data) {
                 this.currentData = backupData.data;
             } else {
-                // Старый формат бэкапа
                 this.currentData = backupData;
             }
             
-            this.syncToLocalStorage();
-            console.log('✅ Данные восстановлены из бэкапа');
+            this.saveToLocalStorage();
+            console.log('Данные восстановлены из бэкапа');
             return true;
         } catch (error) {
-            console.error('❌ Ошибка восстановления из бэкапа:', error);
+            console.error('Ошибка восстановления из бэкапа:', error);
             return false;
         }
     },
@@ -757,8 +414,8 @@ const DB_MANAGER = {
     // ============================================
     
     // Сброс до начальных данных
-    async resetToDefault() {
-        console.log('🔄 Сброс базы данных до начального состояния');
+    resetToDefault() {
+        console.log('Сброс базы данных до начального состояния');
         
         const defaultUsers = [
             {
@@ -795,6 +452,13 @@ const DB_MANAGER = {
                 description: 'Премиум корм для собак'
             },
             {
+                id: 'food3',
+                name: 'Hill\'s (лечебный)',
+                price: 1500,
+                category: 'food',
+                description: 'Для животных с проблемами ЖКТ'
+            },
+            {
                 id: 'med1',
                 name: 'Антибиотики',
                 price: 500,
@@ -825,44 +489,15 @@ const DB_MANAGER = {
             settings: {}
         };
         
-        // Синхронизируем с localStorage
-        this.syncToLocalStorage();
-        
-        // Пытаемся синхронизировать с сервером
-        try {
-            // Очищаем сервер
-            await fetch('http://localhost:3000/users', { method: 'DELETE' });
-            await fetch('http://localhost:3000/products', { method: 'DELETE' });
-            await fetch('http://localhost:3000/orders', { method: 'DELETE' });
-            await fetch('http://localhost:3000/messages', { method: 'DELETE' });
-            
-            // Загружаем начальные данные
-            for (const user of defaultUsers) {
-                await fetch('http://localhost:3000/users', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(user)
-                });
-            }
-            
-            for (const product of defaultProducts) {
-                await fetch('http://localhost:3000/products', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(product)
-                });
-            }
-            
-            console.log('✅ Сервер синхронизирован');
-        } catch (error) {
-            console.warn('⚠️ Не удалось синхронизировать с сервером');
-        }
+        // Сохраняем в localStorage
+        this.saveToLocalStorage();
         
         // Создаем бэкап
         this.createBackup();
         
-        console.log('✅ База данных сброшена до начального состояния');
-        this.logStats();
+        console.log('База данных сброшена до начального состояния');
+        
+        return this.currentData;
     }
 };
 
@@ -873,15 +508,14 @@ const DB_MANAGER = {
 // Автосохранение каждую минуту
 setInterval(() => {
     if (DB_MANAGER.currentData) {
-        DB_MANAGER.syncToLocalStorage();
-        console.log('💾 Автосохранение выполнено в', new Date().toLocaleTimeString());
+        DB_MANAGER.saveToLocalStorage();
+        console.log('Автосохранение выполнено в', new Date().toLocaleTimeString());
     }
 }, 60000);
 
 // Сохранение перед закрытием страницы
 window.addEventListener('beforeunload', () => {
-    DB_MANAGER.syncToLocalStorage();
-    DB_MANAGER.createBackup();
+    DB_MANAGER.saveToLocalStorage();
 });
 
 // ============================================
@@ -891,4 +525,4 @@ window.addEventListener('beforeunload', () => {
 // Делаем DB_MANAGER глобальным
 window.DB_MANAGER = DB_MANAGER;
 
-console.log('✅ DB_MANAGER загружен и готов к работе');
+console.log('DB_MANAGER загружен и готов к работе');
