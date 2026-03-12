@@ -6,9 +6,9 @@
       "role": "admin",
       "registered": "2024-01-01T00:00:00.000Z"
     },
-    "user@example.com": {
-      "name": "Иван Петров",
-      "password": "user123",
+    "234@vgty.com": {
+      "name": "Student",
+      "password": "student",
       "role": "user",
       "registered": "2024-01-15T10:30:00.000Z"
     }
