@@ -3,11 +3,12 @@
 // ============================================
 
 const DB_MANAGER = {
-    // Ваши данные от JSONBin
-    BIN_ID: '69b32dabc3097a1dd51df4a5', 
-    API_KEY: '$2a$10$nh6Q.DQPxUy3JGi6.fEL3e6DOeE02iVHQ1FBZ7N5FeF8sW0atefpK', 
+    // ВАШИ ДАННЫЕ (проверьте, что они правильные)
+    BIN_ID: '69b32b80b7ec241ddc6348dd',
+    API_KEY: '$2a$10$tBa4S2lF6C0Qua271by8BuxrbzFEdlyz0lYj/oK52ynRQPDFexbC2',
     BASE_URL: 'https://api.jsonbin.io/v3',
     
+    // Текущие данные в памяти
     currentData: {
         users: [],
         products: [],
@@ -16,9 +17,17 @@ const DB_MANAGER = {
         settings: {}
     },
 
-    // Загрузка данных с JSONBin
+    // Флаг загрузки
+    isLoading: false,
+
+    // ============================================
+    // ОСНОВНЫЕ МЕТОДЫ
+    // ============================================
+
+    // Загрузка данных с сервера
     async loadDatabase() {
-        console.log('Загрузка данных с JSONBin...');
+        console.log('🔄 Загрузка данных с JSONBin...');
+        console.log('Bin ID:', this.BIN_ID);
         
         try {
             const response = await fetch(`${this.BASE_URL}/b/${this.BIN_ID}/latest`, {
@@ -27,26 +36,40 @@ const DB_MANAGER = {
                 }
             });
             
-            if (response.ok) {
-                const data = await response.json();
-                this.currentData = data.record;
-                console.log('✅ Данные загружены с JSONBin');
-                
-                // Сохраняем локально для офлайн доступа
-                this.saveToLocalStorage();
-            } else {
-                throw new Error('Ошибка загрузки');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const result = await response.json();
+            console.log('✅ Данные получены с сервера:', result);
+            
+            // Сохраняем в память
+            this.currentData = result.record;
+            
+            // Обновляем localStorage для офлайн доступа
+            this.saveToLocalStorage();
+            
+            console.log('📊 Статистика:');
+            console.log(`   Пользователей: ${this.currentData.users.length}`);
+            console.log(`   Товаров: ${this.currentData.products.length}`);
+            console.log(`   Заказов: ${this.currentData.orders.length}`);
+            
+            return this.currentData;
+            
         } catch (error) {
-            console.warn('⚠️ Не удалось загрузить с JSONBin, используем localStorage');
+            console.error('❌ Ошибка загрузки с сервера:', error);
+            
+            // Пробуем загрузить из localStorage
             this.loadFromLocalStorage();
+            
+            return this.currentData;
         }
-        
-        return this.currentData;
     },
 
-    // Сохранение данных на JSONBin
-    async saveToJSONBin() {
+    // Сохранение данных на сервер
+    async saveToServer() {
+        console.log('💾 Сохранение данных на JSONBin...');
+        
         try {
             const response = await fetch(`${this.BASE_URL}/b/${this.BIN_ID}`, {
                 method: 'PUT',
@@ -57,20 +80,32 @@ const DB_MANAGER = {
                 body: JSON.stringify(this.currentData)
             });
             
-            if (response.ok) {
-                console.log('✅ Данные сохранены на JSONBin');
-                return true;
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            
+            const result = await response.json();
+            console.log('✅ Данные сохранены на сервере');
+            
+            // Обновляем localStorage
+            this.saveToLocalStorage();
+            
+            return true;
+            
         } catch (error) {
-            console.error('❌ Ошибка сохранения на JSONBin:', error);
+            console.error('❌ Ошибка сохранения на сервер:', error);
             return false;
         }
     },
 
-    // Сохранение в localStorage (резервная копия)
+    // ============================================
+    // РАБОТА С LOCALSTORAGE
+    // ============================================
+
+    // Сохранение в localStorage
     saveToLocalStorage() {
         try {
-            // Конвертируем пользователей в объект
+            // Конвертируем пользователей в объект для совместимости
             const usersObj = {};
             this.currentData.users.forEach(user => {
                 usersObj[user.email] = {
@@ -98,7 +133,7 @@ const DB_MANAGER = {
             localStorage.setItem('messages', JSON.stringify(this.currentData.messages));
             localStorage.setItem('settings', JSON.stringify(this.currentData.settings));
             
-            console.log('💾 Данные сохранены в localStorage');
+            console.log('📁 Данные сохранены в localStorage');
         } catch (error) {
             console.error('❌ Ошибка сохранения в localStorage:', error);
         }
@@ -106,7 +141,10 @@ const DB_MANAGER = {
 
     // Загрузка из localStorage
     loadFromLocalStorage() {
+        console.log('📁 Загрузка данных из localStorage...');
+        
         try {
+            // Загружаем пользователей
             const usersObj = JSON.parse(localStorage.getItem('users')) || {};
             this.currentData.users = Object.keys(usersObj).map(email => ({
                 id: email,
@@ -114,24 +152,43 @@ const DB_MANAGER = {
                 ...usersObj[email]
             }));
             
+            // Загружаем товары
             const productsObj = JSON.parse(localStorage.getItem('products')) || {};
             this.currentData.products = Object.keys(productsObj).map(id => ({
                 id: id,
                 ...productsObj[id]
             }));
             
+            // Загружаем заказы
             this.currentData.orders = JSON.parse(localStorage.getItem('orders')) || [];
             this.currentData.messages = JSON.parse(localStorage.getItem('messages')) || [];
             this.currentData.settings = JSON.parse(localStorage.getItem('settings')) || {};
             
-            console.log('📁 Данные загружены из localStorage');
+            console.log('✅ Данные загружены из localStorage');
+            
         } catch (error) {
             console.error('❌ Ошибка загрузки из localStorage:', error);
         }
     },
 
+    // ============================================
+    // РАБОТА С ПОЛЬЗОВАТЕЛЯМИ
+    // ============================================
+
+    // Получение пользователя по email
+    getUserByEmail(email) {
+        return this.currentData.users.find(u => u.email === email);
+    },
+
+    // Проверка существования пользователя
+    userExists(email) {
+        return this.currentData.users.some(u => u.email === email);
+    },
+
     // Добавление пользователя
     async addUser(userData) {
+        console.log('➕ Добавление пользователя:', userData.email);
+        
         const newUser = {
             id: userData.email,
             email: userData.email,
@@ -141,15 +198,21 @@ const DB_MANAGER = {
             registered: new Date().toISOString()
         };
         
+        // Добавляем в массив
         this.currentData.users.push(newUser);
-        this.saveToLocalStorage();
-        await this.saveToJSONBin(); // Сохраняем на сервер
+        
+        // Сохраняем на сервер (все увидят)
+        await this.saveToServer();
+        
+        console.log('✅ Пользователь добавлен и сохранен на сервере');
         
         return newUser;
     },
 
     // Обновление пользователя
     async updateUser(email, userData) {
+        console.log('✏️ Обновление пользователя:', email);
+        
         const index = this.currentData.users.findIndex(u => u.email === email);
         if (index === -1) return false;
         
@@ -158,34 +221,43 @@ const DB_MANAGER = {
             ...userData
         };
         
-        this.saveToLocalStorage();
-        await this.saveToJSONBin();
-        
+        await this.saveToServer();
         return true;
     },
 
     // Удаление пользователя
     async deleteUser(email) {
-        if (email === 'admin@vetclinic.ru') return false;
+        if (email === 'admin@vetclinic.ru') {
+            console.warn('⚠️ Нельзя удалить главного администратора');
+            return false;
+        }
+        
+        console.log('🗑️ Удаление пользователя:', email);
         
         this.currentData.users = this.currentData.users.filter(u => u.email !== email);
-        this.saveToLocalStorage();
-        await this.saveToJSONBin();
+        await this.saveToServer();
         
         return true;
     },
 
+    // ============================================
+    // РАБОТА С ТОВАРАМИ
+    // ============================================
+
     // Добавление товара
     async addProduct(productData) {
+        console.log('➕ Добавление товара:', productData.id);
+        
         this.currentData.products.push(productData);
-        this.saveToLocalStorage();
-        await this.saveToJSONBin();
+        await this.saveToServer();
         
         return productData;
     },
 
     // Обновление товара
     async updateProduct(id, productData) {
+        console.log('✏️ Обновление товара:', id);
+        
         const index = this.currentData.products.findIndex(p => p.id === id);
         if (index === -1) return false;
         
@@ -194,37 +266,57 @@ const DB_MANAGER = {
             ...productData
         };
         
-        this.saveToLocalStorage();
-        await this.saveToJSONBin();
-        
+        await this.saveToServer();
         return true;
     },
 
     // Удаление товара
     async deleteProduct(id) {
+        console.log('🗑️ Удаление товара:', id);
+        
         this.currentData.products = this.currentData.products.filter(p => p.id !== id);
-        this.saveToLocalStorage();
-        await this.saveToJSONBin();
+        await this.saveToServer();
         
         return true;
     },
 
+    // ============================================
+    // РАБОТА С ЗАКАЗАМИ
+    // ============================================
+
     // Добавление заказа
     async addOrder(orderData) {
+        console.log('➕ Добавление заказа');
+        
         const newOrder = {
             ...orderData,
             id: Date.now().toString()
         };
         
         this.currentData.orders.push(newOrder);
-        this.saveToLocalStorage();
-        await this.saveToJSONBin();
+        await this.saveToServer();
         
         return newOrder;
     },
 
+    // Удаление заказа
+    async deleteOrder(orderId) {
+        console.log('🗑️ Удаление заказа:', orderId);
+        
+        this.currentData.orders = this.currentData.orders.filter(o => o.id !== orderId);
+        await this.saveToServer();
+        
+        return true;
+    },
+
+    // ============================================
+    // РАБОТА С СООБЩЕНИЯМИ
+    // ============================================
+
     // Добавление сообщения
     async addMessage(messageData) {
+        console.log('➕ Добавление сообщения');
+        
         const newMessage = {
             ...messageData,
             id: Date.now().toString(),
@@ -233,17 +325,22 @@ const DB_MANAGER = {
         };
         
         this.currentData.messages.push(newMessage);
-        this.saveToLocalStorage();
-        await this.saveToJSONBin();
+        await this.saveToServer();
         
         return newMessage;
     },
+
+    // ============================================
+    // СТАТИСТИКА
+    // ============================================
 
     // Получение статистики
     getStats() {
         const totalUsers = this.currentData.users.length;
         const totalOrders = this.currentData.orders.length;
         const totalProducts = this.currentData.products.length;
+        const totalMessages = this.currentData.messages.length;
+        
         const totalRevenue = this.currentData.orders.reduce((sum, order) => sum + (order.total || 0), 0);
         const adminCount = this.currentData.users.filter(u => u.role === 'admin').length;
         
@@ -251,42 +348,35 @@ const DB_MANAGER = {
             totalUsers,
             totalOrders,
             totalProducts,
+            totalMessages,
             totalRevenue,
             adminCount,
             userCount: totalUsers - adminCount
         };
     },
 
-    // Сброс данных
-    async resetToDefault() {
-        this.currentData = {
-            users: [
-                {
-                    id: 'admin@vetclinic.ru',
-                    email: 'admin@vetclinic.ru',
-                    name: 'Admin',
-                    password: 'admin123',
-                    role: 'admin',
-                    registered: new Date().toISOString()
-                }
-            ],
-            products: [],
-            orders: [],
-            messages: [],
-            settings: {}
-        };
+    // ============================================
+    // ИНИЦИАЛИЗАЦИЯ
+    // ============================================
+
+    // Автоматическая загрузка при создании
+    async init() {
+        await this.loadDatabase();
         
-        this.saveToLocalStorage();
-        await this.saveToJSONBin();
+        // Запускаем периодическую синхронизацию (каждые 30 секунд)
+        setInterval(async () => {
+            console.log('🔄 Периодическая синхронизация...');
+            await this.loadDatabase();
+        }, 30000);
         
-        return this.currentData;
+        return this;
     }
 };
 
-// Автосохранение каждые 5 минут
-setInterval(() => {
-    DB_MANAGER.saveToJSONBin();
-}, 300000);
-
+// Делаем глобальным
 window.DB_MANAGER = DB_MANAGER;
+
+// Автоматически запускаем
+DB_MANAGER.init();
+
 console.log('✅ DB_MANAGER с JSONBin готов');
