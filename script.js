@@ -228,6 +228,11 @@ function showNotification(message, type = 'success') {
         notification.remove();
     }, 3000);
 }
+// Принудительное обновление интерфейса (для отладки)
+window.refreshUI = function() {
+    console.log('🔄 Принудительное обновление интерфейса');
+    updateUI();
+};
 
 // Создать блок авторизации
 function createAuthCorner() {
@@ -235,7 +240,9 @@ function createAuthCorner() {
         const authCorner = document.createElement('div');
         authCorner.id = 'authCorner';
         authCorner.className = 'auth-corner';
+        authCorner.style.cssText = 'position: fixed; top: 10px; left: 10px; z-index: 1000; max-width: 300px;';
         document.body.prepend(authCorner);
+        console.log('✅ Блок авторизации создан');
     }
 }
 
