@@ -6,7 +6,7 @@
 const DB_MANAGER = {
     // ВАШИ ПРАВИЛЬНЫЕ ДАННЫЕ
     BIN_ID: '69b32b80b7ec241ddc6348dd',  // Исправлено!
-    API_KEY: '$2a$10$nh6Q.DQPxUy3JGi6.fEL3e6DOeE02iVHQ1FBZ7N5FeF8sW0atefpK',
+    API_KEY: '$2a$10$tBa4S2lF6C0Qua271by8BuxrbzFEdlyz0lYj/oK52ynRQPDFexbC2',
     BASE_URL: 'https://api.jsonbin.io/v3',
     
     currentData: {
