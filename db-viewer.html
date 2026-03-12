@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ВетКлиника - Просмотр БД</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .db-viewer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .db-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+            .db-controls button {
+                padding: 12px 25px;
+                background: linear-gradient(135deg, #2c6e49, #1e4d2f);
+                color: white;
+                border: none;
+                border-radius: 30px;
+                cursor: pointer;
+                font-weight: bold;
+                transition: all 0.3s;
+            }
+
+                .db-controls button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                }
+
+                .db-controls button.danger {
+                    background: linear-gradient(135deg, #dc3545, #c82333);
+                }
+
+                .db-controls button.warning {
+                    background: linear-gradient(135deg, #ffc107, #e0a800);
+                    color: #1e4d2f;
+                }
+
+        .db-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+            .db-section h2 {
+                color: #2c6e49;
+                margin-bottom: 15px;
+                border-bottom: 2px solid #ffd700;
+                padding-bottom: 10px;
+            }
+
+        .json-viewer {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+            .json-viewer pre {
+                margin: 0;
+                color: #333;
+            }
+
+            .json-viewer .string {
+                color: #2c6e49;
+            }
+
+            .json-viewer .number {
+                color: #007bff;
+            }
+
+            .json-viewer .boolean {
+                color: #dc3545;
+            }
+
+            .json-viewer .null {
+                color: #6c757d;
+            }
+
+            .json-viewer .key {
+                color: #1e4d2f;
+                font-weight: bold;
+            }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid #2c6e49;
+        }
+
+            .stat-card h3 {
+                color: #2c6e49;
+                margin-bottom: 10px;
+                font-size: 1rem;
+            }
+
+            .stat-card .stat-value {
+                font-size: 2rem;
+                font-weight: bold;
+                color: #1e4d2f;
+            }
+
+        .import-area {
+            border: 2px dashed #2c6e49;
+            padding: 30px;
+            text-align: center;
+            border-radius: 12px;
+            background: #f8f9fa;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+            .import-area:hover {
+                background: #e9ecef;
+                border-color: #ffd700;
+            }
+
+            .import-area input[type="file"] {
+                display: none;
+            }
+
+        .backup-list {
+            list-style: none;
+            padding: 0;
+        }
+
+            .backup-list li {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 15px;
+                border-bottom: 1px solid #eee;
+            }
+
+                .backup-list li:last-child {
+                    border-bottom: none;
+                }
+
+        .backup-info {
+            flex: 1;
+        }
+
+        .backup-actions button {
+            padding: 8px 15px;
+            margin-left: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .backup-actions .restore {
+            background-color: #2c6e49;
+            color: white;
+        }
+
+        .backup-actions .delete {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .backup-actions button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .file-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f4e8;
+            border-radius: 6px;
+            color: #2c6e49;
+        }
+    </style>
+</head>
+<body>
+    <header id="top">
+        <h1>🐾 ВетКлиника "Здоровый друг" - Просмотр и редактирование БД</h1>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Главная</a></li>
+            <li><a href="catalog.html">Услуги</a></li>
+            <li><a href="characteristics.html">Товары</a></li>
+            <li><a href="payment-delivery.html">Оплата и доставка</a></li>
+            <li><a href="contacts.html">Контакты</a></li>
+            <li><a href="db-viewer.html" style="background-color: #ffd700; color: #1e4d2f;">📁 Управление БД</a></li>
+        </ul>
+    </nav>
+
+    <!-- Кнопка "Наверх" -->
+    <a href="#top" class="back-to-top" title="Наверх">↑</a>
+
+    <main>
+        <div class="db-viewer">
+            <div id="adminCheck" class="admin-warning" style="display: none;">
+                ⚠️ Доступ только для администратора
+            </div>
+
+            <div class="db-controls">
+                <button onclick="exportDatabase()">📥 Экспортировать БД в файл</button>
+                <button onclick="triggerFileInput()" class="warning">📤 Импортировать БД из файла</button>
+                <button onclick="refreshView()" class="warning">🔄 Обновить просмотр</button>
+                <button onclick="resetDatabase()" class="danger">⚠️ Сбросить БД до начальной</button>
+            </div>
+
+            <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="importDatabase(this.files[0])">
+
+            <div class="import-area" onclick="document.getElementById('fileInput').click()">
+                <p>📁 Нажмите для выбора файла базы данных или перетащите файл сюда</p>
+                <p style="color: #666; font-size: 14px; margin-top: 10px;">Поддерживаются файлы формата .json</p>
+            </div>
+
+            <div id="fileInfo" class="file-info" style="display: none;"></div>
+
+            <div class="stats-grid" id="statsGrid"></div>
+
+            <div class="db-section">
+                <h2>📊 Статистика использования</h2>
+                <div id="detailedStats"></div>
+            </div>
+
+            <div class="db-section">
+                <h2>👥 Пользователи</h2>
+                <div class="json-viewer" id="usersView"></div>
+            </div>
+
+            <div class="db-section">
+                <h2>📦 Товары</h2>
+                <div class="json-viewer" id="productsView"></div>
+            </div>
+
+            <div class="db-section">
+                <h2>📋 Заказы</h2>
+                <div class="json-viewer" id="ordersView"></div>
+            </div>
+
+            <div class="db-section">
+                <h2>⚙️ Настройки</h2>
+                <div class="json-viewer" id="settingsView"></div>
+            </div>
+
+            <div class="db-section">
+                <h2>💾 Резервные копии</h2>
+                <div id="backupsList"></div>
+                <button onclick="createBackup()" class="db-controls button" style="margin-top: 15px;">📀 Создать резервную копию</button>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>🐕 ВетКлиника "Здоровый друг" | Забота о ваших питомцах</p>
+        <p>📞 т. 222-22-22 | 📍 г. Воронеж, ул. Ветеринарная, д. 15</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script src="db-manager.js"></script>
+    <script>// Проверка прав администратора
+        function checkAdminAccess() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const adminWarning = document.getElementById('adminCheck');
+
+            if (!currentUser || currentUser.role !== 'admin') {
+                adminWarning.style.display = 'block';
+                // Скрываем все элементы управления
+                document.querySelectorAll('.db-controls button, .import-area, .db-section').forEach(el => {
+                    el.style.opacity = '0.5';
+                    el.style.pointerEvents = 'none';
+                });
+                return false;
+            } else {
+                adminWarning.style.display = 'none';
+                document.querySelectorAll('.db-controls button, .import-area, .db-section').forEach(el => {
+                    el.style.opacity = '1';
+                    el.style.pointerEvents = 'auto';
+                });
+                return true;
+            }
+        }
+
+        // Обновление просмотра
+        function refreshView() {
+            if (!checkAdminAccess()) return;
+
+            // Получаем данные из localStorage
+            const users = JSON.parse(localStorage.getItem('users')) || {};
+            const products = JSON.parse(localStorage.getItem('products')) || {};
+            const orders = JSON.parse(localStorage.getItem('orders')) || [];
+            const settings = JSON.parse(localStorage.getItem('settings')) || {};
+
+            // Форматируем JSON для отображения
+            document.getElementById('usersView').innerHTML = syntaxHighlight(JSON.stringify(users, null, 2));
+            document.getElementById('productsView').innerHTML = syntaxHighlight(JSON.stringify(products, null, 2));
+            document.getElementById('ordersView').innerHTML = syntaxHighlight(JSON.stringify(orders, null, 2));
+            document.getElementById('settingsView').innerHTML = syntaxHighlight(JSON.stringify(settings, null, 2));
+
+            // Обновляем статистику
+            updateStats();
+        }
+
+        // Подсветка синтаксиса JSON
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'key';
+                    } else {
+                        cls = 'string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        // Обновление статистики
+        function updateStats() {
+            const stats = DB_MANAGER.getStats();
+
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <h3>Пользователи</h3>
+                    <div class="stat-value">${stats.totalUsers}</div>
+                    <div style="color: #666;">👑 Админов: ${stats.adminCount}</div>
+                    <div style="color: #666;">👤 Пользователей: ${stats.userCount}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Заказы</h3>
+                    <div class="stat-value">${stats.totalOrders}</div>
+                    <div style="color: #666;">Сегодня: ${stats.todayOrders}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Выручка</h3>
+                    <div class="stat-value">${stats.totalRevenue} ₽</div>
+                    <div style="color: #666;">Средний чек: ${stats.averageOrderValue} ₽</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Товары</h3>
+                    <div class="stat-value">${stats.totalProducts}</div>
+                    <div style="color: #666;">В наличии</div>
+                </div>
+            `;
+
+            const detailedStats = document.getElementById('detailedStats');
+            detailedStats.innerHTML = `
+                <p><strong>Всего пользователей:</strong> ${stats.totalUsers}</p>
+                <p><strong>Всего заказов:</strong> ${stats.totalOrders}</p>
+                <p><strong>Общая выручка:</strong> ${stats.totalRevenue} руб.</p>
+                <p><strong>Средний чек:</strong> ${stats.averageOrderValue} руб.</p>
+                <p><strong>Заказов сегодня:</strong> ${stats.todayOrders}</p>
+                <p><strong>Товаров в каталоге:</strong> ${stats.totalProducts}</p>
+            `;
+        }
+
+        // Экспорт базы данных
+        function exportDatabase() {
+            if (!checkAdminAccess()) return;
+            DB_MANAGER.exportDatabase();
+            showNotification('База данных экспортирована', 'success');
+        }
+
+        // Импорт базы данных
+        function importDatabase(file) {
+            if (!checkAdminAccess()) return;
+
+            DB_MANAGER.importDatabase(file)
+                .then(data => {
+                    document.getElementById('fileInfo').style.display = 'block';
+                    document.getElementById('fileInfo').innerHTML = `
+                        ✅ Файл успешно загружен!<br>
+                        Пользователей: ${Object.keys(data.users).length}<br>
+                        Товаров: ${Object.keys(data.products).length}<br>
+                        Заказов: ${data.orders ? data.orders.length : 0}
+                    `;
+                    refreshView();
+                    showNotification('База данных импортирована', 'success');
+                })
+                .catch(error => {
+                    document.getElementById('fileInfo').style.display = 'block';
+                    document.getElementById('fileInfo').innerHTML = `❌ Ошибка: ${error.message}`;
+                    showNotification('Ошибка импорта', 'error');
+                });
+        }
+
+        function triggerFileInput() {
+            document.getElementById('fileInput').click();
+        }
+
+        // Сброс базы данных до начальной
+        function resetDatabase() {
+            if (!checkAdminAccess()) return;
+
+            if (confirm('Вы уверены? Все данные будут сброшены до начальных!')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        // Создание резервной копии
+        function createBackup() {
+            if (!checkAdminAccess()) return;
+
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const data = {
+                users: JSON.parse(localStorage.getItem('users')) || {},
+                products: JSON.parse(localStorage.getItem('products')) || {},
+                orders: JSON.parse(localStorage.getItem('orders')) || [],
+                settings: JSON.parse(localStorage.getItem('settings')) || {},
+                backupDate: new Date().toISOString()
+            };
+
+            const jsonData = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup-${timestamp}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showNotification('Резервная копия создана', 'success');
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Загружаем данные из файла при старте
+            await DB_MANAGER.loadDatabase();
+
+            // Проверяем права и обновляем просмотр
+            checkAdminAccess();
+            refreshView();
+        });</script>
+</body>
+</html>

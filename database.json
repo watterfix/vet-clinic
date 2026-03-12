@@ -1,0 +1,252 @@
+{
+  "users": {
+    "admin@vetclinic.ru": {
+      "name": "Admin",
+      "password": "admin123",
+      "role": "admin",
+      "registered": "2024-01-01T00:00:00.000Z"
+    },
+    "user@example.com": {
+      "name": "Иван Петров",
+      "password": "user123",
+      "role": "user",
+      "registered": "2024-01-15T10:30:00.000Z"
+    }
+  },
+  "products": {
+    "food1": {
+      "name": "Royal Canin (для кошек)",
+      "price": 1200,
+      "category": "food",
+      "description": "Премиум корм для кошек",
+      "inStock": true
+    },
+    "food2": {
+      "name": "Royal Canin (для собак)",
+      "price": 1300,
+      "category": "food",
+      "description": "Премиум корм для собак",
+      "inStock": true
+    },
+    "food3": {
+      "name": "Hill's (лечебный)",
+      "price": 1500,
+      "category": "food",
+      "description": "Для животных с проблемами ЖКТ",
+      "inStock": true
+    },
+    "food4": {
+      "name": "Purina Pro Plan",
+      "price": 1100,
+      "category": "food",
+      "description": "Для активных собак",
+      "inStock": true
+    },
+    "food5": {
+      "name": "Acana (для собак)",
+      "price": 1400,
+      "category": "food",
+      "description": "Беззерновой, для взрослых собак",
+      "inStock": true
+    },
+    "food6": {
+      "name": "Orijen (для собак)",
+      "price": 1600,
+      "category": "food",
+      "description": "Супер-премиум, высокобелковый",
+      "inStock": true
+    },
+    "food7": {
+      "name": "Pedigree (для собак)",
+      "price": 900,
+      "category": "food",
+      "description": "Для взрослых собак, с мясом",
+      "inStock": true
+    },
+    "med1": {
+      "name": "Антибиотики",
+      "price": 500,
+      "category": "medicine",
+      "description": "По назначению врача",
+      "inStock": true
+    },
+    "med2": {
+      "name": "Противоглистные",
+      "price": 300,
+      "category": "medicine",
+      "description": "Широкого спектра",
+      "inStock": true
+    },
+    "med3": {
+      "name": "Витамины",
+      "price": 450,
+      "category": "medicine",
+      "description": "Для шерсти и кожи",
+      "inStock": true
+    },
+    "med4": {
+      "name": "Обезболивающие",
+      "price": 400,
+      "category": "medicine",
+      "description": "Послеоперационные",
+      "inStock": true
+    },
+    "med5": {
+      "name": "Капли от блох и клещей",
+      "price": 600,
+      "category": "medicine",
+      "description": "Для собак, защита на 3 месяца",
+      "inStock": true
+    },
+    "med6": {
+      "name": "Ошейник от паразитов",
+      "price": 800,
+      "category": "medicine",
+      "description": "Защита до 6 месяцев",
+      "inStock": true
+    },
+    "med7": {
+      "name": "Спрей от клещей",
+      "price": 550,
+      "category": "medicine",
+      "description": "Для обработки перед прогулкой",
+      "inStock": true
+    },
+    "med8": {
+      "name": "Хондропротекторы",
+      "price": 700,
+      "category": "medicine",
+      "description": "Для суставов крупных пород",
+      "inStock": true
+    },
+    "acc1": {
+      "name": "Ошейники",
+      "price": 350,
+      "category": "accessories",
+      "description": "Регулируемые",
+      "inStock": true
+    },
+    "acc2": {
+      "name": "Миски",
+      "price": 250,
+      "category": "accessories",
+      "description": "Нержавеющая сталь",
+      "inStock": true
+    },
+    "acc3": {
+      "name": "Лежаки",
+      "price": 1200,
+      "category": "accessories",
+      "description": "Мягкие, съемный чехол",
+      "inStock": true
+    },
+    "acc4": {
+      "name": "Переноски",
+      "price": 2000,
+      "category": "accessories",
+      "description": "Пластиковые",
+      "inStock": true
+    },
+    "acc5": {
+      "name": "Поводок-рулетка",
+      "price": 450,
+      "category": "accessories",
+      "description": "5 метров, для средних пород",
+      "inStock": true
+    },
+    "acc6": {
+      "name": "Шлейка для собак",
+      "price": 850,
+      "category": "accessories",
+      "description": "Регулируемая, с мягкой подкладкой",
+      "inStock": true
+    },
+    "acc7": {
+      "name": "Игрушка-канат",
+      "price": 300,
+      "category": "accessories",
+      "description": "Для активных игр",
+      "inStock": true
+    },
+    "acc8": {
+      "name": "Мяч для собак",
+      "price": 500,
+      "category": "accessories",
+      "description": "Прорезиненный, прыгучий",
+      "inStock": true
+    },
+    "acc9": {
+      "name": "Домик-будка",
+      "price": 1500,
+      "category": "accessories",
+      "description": "Утепленный, для улицы",
+      "inStock": true
+    },
+    "hyg1": {
+      "name": "Шампуни",
+      "price": 450,
+      "category": "hygiene",
+      "description": "Для разных типов шерсти",
+      "inStock": true
+    },
+    "hyg2": {
+      "name": "Зубные пасты",
+      "price": 300,
+      "category": "hygiene",
+      "description": "Съедобные",
+      "inStock": true
+    },
+    "hyg3": {
+      "name": "Когтерезки",
+      "price": 400,
+      "category": "hygiene",
+      "description": "Для мелких пород",
+      "inStock": true
+    },
+    "hyg4": {
+      "name": "Когтерезка для крупных пород",
+      "price": 600,
+      "category": "hygiene",
+      "description": "Усиленные лезвия",
+      "inStock": true
+    },
+    "hyg5": {
+      "name": "Расческа-пуходерка",
+      "price": 350,
+      "category": "hygiene",
+      "description": "Для подшерстка",
+      "inStock": true
+    },
+    "hyg6": {
+      "name": "Фурминатор",
+      "price": 500,
+      "category": "hygiene",
+      "description": "Для удаления отмершей шерсти",
+      "inStock": true
+    },
+    "hyg7": {
+      "name": "Салфетки для лап",
+      "price": 280,
+      "category": "hygiene",
+      "description": "После прогулки, упаковка 100 шт",
+      "inStock": true
+    },
+    "hyg8": {
+      "name": "Сухой шампунь",
+      "price": 750,
+      "category": "hygiene",
+      "description": "Для экстренного ухода",
+      "inStock": true
+    }
+  },
+  "orders": [],
+  "settings": {
+    "clinicName": "ВетКлиника 'Здоровый друг'",
+    "address": "г. Воронеж, ул. Ветеринарная, д. 15",
+    "phone": "222-22-22",
+    "email": "vet@zdorovydrug.ru",
+    "workingHours": "круглосуточно",
+    "freeDeliveryThreshold": 3000,
+    "deliveryCost": 300
+  }
+}
