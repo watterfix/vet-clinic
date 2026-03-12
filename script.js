@@ -285,7 +285,7 @@ function updateUI() {
         }
         
         authCorner.innerHTML = `
-            <div class="user-info-corner" style="background: linear-gradient(135deg, #2c6e49, #1e4d2f); color: white; padding: 8px 15px; border-radius: 30px; display: flex; align-items: center; gap: 10px;">
+            <div class="user-info-corner" style="background: linear-gradient(135deg, #2c6e49, #1e4d2f); color: white; padding: 8px 15px; border-radius: 30px; display: flex; align-items: center; gap: 10px; border: 2px solid #ffd700;">
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                     <span style="font-weight: bold;">${currentUser.name} ${currentUser.role === 'admin' ? '👑' : ''}</span>
                     <span style="font-size: 11px; color: #ffd700;">${currentUser.email}</span>
