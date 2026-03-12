@@ -984,45 +984,55 @@ async function login(event) {
     console.log('🔐 Попытка входа:', email);
     
     try {
-        // Загружаем свежие данные с сервера
+        // Показываем индикатор загрузки
+        const loginBtn = event.target.querySelector('button[type="submit"]');
+        const originalText = loginBtn.textContent;
+        loginBtn.textContent = 'Вход...';
+        loginBtn.disabled = true;
+        
+        // Загружаем свежие данные
         await DB_MANAGER.loadDatabase();
         
-        console.log('📦 Текущие пользователи:', DB_MANAGER.currentData.users);
+        const user = DB_MANAGER.getUserByEmail(email);
         
-        // Ищем пользователя
-        const user = DB_MANAGER.currentData.users.find(u => u.email === email);
-        
-        if (user) {
-            console.log('✅ Пользователь найден:', user);
-            console.log('🔑 Введенный пароль:', password);
-            console.log('🔑 Пароль в БД:', user.password);
+        if (user && user.password === password) {
+            currentUser = {
+                email: user.email,
+                name: user.name,
+                role: user.role
+            };
+
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
-            if (user.password === password) {
-                currentUser = {
-                    email: user.email,
-                    name: user.name,
-                    role: user.role
-                };
-
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                showNotification('Вход выполнен успешно!', 'success');
-
-                closeAuthModal();
-                updateUI();
-            } else {
-                console.log('❌ Пароль не совпадает');
-                showNotification('Неверный пароль!', 'error');
-            }
+            // Обновляем интерфейс
+            updateUI();
+            
+            // Закрываем модальное окно
+            closeAuthModal();
+            
+            // Показываем уведомление
+            showNotification(`Добро пожаловать, ${user.name}!`, 'success');
+            
+            // Очищаем форму
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+            
+            console.log('✅ Вход выполнен');
         } else {
-            console.log('❌ Пользователь не найден');
-            showNotification('Пользователь не найден!', 'error');
+            showNotification('Неверный email или пароль!', 'error');
         }
     } catch (error) {
-        console.error('❌ Ошибка при входе:', error);
+        console.error('❌ Ошибка входа:', error);
         showNotification('Ошибка при входе', 'error');
+    } finally {
+        // Возвращаем кнопку в исходное состояние
+        const loginBtn = event.target.querySelector('button[type="submit"]');
+        if (loginBtn) {
+            loginBtn.textContent = 'Войти';
+            loginBtn.disabled = false;
+        }
     }
 }
-
 // Выход
 function logout() {
     currentUser = null;
