@@ -25,7 +25,7 @@ const DB_MANAGER = {
                 headers: {
                     'X-Master-Key': this.API_KEY
                 },
-                cache: 'no-cache' // Важно! Отключаем кэш
+                cache: 'no-cache'
             });
             
             if (!response.ok) {
@@ -35,12 +35,16 @@ const DB_MANAGER = {
             const result = await response.json();
             this.currentData = result.record || result;
             
-            // Убеждаемся, что users это массив
-            if (!Array.isArray(this.currentData.users)) {
-                this.currentData.users = [];
-            }
+            // Убеждаемся, что все поля - массивы
+            if (!Array.isArray(this.currentData.users)) this.currentData.users = [];
+            if (!Array.isArray(this.currentData.products)) this.currentData.products = [];
+            if (!Array.isArray(this.currentData.orders)) this.currentData.orders = [];
+            if (!Array.isArray(this.currentData.messages)) this.currentData.messages = [];
+            if (!this.currentData.settings) this.currentData.settings = {};
             
             console.log(`✅ Загружено пользователей: ${this.currentData.users.length}`);
+            console.log(`✅ Загружено товаров: ${this.currentData.products.length}`);
+            console.log(`✅ Загружено заказов: ${this.currentData.orders.length}`);
             
             // Сохраняем в localStorage для офлайн доступа
             this.saveToLocalStorage();
@@ -86,6 +90,32 @@ const DB_MANAGER = {
     saveToLocalStorage() {
         try {
             localStorage.setItem('db_backup', JSON.stringify(this.currentData));
+            
+            // Для совместимости со старым кодом
+            const usersObj = {};
+            this.currentData.users.forEach(user => {
+                usersObj[user.email] = {
+                    name: user.name,
+                    password: user.password,
+                    role: user.role,
+                    registered: user.registered
+                };
+            });
+            
+            const productsObj = {};
+            this.currentData.products.forEach(product => {
+                productsObj[product.id] = {
+                    name: product.name,
+                    price: product.price,
+                    category: product.category,
+                    description: product.description
+                };
+            });
+            
+            localStorage.setItem('users', JSON.stringify(usersObj));
+            localStorage.setItem('products', JSON.stringify(productsObj));
+            localStorage.setItem('orders', JSON.stringify(this.currentData.orders));
+            
         } catch (error) {
             console.error('Ошибка сохранения в localStorage:', error);
         }
@@ -103,6 +133,10 @@ const DB_MANAGER = {
             console.error('Ошибка загрузки из localStorage:', error);
         }
     },
+
+    // ============================================
+    // МЕТОДЫ ДЛЯ ПОЛЬЗОВАТЕЛЕЙ
+    // ============================================
 
     // Получение пользователя по email
     getUserByEmail(email) {
@@ -146,15 +180,29 @@ const DB_MANAGER = {
 
     // Удаление пользователя
     async deleteUser(email) {
-        if (email === 'admin@vetclinic.ru') return false;
+        if (email === 'admin@vetclinic.ru') {
+            console.warn('Нельзя удалить главного администратора');
+            return false;
+        }
         
         this.currentData.users = this.currentData.users.filter(u => u.email !== email);
         await this.saveToServer();
         return true;
     },
 
+    // ============================================
+    // МЕТОДЫ ДЛЯ ТОВАРОВ
+    // ============================================
+
     // Добавление товара
     async addProduct(productData) {
+        // Проверяем, есть ли уже такой товар
+        const existing = this.currentData.products.find(p => p.id === productData.id);
+        if (existing) {
+            console.warn('Товар с таким ID уже существует');
+            return false;
+        }
+        
         this.currentData.products.push(productData);
         await this.saveToServer();
         return productData;
@@ -181,11 +229,21 @@ const DB_MANAGER = {
         return true;
     },
 
+    // Получение товара по ID
+    getProduct(id) {
+        return this.currentData.products.find(p => p.id === id);
+    },
+
+    // ============================================
+    // МЕТОДЫ ДЛЯ ЗАКАЗОВ
+    // ============================================
+
     // Добавление заказа
     async addOrder(orderData) {
         const newOrder = {
             ...orderData,
-            id: Date.now().toString()
+            id: Date.now().toString(),
+            date: new Date().toISOString()
         };
         
         this.currentData.orders.push(newOrder);
@@ -193,19 +251,178 @@ const DB_MANAGER = {
         return newOrder;
     },
 
+    // Удаление заказа
+    async deleteOrder(orderId) {
+        this.currentData.orders = this.currentData.orders.filter(o => o.id != orderId);
+        await this.saveToServer();
+        return true;
+    },
+
+    // Получение заказа по ID
+    getOrder(orderId) {
+        return this.currentData.orders.find(o => o.id == orderId);
+    },
+
+    // Получение заказов пользователя
+    getUserOrders(email) {
+        return this.currentData.orders.filter(o => o.user === email);
+    },
+
+    // ============================================
+    // МЕТОДЫ ДЛЯ СООБЩЕНИЙ
+    // ============================================
+
+    // Добавление сообщения
+    async addMessage(messageData) {
+        const newMessage = {
+            ...messageData,
+            id: Date.now().toString(),
+            date: new Date().toISOString(),
+            status: 'new'
+        };
+        
+        this.currentData.messages.push(newMessage);
+        await this.saveToServer();
+        return newMessage;
+    },
+
+    // Получение всех сообщений
+    getMessages() {
+        return this.currentData.messages;
+    },
+
+    // Отметить сообщение как прочитанное
+    async markMessageAsRead(messageId) {
+        const index = this.currentData.messages.findIndex(m => m.id === messageId);
+        if (index === -1) return false;
+        
+        this.currentData.messages[index].status = 'read';
+        await this.saveToServer();
+        return true;
+    },
+
+    // Удаление сообщения
+    async deleteMessage(messageId) {
+        this.currentData.messages = this.currentData.messages.filter(m => m.id !== messageId);
+        await this.saveToServer();
+        return true;
+    },
+
+    // ============================================
+    // МЕТОДЫ ДЛЯ СТАТИСТИКИ
+    // ============================================
+
     // Получение статистики
     getStats() {
+        const totalUsers = this.currentData.users.length;
+        const totalOrders = this.currentData.orders.length;
+        const totalProducts = this.currentData.products.length;
+        const totalMessages = this.currentData.messages.length;
+        
+        const totalRevenue = this.currentData.orders.reduce((sum, order) => sum + (order.total || 0), 0);
+        const adminCount = this.currentData.users.filter(u => u.role === 'admin').length;
+        
+        const today = new Date().toDateString();
+        const todayOrders = this.currentData.orders.filter(o => new Date(o.date).toDateString() === today).length;
+        
+        // Статистика по категориям товаров
+        const productsByCategory = {};
+        this.currentData.products.forEach(p => {
+            productsByCategory[p.category] = (productsByCategory[p.category] || 0) + 1;
+        });
+        
         return {
-            totalUsers: this.currentData.users.length,
-            totalProducts: this.currentData.products.length,
-            totalOrders: this.currentData.orders.length,
-            totalRevenue: this.currentData.orders.reduce((sum, order) => sum + (order.total || 0), 0)
+            totalUsers,
+            totalOrders,
+            totalProducts,
+            totalMessages,
+            totalRevenue,
+            adminCount,
+            userCount: totalUsers - adminCount,
+            todayOrders,
+            averageOrderValue: totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0,
+            productsByCategory
         };
+    },
+
+    // ============================================
+    // МЕТОДЫ ДЛЯ РЕЗЕРВНОГО КОПИРОВАНИЯ
+    // ============================================
+
+    // Создание резервной копии
+    createBackup() {
+        const backup = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            data: this.currentData,
+            stats: this.getStats()
+        };
+        
+        // Сохраняем в историю бэкапов
+        let backups = JSON.parse(localStorage.getItem('backups')) || [];
+        backups.push(backup);
+        
+        // Оставляем только последние 10 бэкапов
+        if (backups.length > 10) {
+            backups = backups.slice(-10);
+        }
+        
+        localStorage.setItem('backups', JSON.stringify(backups));
+        console.log('✅ Резервная копия создана');
+        
+        return backup;
+    },
+
+    // Восстановление из бэкапа
+    restoreFromBackup(backupData) {
+        try {
+            if (backupData.data) {
+                this.currentData = backupData.data;
+            } else {
+                this.currentData = backupData;
+            }
+            
+            this.saveToServer();
+            this.saveToLocalStorage();
+            console.log('✅ Данные восстановлены из бэкапа');
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Ошибка восстановления:', error);
+            return false;
+        }
+    },
+
+    // Сброс до начальных данных
+    async resetToDefault() {
+        this.currentData = {
+            users: [
+                {
+                    id: "admin@vetclinic.ru",
+                    email: "admin@vetclinic.ru",
+                    name: "Admin",
+                    password: "admin123",
+                    role: "admin",
+                    registered: new Date().toISOString()
+                }
+            ],
+            products: [],
+            orders: [],
+            messages: [],
+            settings: {}
+        };
+        
+        await this.saveToServer();
+        this.createBackup();
+        console.log('✅ База данных сброшена');
+        
+        return this.currentData;
     }
 };
 
+// Делаем глобальным
 window.DB_MANAGER = DB_MANAGER;
-console.log('✅ DB_MANAGER готов');
+console.log('✅ DB_MANAGER готов (полная версия)');
 
 // Автоматическая загрузка данных
 DB_MANAGER.loadDatabase();
