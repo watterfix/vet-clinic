@@ -474,6 +474,59 @@ async loadMessages() {
         return [];
     }
 },
+
+    // ============================================
+// УДАЛЕНИЕ СООБЩЕНИЯ - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// ============================================
+
+async deleteMessage(messageId) {
+    await this.waitForInit();
+    console.log('🗑️ Удаление сообщения:', messageId);
+    
+    try {
+        // Удаляем из локальных данных
+        const messageIndex = this.currentData.messages.findIndex(m => m.id == messageId);
+        if (messageIndex === -1) {
+            console.warn('⚠️ Сообщение не найдено в локальных данных');
+        } else {
+            this.currentData.messages.splice(messageIndex, 1);
+        }
+        
+        // Удаляем из Supabase
+        if (this.supabase) {
+            const { error } = await this.supabase
+                .from('messages')
+                .delete()
+                .eq('id', messageId);
+                
+            if (error) {
+                console.error('❌ Ошибка удаления из Supabase:', error);
+                
+                // Пробуем удалить по другому полю (если id - число)
+                const { error: error2 } = await this.supabase
+                    .from('messages')
+                    .delete()
+                    .eq('id', parseInt(messageId));
+                    
+                if (error2) {
+                    console.error('❌ Ошибка удаления по числовому ID:', error2);
+                    throw error2;
+                }
+            }
+        }
+        
+        console.log('✅ Сообщение удалено');
+        
+        // Отправляем сигнал об обновлении
+        this.broadcastMessageUpdate();
+        
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Ошибка при удалении сообщения:', error);
+        return false;
+    }
+},
     
 // ============================================
 // МЕТОД ДЛЯ СОХРАНЕНИЯ В LOCALSTORAGE (добавьте)
