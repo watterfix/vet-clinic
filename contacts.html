@@ -59,11 +59,31 @@
 
         <section>
             <h2>Напишите нам</h2>
-            <form>
-                <p>Имя: <input type="text" placeholder="Ваше имя"></p>
-                <p>Email: <input type="email" placeholder="Ваш email"></p>
-                <p>Сообщение: <textarea rows="4" cols="50" placeholder="Ваше сообщение"></textarea></p>
-                <p><button type="submit" class="button">Отправить</button></p>
+            <form id="contactForm" onsubmit="return handleContactSubmit(event)">
+                <div class="form-group">
+                    <label for="contactName">Имя:</label>
+                    <input type="text" id="contactName" name="name" placeholder="Ваше имя" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contactEmail">Email:</label>
+                    <input type="email" id="contactEmail" name="email" placeholder="Ваш email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contactPhone">Телефон (необязательно):</label>
+                    <input type="tel" id="contactPhone" name="phone" placeholder="+7 (999) 123-45-67">
+                </div>
+                
+                <div class="form-group">
+                    <label for="contactMessage">Сообщение:</label>
+                    <textarea id="contactMessage" name="message" rows="4" cols="50" placeholder="Ваше сообщение" required minlength="10"></textarea>
+                </div>
+                
+                <div id="formSuccess" class="success-message" style="display: none;"></div>
+                <div id="formError" class="error-message" style="display: none; color: #dc3545; margin-bottom: 15px;"></div>
+                
+                <p><button type="submit" class="button" id="contactSubmitBtn">Отправить</button></p>
             </form>
         </section>
     </main>
@@ -77,6 +97,5 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
     <script src="db-manager.js"></script>
-    <script src="db-viewer.js"></script>
 </body>
 </html>
