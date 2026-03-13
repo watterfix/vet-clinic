@@ -606,12 +606,16 @@ async function processOrder() {
     const finalTotal = total + deliveryCost;
     const orderNumber = generateOrderNumber();
 
-    // Создаем заказ
+    // Исправленный формат заказа для DB_MANAGER
     const order = {
         orderNumber: orderNumber,
         user: currentUser.email,
         userName: currentUser.name,
-        items: [...cart],
+        items: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price
+        })),
         delivery: deliveryValue,
         deliveryCost: deliveryCost,
         freeDelivery: freeDelivery,
@@ -632,7 +636,8 @@ async function processOrder() {
 
     try {
         // Сохраняем заказ через DB_MANAGER
-        await DB_MANAGER.addOrder(order);
+        const savedOrder = await DB_MANAGER.addOrder(order);
+        console.log('✅ Заказ сохранен:', savedOrder);
 
         // Очищаем корзину
         cart = [];
@@ -683,16 +688,21 @@ async function processOrder() {
                 </div>
                 
                 <p>✅ Заказ сохранен в базе данных</p>
+                <button onclick="location.href='characteristics.html'" class="button" style="margin-top: 15px;">🛒 Продолжить покупки</button>
             </div>
         `);
 
         displayCart();
         updateCartCount();
-        broadcastUpdate();
+        
+        // Обновляем данные в других вкладках
+        if (window.broadcastUpdate) {
+            broadcastUpdate();
+        }
 
     } catch (error) {
-        console.error('Ошибка при оформлении заказа:', error);
-        showNotification('Ошибка при оформлении заказа', 'error');
+        console.error('❌ Ошибка при оформлении заказа:', error);
+        showNotification('Ошибка при оформлении заказа: ' + error.message, 'error');
     }
 }
 
