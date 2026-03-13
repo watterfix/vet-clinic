@@ -583,20 +583,6 @@ broadcastMessageUpdate() {
         return true;
     },
 
-    async deleteMessage(messageId) {
-        this.currentData.messages = this.currentData.messages.filter(m => m.id !== messageId);
-
-        if (this.supabase) {
-            try {
-                await this.supabase.from('messages').delete().eq('id', messageId);
-            } catch (error) {
-                console.error('Ошибка удаления из Supabase:', error);
-            }
-        }
-
-        return true;
-    },
-
     // ============================================
     // СТАТИСТИКА И УВЕДОМЛЕНИЯ
     // ============================================
