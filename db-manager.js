@@ -238,18 +238,31 @@ const DB_MANAGER = {
     // МЕТОДЫ ДЛЯ ЗАКАЗОВ
     // ============================================
 
-    // Добавление заказа
-    async addOrder(orderData) {
-        const newOrder = {
-            ...orderData,
-            id: Date.now().toString(),
-            date: new Date().toISOString()
-        };
-
-        this.currentData.orders.push(newOrder);
-        await this.saveToServer();
-        return newOrder;
-    },
+    // Добавление заказа (исправленная версия)
+async addOrder(orderData) {
+    // Создаем копию данных заказа с уникальным ID
+    const newOrder = {
+        ...orderData,
+        id: Date.now().toString(), // Уникальный ID заказа
+        date: orderData.date || new Date().toISOString(),
+        status: 'new' // Добавляем статус заказа
+    };
+    
+    // Убеждаемся, что у каждого товара есть все необходимые поля
+    if (newOrder.items) {
+        newOrder.items = newOrder.items.map(item => ({
+            id: item.id || Date.now() + Math.random(),
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity || 1
+        }));
+    }
+    
+    this.currentData.orders.push(newOrder);
+    await this.saveToServer();
+    console.log('✅ Заказ добавлен в базу данных:', newOrder);
+    return newOrder;
+}
 
     // Удаление заказа
     async deleteOrder(orderId) {
