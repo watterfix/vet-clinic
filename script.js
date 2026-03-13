@@ -34,6 +34,13 @@ function validateAddress(address) {
 }
 
 function showNotification(message, type = 'success') {
+    // Используем стилизованное уведомление если оно доступно
+    if (typeof showDbNotification === 'function') {
+        showDbNotification(message, type);
+        return;
+    }
+    
+    // Старая реализация как запасной вариант
     const oldNotification = document.querySelector('.notification');
     if (oldNotification) oldNotification.remove();
 
