@@ -2,42 +2,108 @@
 // СКРИПТ ДЛЯ УПРАВЛЕНИЯ БАЗОЙ ДАННЫХ (db-viewer)
 // ============================================
 
+console.log('📊 db-viewer.js загружен');
+
 // Глобальные переменные
-let currentUser = null;
+let adminCurrentUser = null;
 
-// Ждем полной загрузки DOM и всех скриптов
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('DOM загружен, инициализация...');
-
-    // Проверяем наличие DB_MANAGER
-    if (typeof DB_MANAGER === 'undefined') {
-        console.error('DB_MANAGER не загружен!');
-        showAdminWarning('Ошибка загрузки менеджера БД');
-        return;
-    }
-
-    // Запускаем инициализацию
-    initPage();
+// Ждем полной загрузки DOM
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM загружен, инициализация админ-панели...');
+    
+    // Даем время на загрузку DB_MANAGER
+    setTimeout(() => {
+        initAdminPage();
+    }, 500);
 });
 
-// Функция показа предупреждения
-function showAdminWarning(message) {
+// Функция инициализации с проверками
+async function initAdminPage() {
+    console.log('Инициализация админ-панели...');
+    
+    // Проверяем наличие DB_MANAGER
+    if (typeof DB_MANAGER === 'undefined') {
+        console.error('❌ DB_MANAGER не загружен!');
+        showAdminError('Ошибка загрузки менеджера БД. Проверьте подключение скриптов.');
+        return;
+    }
+    
+    console.log('✅ DB_MANAGER найден');
+    
+    // Проверяем права администратора
+    if (!checkAdminAccess()) {
+        return;
+    }
+    
+    // Показываем загрузку
+    showAdminLoading('Загрузка данных с JSONBin...');
+    
+    try {
+        // Загружаем данные
+        await DB_MANAGER.loadDatabase();
+        console.log('✅ Данные загружены успешно');
+        
+        // Загружаем все панели
+        loadUsers();
+        loadProducts();
+        loadOrders();
+        loadMessages();
+        updateStats();
+        loadBackups();
+        
+        console.log('✅ Админ-панель инициализирована');
+        
+        // Показываем интерфейс
+        document.querySelectorAll('.db-panel, .export-buttons, .import-area, .db-tabs').forEach(el => {
+            if (el) el.style.display = '';
+        });
+        
+        // Скрываем сообщение о загрузке
+        const adminCheck = document.getElementById('adminCheck');
+        if (adminCheck) {
+            adminCheck.style.display = 'none';
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки данных:', error);
+        showAdminError('Ошибка загрузки данных: ' + error.message);
+    }
+}
+
+// Показать сообщение об ошибке
+function showAdminError(message) {
     const adminCheck = document.getElementById('adminCheck');
     if (adminCheck) {
         adminCheck.style.display = 'block';
-        adminCheck.innerHTML = `⚠️ ${message}`;
+        adminCheck.innerHTML = `❌ ${message}`;
         adminCheck.style.backgroundColor = '#dc3545';
         adminCheck.style.color = 'white';
         adminCheck.style.borderColor = '#dc3545';
     }
 }
 
+// Показать сообщение о загрузке
+function showAdminLoading(message) {
+    const adminCheck = document.getElementById('adminCheck');
+    if (adminCheck) {
+        adminCheck.style.display = 'block';
+        adminCheck.innerHTML = `⏳ ${message}`;
+        adminCheck.style.backgroundColor = '#ffc107';
+        adminCheck.style.color = '#1e4d2f';
+        adminCheck.style.borderColor = '#ffc107';
+    }
+}
+
 // Проверка прав администратора
 function checkAdminAccess() {
     const adminCheck = document.getElementById('adminCheck');
-    if (!adminCheck) return false;
+    if (!adminCheck) {
+        console.error('❌ Элемент adminCheck не найден');
+        return false;
+    }
 
-    currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    console.log('Текущий пользователь:', currentUser);
 
     if (!currentUser) {
         adminCheck.style.display = 'block';
@@ -57,73 +123,25 @@ function checkAdminAccess() {
         return false;
     }
 
-    adminCheck.style.display = 'none';
     return true;
-}
-
-// Инициализация страницы
-async function initPage() {
-    console.log('Инициализация страницы...');
-
-    // Показываем загрузку
-    const adminCheck = document.getElementById('adminCheck');
-    if (adminCheck) {
-        adminCheck.style.display = 'block';
-        adminCheck.innerHTML = '⏳ Проверка прав доступа...';
-        adminCheck.style.backgroundColor = '#ffc107';
-        adminCheck.style.color = '#1e4d2f';
-        adminCheck.style.borderColor = '#ffc107';
-    }
-
-    // Проверяем права
-    if (!checkAdminAccess()) {
-        return;
-    }
-
-    // Загружаем данные
-    try {
-        await DB_MANAGER.loadDatabase();
-        console.log('Данные загружены');
-
-        // Загружаем все панели
-        loadUsers();
-        loadProducts();
-        loadOrders();
-        updateStats();
-        loadBackups();
-        loadMessages(); // Добавляем загрузку сообщений
-
-        console.log('Страница инициализирована');
-
-        // Показываем интерфейс
-        document.querySelectorAll('.db-panel, .export-buttons, .import-area, .db-tabs').forEach(el => {
-            if (el) el.style.display = '';
-        });
-
-    } catch (error) {
-        console.error('Ошибка загрузки данных:', error);
-        showAdminWarning('Ошибка загрузки данных');
-    }
 }
 
 // Переключение вкладок
 function switchTab(tabName) {
     if (!checkAdminAccess()) return;
 
-    // Обновляем активные вкладки
     document.querySelectorAll('.db-tab').forEach(tab => {
         tab.classList.remove('active');
     });
     event.target.classList.add('active');
 
-    // Показываем соответствующую панель
     document.querySelectorAll('.db-panel').forEach(panel => {
         panel.classList.remove('active');
     });
+    
     const panel = document.getElementById(tabName + 'Panel');
     if (panel) panel.classList.add('active');
 
-    // Загружаем данные для панели
     switch (tabName) {
         case 'users':
             loadUsers();
@@ -134,7 +152,7 @@ function switchTab(tabName) {
         case 'orders':
             loadOrders();
             break;
-        case 'messages': // Добавляем вкладку сообщений
+        case 'messages':
             loadMessages();
             break;
         case 'backups':
@@ -142,10 +160,6 @@ function switchTab(tabName) {
             break;
     }
 }
-
-// ============================================
-// УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ
-// ============================================
 
 // Загрузка пользователей
 function loadUsers() {
@@ -320,10 +334,6 @@ async function deleteUser(email) {
     }
 }
 
-// ============================================
-// УПРАВЛЕНИЕ ТОВАРАМИ
-// ============================================
-
 // Загрузка товаров
 function loadProducts() {
     const tbody = document.getElementById('productsTableBody');
@@ -495,10 +505,6 @@ async function deleteProduct(productId) {
     }
 }
 
-// ============================================
-// УПРАВЛЕНИЕ ЗАКАЗАМИ (с адресом доставки)
-// ============================================
-
 // Загрузка заказов
 function loadOrders() {
     const tbody = document.getElementById('ordersTableBody');
@@ -515,7 +521,6 @@ function loadOrders() {
     orders.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(order => {
         const date = new Date(order.date).toLocaleString();
 
-        // Формируем адрес доставки
         let deliveryAddress = '';
         if (order.delivery === 'pickup') {
             deliveryAddress = '🚶 Самовывоз (ул. Ветеринарная, 15)';
@@ -526,7 +531,6 @@ function loadOrders() {
             }
         }
 
-        // Телефон
         const phone = order.deliveryPhone || order.pickupPhone || 'Не указан';
 
         html += `
@@ -595,29 +599,8 @@ function viewOrderDetails(orderId) {
         `;
     }
 
-    showStyledAlert(`
-        <div style="text-align: center;">
-            <h2 style="color: #2c6e49;">Заказ #${order.orderNumber}</h2>
-            <p><strong>Дата:</strong> ${new Date(order.date).toLocaleString()}</p>
-            <p><strong>Пользователь:</strong> ${order.userName} (${order.user})</p>
-            
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
-                <h3>📦 Информация о доставке</h3>
-                ${deliveryInfo}
-            </div>
-            
-            <div style="background-color: #e8f4e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <h3>🛒 Состав заказа</h3>
-                ${itemsHtml}
-                <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 2px solid #2c6e49; font-weight: bold;">
-                    <span>ИТОГО:</span>
-                    <span>${order.total} ₽</span>
-                </div>
-            </div>
-            
-            <p><strong>💳 Способ оплаты:</strong> ${order.paymentNote || 'Наличными/картой при получении'}</p>
-        </div>
-    `);
+    showNotification('Просмотр деталей заказа (в консоли)', 'info');
+    console.log('Детали заказа:', order);
 }
 
 // Удаление заказа
@@ -631,10 +614,6 @@ async function deleteOrder(orderId) {
         }
     }
 }
-
-// ============================================
-// УПРАВЛЕНИЕ СООБЩЕНИЯМИ
-// ============================================
 
 // Загрузка сообщений
 function loadMessages() {
@@ -699,10 +678,6 @@ async function deleteMessage(messageId) {
     }
 }
 
-// ============================================
-// СТАТИСТИКА
-// ============================================
-
 // Обновление статистики
 function updateStats() {
     const stats = DB_MANAGER.getStats();
@@ -733,22 +708,16 @@ function updateStats() {
             <div class="stat-card">
                 <h3>💬 Сообщения</h3>
                 <div class="stat-value">${stats.totalMessages}</div>
-                <div>Новых: ${stats.totalMessages}</div>
             </div>
             <div class="stat-card">
                 <h3>💰 Выручка</h3>
                 <div class="stat-value">${stats.totalRevenue} ₽</div>
-                <div>Всего продано</div>
             </div>
         `;
     }
 }
 
-// ============================================
-// РЕЗЕРВНЫЕ КОПИИ
-// ============================================
-
-// Загрузка списка бэкапов
+// Загрузка бэкапов
 function loadBackups() {
     const backupsList = document.getElementById('backupsList');
     if (!backupsList) return;
@@ -784,33 +753,51 @@ function loadBackups() {
 
 // Создание резервной копии
 function createBackup() {
-    const backup = DB_MANAGER.createBackup();
+    const backup = {
+        id: Date.now(),
+        name: `Backup ${new Date().toLocaleString()}`,
+        date: new Date().toISOString(),
+        data: {
+            users: DB_MANAGER.currentData.users,
+            products: DB_MANAGER.currentData.products,
+            orders: DB_MANAGER.currentData.orders,
+            messages: DB_MANAGER.currentData.messages,
+            settings: DB_MANAGER.currentData.settings
+        },
+        stats: DB_MANAGER.getStats()
+    };
+
+    let backups = JSON.parse(localStorage.getItem('backups')) || [];
+    backups.push(backup);
+    if (backups.length > 10) backups = backups.slice(-10);
+    localStorage.setItem('backups', JSON.stringify(backups));
+
     showNotification('Резервная копия создана', 'success');
     loadBackups();
 }
 
 // Восстановление из бэкапа
 async function restoreBackup(index) {
-    if (!confirm('Восстановить данные из этой резервной копии? Текущие данные будут заменены.')) {
-        return;
-    }
+    if (!confirm('Восстановить данные из этой резервной копии?')) return;
 
     const backups = JSON.parse(localStorage.getItem('backups')) || [];
     const backup = backups[index];
-
     if (!backup) return;
 
-    const result = await DB_MANAGER.restoreFromBackup(backup);
-    if (result) {
-        showNotification('Данные восстановлены', 'success');
-
-        // Обновляем все панели
-        loadUsers();
-        loadProducts();
-        loadOrders();
-        loadMessages();
-        updateStats();
+    if (backup.data) {
+        DB_MANAGER.currentData = backup.data;
+    } else {
+        DB_MANAGER.currentData = backup;
     }
+
+    await DB_MANAGER.saveToServer();
+    showNotification('Данные восстановлены', 'success');
+
+    loadUsers();
+    loadProducts();
+    loadOrders();
+    loadMessages();
+    updateStats();
 }
 
 // Удаление бэкапа
@@ -832,13 +819,8 @@ async function restoreFromBackup() {
         showNotification('Нет сохраненных резервных копий', 'error');
         return;
     }
-
     await restoreBackup(backups.length - 1);
 }
-
-// ============================================
-// РАБОТА С ФАЙЛАМИ
-// ============================================
 
 // Экспорт базы данных
 function exportDatabase() {
@@ -853,13 +835,12 @@ function exportDatabase() {
 
     const dataStr = JSON.stringify(data, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    const fileName = `database-export-${new Date().toISOString().slice(0, 10)}.json`;
 
-    const exportFileDefaultName = `database-export-${new Date().toISOString().slice(0, 10)}.json`;
-
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+    const link = document.createElement('a');
+    link.href = dataUri;
+    link.download = fileName;
+    link.click();
 
     showNotification('База данных экспортирована', 'success');
 }
@@ -868,11 +849,10 @@ function exportDatabase() {
 async function importDatabase(file) {
     const reader = new FileReader();
 
-    reader.onload = async function (e) {
+    reader.onload = async function(e) {
         try {
             const data = JSON.parse(e.target.result);
-
-            // Восстанавливаем данные
+            
             if (data.users) DB_MANAGER.currentData.users = data.users;
             if (data.products) DB_MANAGER.currentData.products = data.products;
             if (data.orders) DB_MANAGER.currentData.orders = data.orders;
@@ -880,16 +860,15 @@ async function importDatabase(file) {
             if (data.settings) DB_MANAGER.currentData.settings = data.settings;
 
             await DB_MANAGER.saveToServer();
-
+            
             showNotification('База данных импортирована', 'success');
-
-            // Обновляем все панели
+            
             loadUsers();
             loadProducts();
             loadOrders();
             loadMessages();
             updateStats();
-
+            
         } catch (error) {
             showNotification('Ошибка импорта: ' + error.message, 'error');
         }
@@ -923,10 +902,6 @@ async function resetDatabase() {
     }
 }
 
-// ============================================
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-// ============================================
-
 // Получение названия категории
 function getCategoryName(category) {
     const categories = {
@@ -944,17 +919,6 @@ function showNotification(message, type = 'success') {
         window.showNotification(message, type);
     } else {
         alert(message);
-    }
-}
-
-// Показать стилизованное окно
-function showStyledAlert(content) {
-    if (window.showStyledAlert) {
-        window.showStyledAlert(content);
-    } else {
-        const div = document.createElement('div');
-        div.innerHTML = content;
-        alert(div.textContent);
     }
 }
 
