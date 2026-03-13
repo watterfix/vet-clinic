@@ -606,13 +606,15 @@ function switchAuthTab(tab) {
     }
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ РЕГИСТРАЦИИ С АВТОМАТИЧЕСКИМ ОБНОВЛЕНИЕМ
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ РЕГИСТРАЦИИ
 async function register(event) {
     event.preventDefault();
     
     const name = document.getElementById('regName').value;
     const email = document.getElementById('regEmail').value;
     const password = document.getElementById('regPassword').value;
+
+    console.log('📝 Попытка регистрации:', { name, email });
 
     if (!validateName(name)) {
         showNotification('Имя должно содержать от 2 до 30 символов', 'error');
@@ -629,10 +631,13 @@ async function register(event) {
         return;
     }
 
-    const registerBtn = event.target.querySelector('button[type="submit"]');
-    const originalText = registerBtn.textContent;
-    registerBtn.textContent = 'Регистрация...';
-    registerBtn.disabled = true;
+    const registerBtn = document.querySelector('#registerForm button[type="submit"]');
+    const originalText = registerBtn ? registerBtn.textContent : 'Зарегистрироваться';
+    
+    if (registerBtn) {
+        registerBtn.disabled = true;
+        registerBtn.textContent = 'Регистрация...';
+    }
 
     try {
         // Проверяем наличие DB_MANAGER
@@ -640,39 +645,66 @@ async function register(event) {
             throw new Error('База данных не доступна');
         }
         
+        // Ждем инициализацию
         await DB_MANAGER.waitForInit();
+        console.log('✅ DB_MANAGER инициализирован');
         
+        // Проверяем, существует ли пользователь
         const exists = await DB_MANAGER.userExists(email);
+        console.log('Пользователь существует?', exists);
         
         if (exists) {
             showNotification('Пользователь с таким email уже существует', 'error');
             return;
         }
         
-        await DB_MANAGER.addUser({
+        // Добавляем пользователя
+        console.log('💾 Сохраняем пользователя в БД...');
+        const result = await DB_MANAGER.addUser({
             name: name,
             email: email,
             password: password,
             role: 'user'
         });
         
-        showNotification('Регистрация успешна! Теперь можно войти.', 'success');
+        console.log('✅ Результат регистрации:', result);
         
-        document.getElementById('regName').value = '';
-        document.getElementById('regEmail').value = '';
-        document.getElementById('regPassword').value = '';
-        
-        switchAuthTab('login');
+        if (result && result.success) {
+            // Показываем успешное сообщение
+            showNotification('✅ Регистрация успешна! Теперь можно войти.', 'success');
+            
+            // Очищаем форму
+            document.getElementById('regName').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regPassword').value = '';
+            
+            // Переключаем на вкладку входа через 1.5 секунды
+            setTimeout(() => {
+                switchAuthTab('login');
+                
+                // Подсвечиваем поле email для входа
+                const loginEmail = document.getElementById('loginEmail');
+                if (loginEmail) {
+                    loginEmail.value = email;
+                    loginEmail.focus();
+                }
+            }, 1500);
+            
+        } else {
+            throw new Error(result?.error || 'Неизвестная ошибка');
+        }
         
     } catch (error) {
         console.error('❌ Ошибка регистрации:', error);
-        showNotification('Ошибка при регистрации: ' + error.message, 'error');
+        showNotification('❌ Ошибка при регистрации: ' + error.message, 'error');
     } finally {
-        registerBtn.textContent = originalText;
-        registerBtn.disabled = false;
+        // Возвращаем кнопку в исходное состояние
+        if (registerBtn) {
+            registerBtn.disabled = false;
+            registerBtn.textContent = originalText;
+        }
     }
 }
-
 // Функция для принудительного обновления данных в других вкладках
 function broadcastUpdate() {
     // Сохраняем временную метку в localStorage
