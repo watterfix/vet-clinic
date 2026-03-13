@@ -1043,6 +1043,13 @@ function showOrderDetails(order) {
 
 // Функция для показа уведомлений в стиле сайта
 function showDbNotification(message, type = 'success') {
+    // Используем глобальную функцию если она есть
+    if (window.showNotification) {
+        window.showNotification(message, type);
+        return;
+    }
+    
+    // Своя реализация
     const notification = document.createElement('div');
     notification.className = `db-notification db-notification-${type}`;
     
@@ -1076,7 +1083,8 @@ function showDbNotification(message, type = 'success') {
     }, 5000);
 }
 
-// Делаем функции глобальными
+// Делаем функцию глобальной
+window.showDbNotification = showDbNotification;
 window.switchTab = switchTab;
 window.searchUsers = searchUsers;
 window.showAddUserForm = showAddUserForm;
