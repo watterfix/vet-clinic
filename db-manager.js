@@ -2,13 +2,15 @@
 // МЕНЕДЖЕР БАЗЫ ДАННЫХ (Supabase)
 // ============================================
 
-const SUPABASE_URL = 'https://ehksdceuihjnzbqdztog.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_K1dDdxBKQ_04yOqwkfCxsw_JyiHlkxW';
+// ВСТАВЬТЕ СВОИ ДАННЫЕ ИЗ SUPABASE
+const SUPABASE_URL = 'https://ваш-проект.supabase.co';
+const SUPABASE_KEY = 'ваш-anon-ключ';
 
 const DB_MANAGER = {
     supabase: null,
     isInitialized: false,
     initPromise: null,
+    initError: null,
     
     currentData: {
         users: [],
@@ -17,7 +19,7 @@ const DB_MANAGER = {
         messages: []
     },
 
-    // Инициализация (вызывается один раз)
+    // Инициализация
     async init() {
         if (this.initPromise) return this.initPromise;
         
@@ -25,15 +27,27 @@ const DB_MANAGER = {
             console.log('🔄 Инициализация Supabase...');
             
             try {
-                // Ждем загрузки Supabase SDK
+                // Проверяем наличие Supabase SDK
                 if (typeof supabase === 'undefined') {
-                    console.log('⏳ Ожидание загрузки Supabase SDK...');
-                    await new Promise(r => setTimeout(r, 1000));
+                    console.error('❌ Supabase SDK не загружен!');
+                    this.initError = 'Supabase SDK не загружен';
+                    resolve(false);
+                    return;
                 }
                 
                 // Создаем клиент Supabase
                 this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 console.log('✅ Supabase клиент создан');
+                
+                // Проверяем подключение
+                const { error } = await this.supabase.from('users').select('count', { count: 'exact', head: true });
+                
+                if (error) {
+                    console.error('❌ Ошибка подключения к Supabase:', error);
+                    this.initError = error.message;
+                    resolve(false);
+                    return;
+                }
                 
                 // Загружаем данные
                 await this.loadDatabase();
@@ -44,6 +58,7 @@ const DB_MANAGER = {
                 
             } catch (error) {
                 console.error('❌ Ошибка инициализации Supabase:', error);
+                this.initError = error.message;
                 this.isInitialized = false;
                 resolve(false);
             }
@@ -86,7 +101,6 @@ const DB_MANAGER = {
             console.log(`✅ Загружено пользователей: ${this.currentData.users.length}`);
             console.log(`✅ Загружено товаров: ${this.currentData.products.length}`);
             console.log(`✅ Загружено заказов: ${this.currentData.orders.length}`);
-            console.log(`✅ Загружено сообщений: ${this.currentData.messages.length}`);
             
             return this.currentData;
             
@@ -99,7 +113,19 @@ const DB_MANAGER = {
     // Дождаться инициализации
     async waitForInit() {
         if (this.isInitialized) return true;
-        return this.init();
+        if (this.initError) throw new Error(this.initError);
+        
+        await this.init();
+        return this.isInitialized;
+    },
+
+    // Проверка статуса
+    getStatus() {
+        return {
+            isInitialized: this.isInitialized,
+            error: this.initError,
+            hasSupabase: !!this.supabase
+        };
     },
 
     // ============================================
@@ -263,34 +289,33 @@ const DB_MANAGER = {
     // ЗАКАЗЫ
     // ============================================
 
-    // ЗАМЕНИТЕ функцию addOrder в db-manager.js на эту
-async addOrder(orderData) {
-    await this.waitForInit();
+    async addOrder(orderData) {
+        await this.waitForInit();
 
-    const { data, error } = await this.supabase
-        .from('orders')
-        .insert([{
-            order_number: orderData.orderNumber, // Сохраняем сгенерированный номер
-            user_email: orderData.user,
-            user_name: orderData.userName,
-            items: orderData.items,
-            delivery: orderData.delivery,
-            delivery_address: orderData.deliveryAddress || null,
-            delivery_phone: orderData.deliveryPhone || null,
-            delivery_cost: orderData.deliveryCost || 0,
-            total: orderData.total,
-            date: orderData.date || new Date().toISOString()
-        }])
-        .select();
+        const { data, error } = await this.supabase
+            .from('orders')
+            .insert([{
+                order_number: orderData.orderNumber,
+                user_email: orderData.user,
+                user_name: orderData.userName,
+                items: orderData.items,
+                delivery: orderData.delivery,
+                delivery_address: orderData.deliveryAddress || null,
+                delivery_phone: orderData.deliveryPhone || null,
+                delivery_cost: orderData.deliveryCost || 0,
+                total: orderData.total,
+                date: orderData.date || new Date().toISOString()
+            }])
+            .select();
 
-    if (error) throw error;
-    
-    if (data && data[0]) {
-        this.currentData.orders.unshift(data[0]);
-        return data[0];
-    }
-    return null;
-},
+        if (error) throw error;
+        
+        if (data && data[0]) {
+            this.currentData.orders.unshift(data[0]);
+            return data[0];
+        }
+        return null;
+    },
 
     async deleteOrder(orderId) {
         await this.waitForInit();
@@ -304,19 +329,6 @@ async addOrder(orderData) {
         
         this.currentData.orders = this.currentData.orders.filter(o => o.id !== orderId);
         return true;
-    },
-
-    async getOrder(orderId) {
-        await this.waitForInit();
-        
-        const { data, error } = await this.supabase
-            .from('orders')
-            .select('*')
-            .eq('id', orderId)
-            .maybeSingle();
-
-        if (error) console.error('Ошибка getOrder:', error);
-        return data;
     },
 
     // ============================================
@@ -419,8 +431,4 @@ async addOrder(orderData) {
 window.DB_MANAGER = DB_MANAGER;
 
 // Автоматически запускаем инициализацию
-DB_MANAGER.init().then(success => {
-    console.log('🚀 DB_MANAGER готов, статус:', success ? '✅' : '❌');
-});
-
 console.log('📦 DB_MANAGER загружен');
