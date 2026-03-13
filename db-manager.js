@@ -371,23 +371,12 @@ async addMessage(messageData) {
 
             if (error) {
                 console.error('❌ Ошибка сохранения сообщения в Supabase:', error);
-                this.saveToLocalStorage();
             } else {
                 console.log('✅ Сообщение сохранено в Supabase:', data);
-                if (data && data[0]) {
-                    // Обновляем локальные данные с данными из Supabase
-                    const index = this.currentData.messages.findIndex(m => m.id === data[0].id);
-                    if (index !== -1) {
-                        this.currentData.messages[index] = data[0];
-                    }
-                }
             }
         } catch (error) {
             console.error('❌ Ошибка при сохранении сообщения:', error);
-            this.saveToLocalStorage();
         }
-    } else {
-        this.saveToLocalStorage();
     }
 
     return newMessage;
