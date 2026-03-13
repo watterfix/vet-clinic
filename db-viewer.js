@@ -732,9 +732,18 @@ async function markMessageAsRead(messageId) {
     }
 }
 
+// ============================================
+// УПРАВЛЕНИЕ СООБЩЕНИЯМИ - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// ============================================
+
 async function deleteMessage(messageId) {
-    const message = DB_MANAGER.currentData?.messages.find(m => m.id === messageId);
-    if (!message) return;
+    const message = DB_MANAGER.currentData?.messages.find(m => m.id == messageId);
+    if (!message) {
+        showNotification('Сообщение не найдено', 'error');
+        return;
+    }
+
+    console.log('Попытка удаления сообщения:', messageId, message);
 
     showConfirmDialog({
         title: 'Удаление сообщения',
@@ -745,18 +754,47 @@ async function deleteMessage(messageId) {
         icon: '⚠️',
         onConfirm: async () => {
             try {
-                if (typeof DB_MANAGER.deleteMessage === 'function') {
-                    await DB_MANAGER.deleteMessage(messageId);
-                    showNotification('Сообщение удалено', 'success');
+                // Показываем индикатор загрузки на кнопке
+                const deleteBtn = event?.target;
+                const originalText = deleteBtn?.textContent;
+                if (deleteBtn) {
+                    deleteBtn.textContent = 'Удаление...';
+                    deleteBtn.disabled = true;
+                }
+
+                // Проверяем наличие метода
+                if (typeof DB_MANAGER.deleteMessage !== 'function') {
+                    throw new Error('Метод удаления сообщений не найден');
+                }
+
+                // Удаляем сообщение
+                const result = await DB_MANAGER.deleteMessage(messageId);
+                
+                if (result) {
+                    showNotification('✅ Сообщение успешно удалено', 'success');
+                    
+                    // Принудительно перезагружаем данные
                     await DB_MANAGER.loadDatabase();
+                    
+                    // Обновляем отображение
                     loadMessages();
                     updateStats();
+                    
+                    console.log('✅ Сообщение удалено, таблица обновлена');
                 } else {
-                    throw new Error('Метод удаления не найден');
+                    throw new Error('Не удалось удалить сообщение');
                 }
+                
             } catch (error) {
-                console.error('Ошибка удаления:', error);
-                showNotification('Ошибка при удалении', 'error');
+                console.error('❌ Ошибка удаления сообщения:', error);
+                showNotification('❌ Ошибка при удалении: ' + error.message, 'error');
+            } finally {
+                // Возвращаем кнопку в исходное состояние
+                const deleteBtn = event?.target;
+                if (deleteBtn) {
+                    deleteBtn.textContent = originalText || '🗑️ Удалить';
+                    deleteBtn.disabled = false;
+                }
             }
         }
     });
