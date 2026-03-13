@@ -611,6 +611,8 @@ function switchAuthTab(tab) {
 // ИСПРАВЛЕННАЯ ФУНКЦИЯ РЕГИСТРАЦИИ
 async function register(event) {
     event.preventDefault();
+    // Очищаем предыдущие сообщения
+    showFormMessage('registerMessage', '', 'info');
     
     const name = document.getElementById('regName').value;
     const email = document.getElementById('regEmail').value;
@@ -673,7 +675,7 @@ async function register(event) {
         
         if (result && result.success) {
             // Показываем успешное сообщение
-            showNotification('✅ Регистрация успешна! Теперь можно войти.', 'success');
+            showFormMessage('registerMessage', '✅ Регистрация успешна!', 'success');
             
             // Очищаем форму
             document.getElementById('regName').value = '';
@@ -698,7 +700,7 @@ async function register(event) {
         
     } catch (error) {
         console.error('❌ Ошибка регистрации:', error);
-        showNotification('❌ Ошибка при регистрации: ' + error.message, 'error');
+        showFormMessage('registerMessage', '❌ ' + error.message, 'error');
     } finally {
         // Возвращаем кнопку в исходное состояние
         if (registerBtn) {
