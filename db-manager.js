@@ -153,8 +153,10 @@ const DB_MANAGER = {
         return this.currentData.users.some(u => u.email === email);
     },
 
-    // ============================================
-// ПОЛЬЗОВАТЕЛИ - ИСПРАВЛЕННАЯ ВЕРСИЯ
+
+
+// ============================================
+// ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ - УЛУЧШЕННАЯ ВЕРСИЯ
 // ============================================
 
 async addUser(userData) {
@@ -162,6 +164,12 @@ async addUser(userData) {
     console.log('➕ Добавление пользователя:', userData);
     
     try {
+        // Проверяем, существует ли пользователь
+        const exists = await this.userExists(userData.email);
+        if (exists) {
+            throw new Error('Пользователь с таким email уже существует');
+        }
+        
         const newUser = {
             email: userData.email,
             name: userData.name,
