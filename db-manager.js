@@ -2,7 +2,6 @@
 // МЕНЕДЖЕР БАЗЫ ДАННЫХ (Supabase)
 // ============================================
 
-// ВСТАВЬТЕ СВОИ ДАННЫЕ ИЗ SUPABASE
 const SUPABASE_URL = 'https://ehksdceuihjnzbqdztog.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_K1dDdxBKQ_04yOqwkfCxsw_JyiHlkxW';
 
@@ -64,44 +63,63 @@ const DB_MANAGER = {
 
     // Загрузка всех данных
     async loadDatabase() {
-        console.log('📦 Загрузка данных из Supabase...');
+    console.log('📦 Загрузка данных из Supabase...');
+    
+    if (!this.supabase) {
+        console.warn('⚠️ Supabase не инициализирован, используем кэш');
+        return this.currentData;
+    }
+
+    try {
+        // Загружаем все таблицы параллельно
+        const [users, products, orders, messages] = await Promise.all([
+            this.supabase.from('users').select('*'),
+            this.supabase.from('products').select('*'),
+            this.supabase.from('orders').select('*').order('date', { ascending: false }),
+            this.supabase.from('messages').select('*').order('date', { ascending: false })
+        ]);
+
+        if (users.error) throw users.error;
+        if (products.error) throw products.error;
+        if (orders.error) throw orders.error;
+        if (messages.error) throw messages.error;
+
+        this.currentData = {
+            users: users.data || [],
+            products: products.data || [],
+            orders: orders.data || [],
+            messages: messages.data || []
+        };
+
+        console.log(`✅ Загружено пользователей: ${this.currentData.users.length}`);
+        console.log(`✅ Загружено товаров: ${this.currentData.products.length}`);
+        console.log(`✅ Загружено заказов: ${this.currentData.orders.length}`);
+        console.log(`✅ Загружено сообщений: ${this.currentData.messages.length}`);
         
-        if (!this.supabase) {
-            console.warn('⚠️ Supabase не инициализирован, используем кэш');
-            return this.currentData;
-        }
-
+        return this.currentData;
+        
+    } catch (error) {
+        console.error('❌ Ошибка загрузки:', error);
+        
+        // Пробуем загрузить из localStorage
         try {
-            // Загружаем все таблицы параллельно
-            const [users, products, orders, messages] = await Promise.all([
-                this.supabase.from('users').select('*'),
-                this.supabase.from('products').select('*'),
-                this.supabase.from('orders').select('*').order('date', { ascending: false }),
-                this.supabase.from('messages').select('*').order('date', { ascending: false })
-            ]);
-
-            if (users.error) throw users.error;
-            if (products.error) throw products.error;
-            if (orders.error) throw orders.error;
-            if (messages.error) throw messages.error;
-
-            this.currentData = {
-                users: users.data || [],
-                products: products.data || [],
-                orders: orders.data || [],
-                messages: messages.data || []
-            };
-
-            console.log(`✅ Загружено пользователей: ${this.currentData.users.length}`);
-            console.log(`✅ Загружено товаров: ${this.currentData.products.length}`);
+            const ordersBackup = localStorage.getItem('db_orders_backup');
+            const messagesBackup = localStorage.getItem('db_messages_backup');
             
-            return this.currentData;
-            
-        } catch (error) {
-            console.error('❌ Ошибка загрузки:', error);
-            return this.currentData;
+            if (ordersBackup) {
+                this.currentData.orders = JSON.parse(ordersBackup);
+            }
+            if (messagesBackup) {
+                this.currentData.messages = JSON.parse(messagesBackup);
+            }
+            console.log('📁 Загружены резервные копии из localStorage');
+        } catch (backupError) {
+            console.error('❌ Ошибка загрузки из localStorage:', backupError);
         }
-    },
+        
+        return this.currentData;
+    }
+},
 
     // Дождаться инициализации
     async waitForInit() {
@@ -257,44 +275,181 @@ const DB_MANAGER = {
     },
 
     // ============================================
-    // ЗАКАЗЫ
-    // ============================================
+// ЗАКАЗЫ (исправленная версия)
+// ============================================
 
-    async addOrder(orderData) {
-        await this.waitForInit();
+async addOrder(orderData) {
+    await this.waitForInit();
+    console.log('📦 Добавление заказа:', orderData);
 
-        const newOrder = {
-            ...orderData,
-            id: Date.now(),
-            date: new Date().toISOString()
-        };
+    // Генерируем номер заказа, если его нет
+    if (!orderData.orderNumber) {
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const numbers = '0123456789';
+        let orderNumber = '';
+        for (let i = 0; i < 2; i++) orderNumber += letters[Math.floor(Math.random() * letters.length)];
+        for (let i = 0; i < 4; i++) orderNumber += numbers[Math.floor(Math.random() * numbers.length)];
+        orderData.orderNumber = orderNumber;
+    }
 
-        this.currentData.orders.unshift(newOrder);
+    const newOrder = {
+        order_number: orderData.orderNumber,
+        user_email: orderData.user,
+        user_name: orderData.userName,
+        items: orderData.items || [],
+        delivery: orderData.delivery || 'pickup',
+        delivery_address: orderData.deliveryAddress || null,
+        delivery_phone: orderData.deliveryPhone || null,
+        delivery_cost: orderData.deliveryCost || 0,
+        total: orderData.total || 0,
+        date: new Date().toISOString()
+    };
 
-        if (this.supabase) {
-            try {
-                await this.supabase.from('orders').insert([newOrder]);
-            } catch (error) {
-                console.error('Ошибка сохранения в Supabase:', error);
+    // Добавляем в локальные данные
+    this.currentData.orders.unshift(newOrder);
+
+    // Сохраняем в Supabase
+    if (this.supabase) {
+        try {
+            const { data, error } = await this.supabase
+                .from('orders')
+                .insert([newOrder])
+                .select();
+
+            if (error) {
+                console.error('❌ Ошибка сохранения заказа в Supabase:', error);
+                // Сохраняем в localStorage как резервную копию
+                this.saveToLocalStorage();
+            } else {
+                console.log('✅ Заказ сохранен в Supabase:', data);
+                if (data && data[0]) {
+                    // Обновляем локальные данные с данными из Supabase
+                    const index = this.currentData.orders.findIndex(o => o.id === data[0].id);
+                    if (index !== -1) {
+                        this.currentData.orders[index] = data[0];
+                    }
+                }
             }
+        } catch (error) {
+            console.error('❌ Ошибка при сохранении заказа:', error);
+            this.saveToLocalStorage();
         }
+    } else {
+        this.saveToLocalStorage();
+    }
 
-        return newOrder;
-    },
+    return newOrder;
+},
 
-    async deleteOrder(orderId) {
-        this.currentData.orders = this.currentData.orders.filter(o => o.id !== orderId);
+// ============================================
+// СООБЩЕНИЯ (исправленная версия)
+// ============================================
 
-        if (this.supabase) {
-            try {
-                await this.supabase.from('orders').delete().eq('id', orderId);
-            } catch (error) {
-                console.error('Ошибка удаления из Supabase:', error);
+async addMessage(messageData) {
+    await this.waitForInit();
+    console.log('📝 Добавление сообщения:', messageData);
+
+    const newMessage = {
+        name: messageData.name,
+        email: messageData.email,
+        phone: messageData.phone || '',
+        message: messageData.message,
+        status: 'new',
+        date: new Date().toISOString()
+    };
+
+    // Добавляем в локальные данные
+    this.currentData.messages.unshift(newMessage);
+
+    // Сохраняем в Supabase
+    if (this.supabase) {
+        try {
+            const { data, error } = await this.supabase
+                .from('messages')
+                .insert([newMessage])
+                .select();
+
+            if (error) {
+                console.error('❌ Ошибка сохранения сообщения в Supabase:', error);
+                this.saveToLocalStorage();
+            } else {
+                console.log('✅ Сообщение сохранено в Supabase:', data);
+                if (data && data[0]) {
+                    // Обновляем локальные данные с данными из Supabase
+                    const index = this.currentData.messages.findIndex(m => m.id === data[0].id);
+                    if (index !== -1) {
+                        this.currentData.messages[index] = data[0];
+                    }
+                }
             }
+        } catch (error) {
+            console.error('❌ Ошибка при сохранении сообщения:', error);
+            this.saveToLocalStorage();
         }
+    } else {
+        this.saveToLocalStorage();
+    }
 
-        return true;
-    },
+    return newMessage;
+},
+
+// ============================================
+// МЕТОДЫ ДЛЯ ЗАГРУЗКИ ЗАКАЗОВ И СООБЩЕНИЙ (добавьте, если нет)
+// ============================================
+
+async loadOrders() {
+    if (!this.supabase) return [];
+    
+    try {
+        const { data, error } = await this.supabase
+            .from('orders')
+            .select('*')
+            .order('date', { ascending: false });
+            
+        if (error) throw error;
+        
+        this.currentData.orders = data || [];
+        console.log(`✅ Загружено заказов: ${this.currentData.orders.length}`);
+        return this.currentData.orders;
+    } catch (error) {
+        console.error('❌ Ошибка загрузки заказов:', error);
+        return [];
+    }
+},
+
+async loadMessages() {
+    if (!this.supabase) return [];
+    
+    try {
+        const { data, error } = await this.supabase
+            .from('messages')
+            .select('*')
+            .order('date', { ascending: false });
+            
+        if (error) throw error;
+        
+        this.currentData.messages = data || [];
+        console.log(`✅ Загружено сообщений: ${this.currentData.messages.length}`);
+        return this.currentData.messages;
+    } catch (error) {
+        console.error('❌ Ошибка загрузки сообщений:', error);
+        return [];
+    }
+},
+
+// ============================================
+// МЕТОД ДЛЯ СОХРАНЕНИЯ В LOCALSTORAGE (добавьте)
+// ============================================
+
+saveToLocalStorage() {
+    try {
+        localStorage.setItem('db_orders_backup', JSON.stringify(this.currentData.orders));
+        localStorage.setItem('db_messages_backup', JSON.stringify(this.currentData.messages));
+        console.log('💾 Данные сохранены в localStorage');
+    } catch (error) {
+        console.error('❌ Ошибка сохранения в localStorage:', error);
+    }
+},
 
     // ============================================
     // СООБЩЕНИЯ
