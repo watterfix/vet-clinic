@@ -752,6 +752,25 @@ function showNotification(message, type = 'success') {
     }
 }
 
+// Добавьте в конец файла db-viewer.js (после других функций, но перед window)
+
+// Слушаем обновления сообщений
+window.addEventListener('storage', function(e) {
+    if (e.key === 'message_update_timestamp') {
+        console.log('💬 Получен сигнал обновления сообщений');
+        
+        // Если мы на вкладке сообщений, обновляем их
+        if (document.getElementById('messagesPanel')?.classList.contains('active')) {
+            setTimeout(async () => {
+                await DB_MANAGER.loadMessages();
+                loadMessages();
+                updateStats();
+                showNotification('Сообщения обновлены', 'success');
+            }, 500);
+        }
+    }
+});
+
 // Делаем функции глобальными
 window.switchTab = switchTab;
 window.searchUsers = searchUsers;
