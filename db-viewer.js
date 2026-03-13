@@ -40,7 +40,7 @@ async function initAdminPage() {
     showAdminLoading('Загрузка данных...');
     
     try {
-        // Загружаем данные (еще раз для надежности)
+        // Загружаем данные
         await DB_MANAGER.loadDatabase();
         console.log('✅ Данные загружены успешно');
         
@@ -70,8 +70,6 @@ async function initAdminPage() {
         showAdminError('Ошибка загрузки данных: ' + error.message);
     }
 }
-
-// ... остальной код db-viewer.js без изменений ...
 
 // Показать сообщение об ошибке
 function showAdminError(message) {
@@ -126,6 +124,7 @@ function checkAdminAccess() {
         return false;
     }
 
+    adminCheck.style.display = 'none';
     return true;
 }
 
@@ -163,6 +162,10 @@ function switchTab(tabName) {
             break;
     }
 }
+
+// ============================================
+// УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ
+// ============================================
 
 // Загрузка пользователей
 function loadUsers() {
@@ -233,28 +236,33 @@ async function addUser() {
         return;
     }
 
-    const users = DB_MANAGER.currentData?.users || [];
-    if (users.some(u => u.email === email)) {
-        showNotification('Пользователь с таким email уже существует!', 'error');
-        return;
-    }
+    try {
+        const users = DB_MANAGER.currentData?.users || [];
+        if (users.some(u => u.email === email)) {
+            showNotification('Пользователь с таким email уже существует!', 'error');
+            return;
+        }
 
-    const result = await DB_MANAGER.addUser({
-        name: name,
-        email: email,
-        password: password,
-        role: role
-    });
+        const result = await DB_MANAGER.addUser({
+            name: name,
+            email: email,
+            password: password,
+            role: role
+        });
 
-    if (result) {
-        showNotification('Пользователь добавлен!', 'success');
-        hideAddUserForm();
-        loadUsers();
-        updateStats();
+        if (result) {
+            showNotification('Пользователь добавлен!', 'success');
+            hideAddUserForm();
+            loadUsers();
+            updateStats();
 
-        document.getElementById('newUserName').value = '';
-        document.getElementById('newUserEmail').value = '';
-        document.getElementById('newUserPassword').value = '';
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserEmail').value = '';
+            document.getElementById('newUserPassword').value = '';
+        }
+    } catch (error) {
+        console.error('Ошибка добавления пользователя:', error);
+        showNotification('Ошибка при добавлении пользователя', 'error');
     }
 }
 
@@ -301,10 +309,15 @@ async function saveUserEdit(email) {
         updateData.password = newPassword;
     }
 
-    const result = await DB_MANAGER.updateUser(email, updateData);
-    if (result) {
-        showNotification('Пользователь обновлен', 'success');
-        loadUsers();
+    try {
+        const result = await DB_MANAGER.updateUser(email, updateData);
+        if (result) {
+            showNotification('Пользователь обновлен', 'success');
+            loadUsers();
+        }
+    } catch (error) {
+        console.error('Ошибка обновления пользователя:', error);
+        showNotification('Ошибка при обновлении', 'error');
     }
 }
 
@@ -336,6 +349,10 @@ async function deleteUser(email) {
         }
     }
 }
+
+// ============================================
+// УПРАВЛЕНИЕ ТОВАРАМИ
+// ============================================
 
 // Загрузка товаров
 function loadProducts() {
@@ -406,30 +423,35 @@ async function addProduct() {
         return;
     }
 
-    const products = DB_MANAGER.currentData?.products || [];
-    if (products.some(p => p.id === id)) {
-        showNotification('Товар с таким ID уже существует!', 'error');
-        return;
-    }
+    try {
+        const products = DB_MANAGER.currentData?.products || [];
+        if (products.some(p => p.id === id)) {
+            showNotification('Товар с таким ID уже существует!', 'error');
+            return;
+        }
 
-    const result = await DB_MANAGER.addProduct({
-        id: id,
-        name: name,
-        price: parseInt(price),
-        category: category,
-        description: description
-    });
+        const result = await DB_MANAGER.addProduct({
+            id: id,
+            name: name,
+            price: parseInt(price),
+            category: category,
+            description: description
+        });
 
-    if (result) {
-        showNotification('Товар добавлен!', 'success');
-        hideAddProductForm();
-        loadProducts();
-        updateStats();
+        if (result) {
+            showNotification('Товар добавлен!', 'success');
+            hideAddProductForm();
+            loadProducts();
+            updateStats();
 
-        document.getElementById('newProductId').value = '';
-        document.getElementById('newProductName').value = '';
-        document.getElementById('newProductPrice').value = '';
-        document.getElementById('newProductDescription').value = '';
+            document.getElementById('newProductId').value = '';
+            document.getElementById('newProductName').value = '';
+            document.getElementById('newProductPrice').value = '';
+            document.getElementById('newProductDescription').value = '';
+        }
+    } catch (error) {
+        console.error('Ошибка добавления товара:', error);
+        showNotification('Ошибка при добавлении товара', 'error');
     }
 }
 
@@ -474,10 +496,15 @@ async function saveProductEdit(productId) {
         description: newDesc
     };
 
-    const result = await DB_MANAGER.updateProduct(productId, updateData);
-    if (result) {
-        showNotification('Товар обновлен', 'success');
-        loadProducts();
+    try {
+        const result = await DB_MANAGER.updateProduct(productId, updateData);
+        if (result) {
+            showNotification('Товар обновлен', 'success');
+            loadProducts();
+        }
+    } catch (error) {
+        console.error('Ошибка обновления товара:', error);
+        showNotification('Ошибка при обновлении', 'error');
     }
 }
 
@@ -508,6 +535,10 @@ async function deleteProduct(productId) {
     }
 }
 
+// ============================================
+// УПРАВЛЕНИЕ ЗАКАЗАМИ
+// ============================================
+
 // Загрузка заказов
 function loadOrders() {
     const tbody = document.getElementById('ordersTableBody');
@@ -524,25 +555,27 @@ function loadOrders() {
     orders.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(order => {
         const date = new Date(order.date).toLocaleString();
 
+        // Формируем адрес доставки
         let deliveryAddress = '';
         if (order.delivery === 'pickup') {
             deliveryAddress = '🚶 Самовывоз (ул. Ветеринарная, 15)';
         } else {
-            deliveryAddress = `🚚 ${order.deliveryAddress || 'Адрес не указан'}`;
-            if (order.deliveryComment) {
-                deliveryAddress += `<br><small>📝 ${order.deliveryComment}</small>`;
+            deliveryAddress = `🚚 ${order.delivery_address || 'Адрес не указан'}`;
+            if (order.delivery_comment) {
+                deliveryAddress += `<br><small>📝 ${order.delivery_comment}</small>`;
             }
         }
 
-        const phone = order.deliveryPhone || order.pickupPhone || 'Не указан';
+        // Телефон
+        const phone = order.delivery_phone || order.pickup_phone || 'Не указан';
 
         html += `
             <tr id="order-${order.id}">
-                <td><strong>#${order.orderNumber}</strong></td>
+                <td><strong>#${order.order_number || 'Н/Д'}</strong></td>
                 <td>${date}</td>
                 <td>
-                    ${order.userName}<br>
-                    <small style="color: #666;">${order.user}</small><br>
+                    ${order.user_name}<br>
+                    <small style="color: #666;">${order.user_email}</small><br>
                     <small style="color: #666;">📞 ${phone}</small>
                 </td>
                 <td><strong style="color: #2c6e49;">${order.total} ₽</strong></td>
@@ -592,31 +625,50 @@ function viewOrderDetails(orderId) {
     if (order.delivery === 'pickup') {
         deliveryInfo = `
             <p><strong>📍 Адрес самовывоза:</strong> г. Воронеж, ул. Ветеринарная, д. 15</p>
-            <p><strong>📞 Телефон:</strong> ${order.pickupPhone || '222-22-22'}</p>
+            <p><strong>📞 Телефон:</strong> ${order.pickup_phone || '222-22-22'}</p>
         `;
     } else {
         deliveryInfo = `
-            <p><strong>🚚 Адрес доставки:</strong> ${order.deliveryAddress || 'Не указан'}</p>
-            <p><strong>📞 Телефон:</strong> ${order.deliveryPhone || 'Не указан'}</p>
-            ${order.deliveryComment ? `<p><strong>💬 Комментарий:</strong> ${order.deliveryComment}</p>` : ''}
+            <p><strong>🚚 Адрес доставки:</strong> ${order.delivery_address || 'Не указан'}</p>
+            <p><strong>📞 Телефон:</strong> ${order.delivery_phone || 'Не указан'}</p>
+            ${order.delivery_comment ? `<p><strong>💬 Комментарий:</strong> ${order.delivery_comment}</p>` : ''}
+            <p><strong>💰 Стоимость доставки:</strong> ${order.delivery_cost > 0 ? order.delivery_cost + ' ₽' : 'Бесплатно'}</p>
         `;
     }
 
     showNotification('Просмотр деталей заказа (в консоли)', 'info');
     console.log('Детали заказа:', order);
+    
+    // Показываем детали в alert (временное решение)
+    alert(`
+        Заказ #${order.order_number}
+        Дата: ${new Date(order.date).toLocaleString()}
+        Пользователь: ${order.user_name} (${order.user_email})
+        Сумма: ${order.total} ₽
+        Доставка: ${order.delivery === 'pickup' ? 'Самовывоз' : 'Доставка'}
+    `);
 }
 
 // Удаление заказа
 async function deleteOrder(orderId) {
     if (confirm('Удалить заказ?')) {
-        const result = await DB_MANAGER.deleteOrder(orderId);
-        if (result) {
-            showNotification('Заказ удален', 'success');
-            loadOrders();
-            updateStats();
+        try {
+            const result = await DB_MANAGER.deleteOrder(orderId);
+            if (result) {
+                showNotification('Заказ удален', 'success');
+                loadOrders();
+                updateStats();
+            }
+        } catch (error) {
+            console.error('Ошибка удаления заказа:', error);
+            showNotification('Ошибка при удалении', 'error');
         }
     }
 }
+
+// ============================================
+// УПРАВЛЕНИЕ СООБЩЕНИЯМИ
+// ============================================
 
 // Загрузка сообщений
 function loadMessages() {
@@ -626,7 +678,7 @@ function loadMessages() {
     const messages = DB_MANAGER.currentData?.messages || [];
 
     if (messages.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px;">Нет сообщений</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px;">Нет сообщений</td></tr>';
         return;
     }
 
@@ -661,25 +713,39 @@ function loadMessages() {
 
 // Отметить сообщение как прочитанное
 async function markMessageAsRead(messageId) {
-    const result = await DB_MANAGER.markMessageAsRead(messageId);
-    if (result) {
-        showNotification('Сообщение отмечено как прочитанное', 'success');
-        loadMessages();
-        updateStats();
+    try {
+        const result = await DB_MANAGER.markMessageAsRead(messageId);
+        if (result) {
+            showNotification('Сообщение отмечено как прочитанное', 'success');
+            loadMessages();
+            updateStats();
+        }
+    } catch (error) {
+        console.error('Ошибка при отметке сообщения:', error);
+        showNotification('Ошибка при отметке', 'error');
     }
 }
 
 // Удаление сообщения
 async function deleteMessage(messageId) {
     if (confirm('Удалить сообщение?')) {
-        const result = await DB_MANAGER.deleteMessage(messageId);
-        if (result) {
-            showNotification('Сообщение удалено', 'success');
-            loadMessages();
-            updateStats();
+        try {
+            const result = await DB_MANAGER.deleteMessage(messageId);
+            if (result) {
+                showNotification('Сообщение удалено', 'success');
+                loadMessages();
+                updateStats();
+            }
+        } catch (error) {
+            console.error('Ошибка удаления сообщения:', error);
+            showNotification('Ошибка при удалении', 'error');
         }
     }
 }
+
+// ============================================
+// СТАТИСТИКА
+// ============================================
 
 // Обновление статистики
 function updateStats() {
@@ -720,7 +786,11 @@ function updateStats() {
     }
 }
 
-// Загрузка бэкапов
+// ============================================
+// РЕЗЕРВНЫЕ КОПИИ
+// ============================================
+
+// Загрузка списка бэкапов
 function loadBackups() {
     const backupsList = document.getElementById('backupsList');
     if (!backupsList) return;
@@ -756,6 +826,7 @@ function loadBackups() {
 
 // Создание резервной копии
 function createBackup() {
+    const stats = DB_MANAGER.getStats();
     const backup = {
         id: Date.now(),
         name: `Backup ${new Date().toLocaleString()}`,
@@ -765,9 +836,9 @@ function createBackup() {
             products: DB_MANAGER.currentData.products,
             orders: DB_MANAGER.currentData.orders,
             messages: DB_MANAGER.currentData.messages,
-            settings: DB_MANAGER.currentData.settings
+            settings: {}
         },
-        stats: DB_MANAGER.getStats()
+        stats: stats
     };
 
     let backups = JSON.parse(localStorage.getItem('backups')) || [];
@@ -787,20 +858,37 @@ async function restoreBackup(index) {
     const backup = backups[index];
     if (!backup) return;
 
-    if (backup.data) {
-        DB_MANAGER.currentData = backup.data;
-    } else {
-        DB_MANAGER.currentData = backup;
+    try {
+        if (backup.data) {
+            // Восстанавливаем данные через DB_MANAGER
+            for (const user of backup.data.users) {
+                await DB_MANAGER.addUser(user);
+            }
+            for (const product of backup.data.products) {
+                await DB_MANAGER.addProduct(product);
+            }
+            for (const order of backup.data.orders) {
+                await DB_MANAGER.addOrder(order);
+            }
+            for (const message of backup.data.messages) {
+                await DB_MANAGER.addMessage(message);
+            }
+        }
+
+        showNotification('Данные восстановлены', 'success');
+        
+        // Обновляем все панели
+        await DB_MANAGER.loadDatabase();
+        loadUsers();
+        loadProducts();
+        loadOrders();
+        loadMessages();
+        updateStats();
+        
+    } catch (error) {
+        console.error('Ошибка восстановления:', error);
+        showNotification('Ошибка при восстановлении', 'error');
     }
-
-    await DB_MANAGER.saveToServer();
-    showNotification('Данные восстановлены', 'success');
-
-    loadUsers();
-    loadProducts();
-    loadOrders();
-    loadMessages();
-    updateStats();
 }
 
 // Удаление бэкапа
@@ -825,6 +913,10 @@ async function restoreFromBackup() {
     await restoreBackup(backups.length - 1);
 }
 
+// ============================================
+// РАБОТА С ФАЙЛАМИ
+// ============================================
+
 // Экспорт базы данных
 function exportDatabase() {
     const data = {
@@ -832,7 +924,7 @@ function exportDatabase() {
         products: DB_MANAGER.currentData.products,
         orders: DB_MANAGER.currentData.orders,
         messages: DB_MANAGER.currentData.messages,
-        settings: DB_MANAGER.currentData.settings,
+        settings: {},
         exportedAt: new Date().toISOString()
     };
 
@@ -856,13 +948,32 @@ async function importDatabase(file) {
         try {
             const data = JSON.parse(e.target.result);
             
-            if (data.users) DB_MANAGER.currentData.users = data.users;
-            if (data.products) DB_MANAGER.currentData.products = data.products;
-            if (data.orders) DB_MANAGER.currentData.orders = data.orders;
-            if (data.messages) DB_MANAGER.currentData.messages = data.messages;
-            if (data.settings) DB_MANAGER.currentData.settings = data.settings;
+            // Очищаем существующие данные
+            // Здесь можно добавить логику очистки
+            
+            // Импортируем новые данные
+            if (data.users) {
+                for (const user of data.users) {
+                    await DB_MANAGER.addUser(user);
+                }
+            }
+            if (data.products) {
+                for (const product of data.products) {
+                    await DB_MANAGER.addProduct(product);
+                }
+            }
+            if (data.orders) {
+                for (const order of data.orders) {
+                    await DB_MANAGER.addOrder(order);
+                }
+            }
+            if (data.messages) {
+                for (const message of data.messages) {
+                    await DB_MANAGER.addMessage(message);
+                }
+            }
 
-            await DB_MANAGER.saveToServer();
+            await DB_MANAGER.loadDatabase();
             
             showNotification('База данных импортирована', 'success');
             
@@ -873,6 +984,7 @@ async function importDatabase(file) {
             updateStats();
             
         } catch (error) {
+            console.error('Ошибка импорта:', error);
             showNotification('Ошибка импорта: ' + error.message, 'error');
         }
     };
@@ -887,6 +999,7 @@ function triggerFileInput() {
 
 // Обновление данных
 async function refreshData() {
+    showAdminLoading('Обновление данных...');
     await DB_MANAGER.loadDatabase();
     loadUsers();
     loadProducts();
@@ -894,16 +1007,29 @@ async function refreshData() {
     loadMessages();
     updateStats();
     showNotification('Данные обновлены', 'success');
+    
+    const adminCheck = document.getElementById('adminCheck');
+    if (adminCheck) {
+        adminCheck.style.display = 'none';
+    }
 }
 
 // Сброс базы данных
 async function resetDatabase() {
-    if (confirm('Вы уверены? Все данные будут сброшены до начальных!')) {
-        await DB_MANAGER.resetToDefault();
-        await refreshData();
-        showNotification('База данных сброшена', 'success');
+    if (confirm('Вы уверены? Все данные будут удалены!'))) {
+        try {
+            // Здесь можно добавить логику сброса
+            showNotification('Функция сброса временно отключена', 'warning');
+        } catch (error) {
+            console.error('Ошибка сброса:', error);
+            showNotification('Ошибка при сбросе', 'error');
+        }
     }
 }
+
+// ============================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================
 
 // Получение названия категории
 function getCategoryName(category) {
@@ -921,6 +1047,7 @@ function showNotification(message, type = 'success') {
     if (window.showNotification) {
         window.showNotification(message, type);
     } else {
+        console.log(`${type}: ${message}`);
         alert(message);
     }
 }
