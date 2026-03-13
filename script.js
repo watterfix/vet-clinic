@@ -760,7 +760,13 @@ async function login(event) {
     console.log('🔐 Попытка входа:', email);
 
     try {
-        // Ждем инициализацию DB_MANAGER
+        // Проверяем наличие DB_MANAGER
+        if (!window.DB_MANAGER) {
+            showNotification('Ошибка подключения к базе данных', 'error');
+            return;
+        }
+        
+        // Ждем инициализацию
         await DB_MANAGER.waitForInit();
         
         // Загружаем свежие данные
@@ -770,8 +776,6 @@ async function login(event) {
         const user = DB_MANAGER.currentData.users.find(u => u.email === email);
         
         if (user) {
-            console.log('✅ Пользователь найден:', user.email);
-            
             if (user.password === password) {
                 currentUser = {
                     email: user.email,
@@ -786,16 +790,13 @@ async function login(event) {
                 
                 showNotification(`Добро пожаловать, ${user.name}!`, 'success');
                 
-                // Очищаем форму
                 document.getElementById('loginEmail').value = '';
                 document.getElementById('loginPassword').value = '';
                 
             } else {
-                console.log('❌ Неверный пароль');
                 showNotification('Неверный пароль!', 'error');
             }
         } else {
-            console.log('❌ Пользователь не найден');
             showNotification('Пользователь не найден!', 'error');
         }
         
