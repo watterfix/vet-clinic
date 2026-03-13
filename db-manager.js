@@ -342,44 +342,81 @@ async addOrder(orderData) {
 },
 
 // ============================================
-// СООБЩЕНИЯ (исправленная версия)
+// СООБЩЕНИЯ - ИСПРАВЛЕННАЯ ВЕРСИЯ
 // ============================================
 
 async addMessage(messageData) {
     await this.waitForInit();
     console.log('📝 Добавление сообщения:', messageData);
 
+    // Проверяем, что все обязательные поля есть
+    if (!messageData.name || !messageData.email || !messageData.message) {
+        throw new Error('Не все обязательные поля заполнены');
+    }
+
     const newMessage = {
-        name: messageData.name,
-        email: messageData.email,
-        phone: messageData.phone || '',
-        message: messageData.message,
+        name: messageData.name.trim(),
+        email: messageData.email.trim().toLowerCase(),
+        phone: messageData.phone ? messageData.phone.trim() : '',
+        message: messageData.message.trim(),
         status: 'new',
         date: new Date().toISOString()
     };
 
-    // Добавляем в локальные данные
-    this.currentData.messages.unshift(newMessage);
+    try {
+        // Сохраняем в Supabase
+        console.log('📤 Отправка в Supabase:', newMessage);
+        
+        const { data, error } = await this.supabase
+            .from('messages')
+            .insert([newMessage])
+            .select();
 
-    // Сохраняем в Supabase
-    if (this.supabase) {
-        try {
-            const { data, error } = await this.supabase
-                .from('messages')
-                .insert([newMessage])
-                .select();
-
-            if (error) {
-                console.error('❌ Ошибка сохранения сообщения в Supabase:', error);
-            } else {
-                console.log('✅ Сообщение сохранено в Supabase:', data);
-            }
-        } catch (error) {
-            console.error('❌ Ошибка при сохранении сообщения:', error);
+        if (error) {
+            console.error('❌ Ошибка Supabase:', error);
+            throw error;
         }
-    }
 
-    return newMessage;
+        console.log('✅ Ответ Supabase:', data);
+
+        if (data && data[0]) {
+            // Добавляем в локальные данные
+            this.currentData.messages.unshift(data[0]);
+            
+            // Отправляем сигнал об обновлении
+            this.broadcastMessageUpdate();
+            
+            console.log('✅ Сообщение сохранено, ID:', data[0].id);
+            return data[0];
+        } else {
+            throw new Error('Нет данных в ответе Supabase');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка при сохранении сообщения:', error);
+        
+        // Пробуем сохранить в localStorage как резервную копию
+        try {
+            const backupMessages = JSON.parse(localStorage.getItem('messages_backup') || '[]');
+            backupMessages.push({
+                ...newMessage,
+                id: Date.now(),
+                backup: true
+            });
+            localStorage.setItem('messages_backup', JSON.stringify(backupMessages));
+            console.log('💾 Сообщение сохранено в localStorage как резервная копия');
+        } catch (backupError) {
+            console.error('❌ Ошибка сохранения резервной копии:', backupError);
+        }
+        
+        throw error;
+    }
+},
+
+// Добавить новый метод для обновления сообщений
+broadcastMessageUpdate() {
+    localStorage.setItem('message_update_timestamp', Date.now().toString());
+    console.log('💬 Сигнал обновления сообщений отправлен');
 },
 
 // ============================================
@@ -407,25 +444,38 @@ async loadOrders() {
 },
 
 async loadMessages() {
-    if (!this.supabase) return [];
+    await this.waitForInit();
+    console.log('📥 Загрузка сообщений...');
     
     try {
         const { data, error } = await this.supabase
             .from('messages')
             .select('*')
             .order('date', { ascending: false });
-            
+
         if (error) throw error;
-        
+
         this.currentData.messages = data || [];
         console.log(`✅ Загружено сообщений: ${this.currentData.messages.length}`);
+        
         return this.currentData.messages;
+        
     } catch (error) {
         console.error('❌ Ошибка загрузки сообщений:', error);
+        
+        // Пробуем загрузить из localStorage
+        try {
+            const backupMessages = JSON.parse(localStorage.getItem('messages_backup') || '[]');
+            this.currentData.messages = backupMessages;
+            console.log(`📁 Загружено ${backupMessages.length} сообщений из резервной копии`);
+        } catch (backupError) {
+            console.error('❌ Ошибка загрузки резервной копии:', backupError);
+        }
+        
         return [];
     }
 },
-
+    
 // ============================================
 // МЕТОД ДЛЯ СОХРАНЕНИЯ В LOCALSTORAGE (добавьте)
 // ============================================
