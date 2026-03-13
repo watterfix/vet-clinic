@@ -942,6 +942,159 @@ function showNotification(message, type = 'success') {
     }
 }
 
+// ============================================
+// СТИЛИЗОВАННЫЕ МОДАЛЬНЫЕ ОКНА
+// ============================================
+
+// Функция для показа подтверждения удаления
+function showConfirmDialog(message, onConfirm) {
+    const overlay = document.createElement('div');
+    overlay.className = 'db-modal-overlay';
+    overlay.innerHTML = `
+        <div class="db-modal">
+            <div class="db-modal-confirm">
+                <div class="db-modal-confirm-icon">⚠️</div>
+                <h3>Подтверждение</h3>
+                <p>${message}</p>
+                <div class="db-modal-confirm-buttons">
+                    <button class="db-modal-btn db-modal-btn-secondary" onclick="this.closest('.db-modal-overlay').remove()">Отмена</button>
+                    <button class="db-modal-btn db-modal-btn-danger" id="confirmDeleteBtn">Удалить</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    document.getElementById('confirmDeleteBtn').onclick = function() {
+        onConfirm();
+        overlay.remove();
+    };
+}
+
+// Функция для показа деталей заказа
+function showOrderDetails(order) {
+    const overlay = document.createElement('div');
+    overlay.className = 'db-modal-overlay';
+    
+    let itemsHtml = '';
+    if (order.items && Array.isArray(order.items)) {
+        order.items.forEach(item => {
+            itemsHtml += `
+                <div class="db-modal-item-row">
+                    <span class="db-modal-item-name">${item.name}</span>
+                    <span class="db-modal-item-price">${item.price} ₽</span>
+                </div>
+            `;
+        });
+    }
+    
+    overlay.innerHTML = `
+        <div class="db-modal">
+            <div class="db-modal-header">
+                <h2>Детали заказа #${order.order_number || 'Н/Д'}</h2>
+                <button class="db-modal-close" onclick="this.closest('.db-modal-overlay').remove()">&times;</button>
+            </div>
+            <div class="db-modal-content">
+                <div class="db-order-details">
+                    <div class="db-order-header">
+                        <div class="db-order-number">#${order.order_number || 'Н/Д'}</div>
+                        <div class="db-order-date">${order.date ? new Date(order.date).toLocaleString() : 'Н/Д'}</div>
+                    </div>
+                    
+                    <div class="db-order-section">
+                        <h4>👤 Информация о клиенте</h4>
+                        <div class="db-order-info-grid">
+                            <div class="db-order-info-item">
+                                <div class="db-order-info-label">Имя</div>
+                                <div class="db-order-info-value">${order.user_name || 'Н/Д'}</div>
+                            </div>
+                            <div class="db-order-info-item">
+                                <div class="db-order-info-label">Email</div>
+                                <div class="db-order-info-value">${order.user_email || order.user || 'Н/Д'}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="db-order-section">
+                        <h4>🚚 Информация о доставке</h4>
+                        <div class="db-order-info-grid">
+                            <div class="db-order-info-item">
+                                <div class="db-order-info-label">Способ</div>
+                                <div class="db-order-info-value">${order.delivery === 'pickup' ? '🚶 Самовывоз' : '🚚 Доставка'}</div>
+                            </div>
+                            <div class="db-order-info-item">
+                                <div class="db-order-info-label">Телефон</div>
+                                <div class="db-order-info-value">${order.delivery_phone || order.pickup_phone || '222-22-22'}</div>
+                            </div>
+                            ${order.delivery_address ? `
+                            <div class="db-order-info-item">
+                                <div class="db-order-info-label">Адрес</div>
+                                <div class="db-order-info-value">${order.delivery_address}</div>
+                            </div>
+                            ` : ''}
+                            ${order.delivery_comment ? `
+                            <div class="db-order-info-item">
+                                <div class="db-order-info-label">Комментарий</div>
+                                <div class="db-order-info-value">${order.delivery_comment}</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="db-modal-items">
+                        <h3>Состав заказа</h3>
+                        ${itemsHtml || '<p style="text-align: center; color: #999;">Нет товаров</p>'}
+                        <div class="db-modal-total-row">
+                            <span>ИТОГО:</span>
+                            <span>${order.total || 0} ₽</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="db-modal-footer">
+                <button class="db-modal-btn db-modal-btn-secondary" onclick="this.closest('.db-modal-overlay').remove()">Закрыть</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
+
+// Функция для показа уведомлений в стиле сайта
+function showDbNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `db-notification db-notification-${type}`;
+    
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️'
+    };
+    
+    const titles = {
+        success: 'Успех',
+        error: 'Ошибка',
+        warning: 'Внимание'
+    };
+    
+    notification.innerHTML = `
+        <span class="db-notification-icon">${icons[type]}</span>
+        <div class="db-notification-content">
+            <div class="db-notification-title">${titles[type]}</div>
+            <div class="db-notification-message">${message}</div>
+        </div>
+        <button class="db-notification-close" onclick="this.closest('.db-notification').remove()">&times;</button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
 // Делаем функции глобальными
 window.switchTab = switchTab;
 window.searchUsers = searchUsers;
