@@ -1350,11 +1350,6 @@ input[type="tel"] {
     gap: 8px;
 }
 
-.db-modal-items h3::before {
-    content: "🛒";
-    font-size: 20px;
-}
-
 .db-modal-item-row {
     display: flex;
     justify-content: space-between;
@@ -1913,4 +1908,62 @@ input[type="tel"] {
 
 .db-modal::-webkit-scrollbar-thumb:hover {
     background: #ffd700;
+}
+
+/* Стили для кнопок в панели экспорта */
+.export-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 12px;
+    border: 2px solid #ffd700;
+}
+
+/* Стили для кнопок в таблицах */
+.db-table .action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
+.db-table .btn-edit,
+.db-table .btn-save,
+.db-table .btn-delete,
+.db-table .btn-view {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-width: 65px;
+}
+
+/* Стили для кнопки добавления */
+.btn-add {
+    background: linear-gradient(135deg, #2c6e49, #1e4d2f);
+    color: white;
+    padding: 10px 24px;
+    font-size: 14px;
+    border: 1px solid #1e4d2f;
+    margin-bottom: 15px;
+}
+
+.btn-add:hover {
+    background: linear-gradient(135deg, #1e4d2f, #2c6e49);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(44, 110, 73, 0.4);
+}
+
+/* Стили для кнопки просмотра */
+.btn-view {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    color: white;
+    border: 1px solid #138496;
+}
+
+.btn-view:hover {
+    background: linear-gradient(135deg, #138496, #17a2b8);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(23, 162, 184, 0.4);
 }
