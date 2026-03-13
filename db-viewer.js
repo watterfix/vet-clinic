@@ -503,12 +503,15 @@ async function saveProductEdit(productId) {
     try {
         const result = await DB_MANAGER.updateProduct(productId, updateData);
         if (result) {
-            showNotification('Товар обновлен', 'success');
+            showDbNotification('Товар обновлен', 'success');
             loadProducts();
+            
+            // Отправляем сигнал об обновлении цен
+            DB_MANAGER.broadcastPriceUpdate();
         }
     } catch (error) {
         console.error('Ошибка обновления товара:', error);
-        showNotification('Ошибка при обновлении', 'error');
+        showDbNotification('Ошибка при обновлении', 'error');
     }
 }
 
