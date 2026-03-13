@@ -1063,6 +1063,49 @@ function deleteBackup(index) {
     showNotification('Резервная копия удалена', 'success');
     loadBackups();
 }
+// Обновите функцию loadUsers, добавив проверку на существование данных
+function loadUsers() {
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+
+    // Проверяем, что данные загружены
+    if (!DB_MANAGER.currentData) {
+        console.warn('⚠️ Данные не загружены');
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px;">Данные загружаются...</td></tr>';
+        return;
+    }
+
+    const users = DB_MANAGER.currentData?.users || [];
+
+    if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px;">Нет пользователей</td></tr>';
+        return;
+    }
+
+    let html = '';
+    users.sort((a, b) => a.email.localeCompare(b.email)).forEach(user => {
+        const safeEmail = user.email.replace(/[@.]/g, '_');
+        const registered = user.registered ? new Date(user.registered).toLocaleString() : 'Н/Д';
+        
+        // Исправляем отображение роли
+        const roleClass = user.role === 'admin' ? 'role-admin' : 'role-user';
+        const roleText = user.role === 'admin' ? '👑 Админ' : '👤 Пользователь';
+
+        html += `
+            <tr id="user-${safeEmail}">
+                <td>${user.email}</td>
+                <td>${user.name}</td>
+                <td><span class="role-badge ${roleClass}">${roleText}</span></td>
+                <td>${registered}</td>
+                <td class="action-buttons">
+                    <button onclick="deleteUser('${user.email}')" class="btn-delete" ${user.email === 'admin@vetclinic.ru' ? 'disabled' : ''}>🗑️ Удалить</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+}
 
 // ============================================
 // РАБОТА С ФАЙЛАМИ
