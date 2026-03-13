@@ -11,8 +11,8 @@ let adminCurrentUser = null;
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM загружен, инициализация админ-панели...');
     
-    // Ждем инициализацию DB_MANAGER
-    initAdminPage();
+    // Даем время на загрузку всех скриптов
+    setTimeout(initAdminPage, 500);
 });
 
 // Функция инициализации с проверками
@@ -28,21 +28,25 @@ async function initAdminPage() {
     
     console.log('✅ DB_MANAGER найден');
     
-    // Ждем инициализацию DB_MANAGER
-    await DB_MANAGER.waitForInit();
-    
-    // Проверяем права администратора
-    if (!checkAdminAccess()) {
-        return;
-    }
-    
-    // Показываем загрузку
-    showAdminLoading('Загрузка данных...');
-    
     try {
+        // Проверяем статус DB_MANAGER
+        const status = DB_MANAGER.getStatus();
+        console.log('Статус DB_MANAGER:', status);
+        
+        // Ждем инициализацию
+        await DB_MANAGER.waitForInit();
+        
+        // Проверяем права администратора
+        if (!checkAdminAccess()) {
+            return;
+        }
+        
+        // Показываем загрузку
+        showAdminLoading('Загрузка данных...');
+        
         // Загружаем данные
-        await DB_MANAGER.loadDatabase();
-        console.log('✅ Данные загружены успешно');
+        const data = await DB_MANAGER.loadDatabase();
+        console.log('✅ Данные загружены успешно:', data);
         
         // Загружаем все панели
         loadUsers();
@@ -66,8 +70,8 @@ async function initAdminPage() {
         }
         
     } catch (error) {
-        console.error('❌ Ошибка загрузки данных:', error);
-        showAdminError('Ошибка загрузки данных: ' + error.message);
+        console.error('❌ Ошибка инициализации:', error);
+        showAdminError('Ошибка инициализации: ' + error.message);
     }
 }
 
@@ -124,7 +128,6 @@ function checkAdminAccess() {
         return false;
     }
 
-    adminCheck.style.display = 'none';
     return true;
 }
 
@@ -144,6 +147,7 @@ function switchTab(tabName) {
     const panel = document.getElementById(tabName + 'Panel');
     if (panel) panel.classList.add('active');
 
+    // Загружаем данные для соответствующей вкладки
     switch (tabName) {
         case 'users':
             loadUsers();
@@ -525,8 +529,6 @@ async function deleteProduct(productId) {
                 showNotification('Товар удален', 'success');
                 loadProducts();
                 updateStats();
-            } else {
-                showNotification('Ошибка при удалении', 'error');
             }
         } catch (error) {
             console.error('Ошибка удаления:', error);
@@ -561,9 +563,6 @@ function loadOrders() {
             deliveryAddress = '🚶 Самовывоз (ул. Ветеринарная, 15)';
         } else {
             deliveryAddress = `🚚 ${order.delivery_address || 'Адрес не указан'}`;
-            if (order.delivery_comment) {
-                deliveryAddress += `<br><small>📝 ${order.delivery_comment}</small>`;
-            }
         }
 
         // Телефон
@@ -615,37 +614,26 @@ function viewOrderDetails(orderId) {
 
     let itemsHtml = '';
     order.items.forEach(item => {
-        itemsHtml += `<div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #2c6e49;">
-            <span>${item.name}</span>
-            <span style="font-weight: bold;">${item.price} ₽</span>
-        </div>`;
+        itemsHtml += `${item.name} - ${item.price} ₽\n`;
     });
 
     let deliveryInfo = '';
     if (order.delivery === 'pickup') {
-        deliveryInfo = `
-            <p><strong>📍 Адрес самовывоза:</strong> г. Воронеж, ул. Ветеринарная, д. 15</p>
-            <p><strong>📞 Телефон:</strong> ${order.pickup_phone || '222-22-22'}</p>
-        `;
+        deliveryInfo = `Адрес самовывоза: г. Воронеж, ул. Ветеринарная, д. 15`;
     } else {
-        deliveryInfo = `
-            <p><strong>🚚 Адрес доставки:</strong> ${order.delivery_address || 'Не указан'}</p>
-            <p><strong>📞 Телефон:</strong> ${order.delivery_phone || 'Не указан'}</p>
-            ${order.delivery_comment ? `<p><strong>💬 Комментарий:</strong> ${order.delivery_comment}</p>` : ''}
-            <p><strong>💰 Стоимость доставки:</strong> ${order.delivery_cost > 0 ? order.delivery_cost + ' ₽' : 'Бесплатно'}</p>
-        `;
+        deliveryInfo = `Адрес доставки: ${order.delivery_address}\nТелефон: ${order.delivery_phone}`;
     }
 
-    showNotification('Просмотр деталей заказа (в консоли)', 'info');
-    console.log('Детали заказа:', order);
-    
-    // Показываем детали в alert (временное решение)
     alert(`
         Заказ #${order.order_number}
         Дата: ${new Date(order.date).toLocaleString()}
         Пользователь: ${order.user_name} (${order.user_email})
+        
+        Состав заказа:
+        ${itemsHtml}
+        
         Сумма: ${order.total} ₽
-        Доставка: ${order.delivery === 'pickup' ? 'Самовывоз' : 'Доставка'}
+        ${deliveryInfo}
     `);
 }
 
@@ -835,8 +823,7 @@ function createBackup() {
             users: DB_MANAGER.currentData.users,
             products: DB_MANAGER.currentData.products,
             orders: DB_MANAGER.currentData.orders,
-            messages: DB_MANAGER.currentData.messages,
-            settings: {}
+            messages: DB_MANAGER.currentData.messages
         },
         stats: stats
     };
@@ -848,47 +835,6 @@ function createBackup() {
 
     showNotification('Резервная копия создана', 'success');
     loadBackups();
-}
-
-// Восстановление из бэкапа
-async function restoreBackup(index) {
-    if (!confirm('Восстановить данные из этой резервной копии?')) return;
-
-    const backups = JSON.parse(localStorage.getItem('backups')) || [];
-    const backup = backups[index];
-    if (!backup) return;
-
-    try {
-        if (backup.data) {
-            // Восстанавливаем данные через DB_MANAGER
-            for (const user of backup.data.users) {
-                await DB_MANAGER.addUser(user);
-            }
-            for (const product of backup.data.products) {
-                await DB_MANAGER.addProduct(product);
-            }
-            for (const order of backup.data.orders) {
-                await DB_MANAGER.addOrder(order);
-            }
-            for (const message of backup.data.messages) {
-                await DB_MANAGER.addMessage(message);
-            }
-        }
-
-        showNotification('Данные восстановлены', 'success');
-        
-        // Обновляем все панели
-        await DB_MANAGER.loadDatabase();
-        loadUsers();
-        loadProducts();
-        loadOrders();
-        loadMessages();
-        updateStats();
-        
-    } catch (error) {
-        console.error('Ошибка восстановления:', error);
-        showNotification('Ошибка при восстановлении', 'error');
-    }
 }
 
 // Удаление бэкапа
@@ -903,16 +849,6 @@ function deleteBackup(index) {
     loadBackups();
 }
 
-// Восстановление из последнего бэкапа
-async function restoreFromBackup() {
-    const backups = JSON.parse(localStorage.getItem('backups')) || [];
-    if (backups.length === 0) {
-        showNotification('Нет сохраненных резервных копий', 'error');
-        return;
-    }
-    await restoreBackup(backups.length - 1);
-}
-
 // ============================================
 // РАБОТА С ФАЙЛАМИ
 // ============================================
@@ -924,7 +860,6 @@ function exportDatabase() {
         products: DB_MANAGER.currentData.products,
         orders: DB_MANAGER.currentData.orders,
         messages: DB_MANAGER.currentData.messages,
-        settings: {},
         exportedAt: new Date().toISOString()
     };
 
@@ -940,6 +875,11 @@ function exportDatabase() {
     showNotification('База данных экспортирована', 'success');
 }
 
+// Триггер для выбора файла
+function triggerFileInput() {
+    document.getElementById('fileInput').click();
+}
+
 // Импорт базы данных
 async function importDatabase(file) {
     const reader = new FileReader();
@@ -947,54 +887,13 @@ async function importDatabase(file) {
     reader.onload = async function(e) {
         try {
             const data = JSON.parse(e.target.result);
-            
-            // Очищаем существующие данные
-            // Здесь можно добавить логику очистки
-            
-            // Импортируем новые данные
-            if (data.users) {
-                for (const user of data.users) {
-                    await DB_MANAGER.addUser(user);
-                }
-            }
-            if (data.products) {
-                for (const product of data.products) {
-                    await DB_MANAGER.addProduct(product);
-                }
-            }
-            if (data.orders) {
-                for (const order of data.orders) {
-                    await DB_MANAGER.addOrder(order);
-                }
-            }
-            if (data.messages) {
-                for (const message of data.messages) {
-                    await DB_MANAGER.addMessage(message);
-                }
-            }
-
-            await DB_MANAGER.loadDatabase();
-            
-            showNotification('База данных импортирована', 'success');
-            
-            loadUsers();
-            loadProducts();
-            loadOrders();
-            loadMessages();
-            updateStats();
-            
+            showNotification('Импорт пока не реализован', 'warning');
         } catch (error) {
-            console.error('Ошибка импорта:', error);
             showNotification('Ошибка импорта: ' + error.message, 'error');
         }
     };
 
     reader.readAsText(file);
-}
-
-// Триггер для выбора файла
-function triggerFileInput() {
-    document.getElementById('fileInput').click();
 }
 
 // Обновление данных
@@ -1015,16 +914,8 @@ async function refreshData() {
 }
 
 // Сброс базы данных
-async function resetDatabase() {
-    if (confirm('Вы уверены? Все данные будут удалены!'))) {
-        try {
-            // Здесь можно добавить логику сброса
-            showNotification('Функция сброса временно отключена', 'warning');
-        } catch (error) {
-            console.error('Ошибка сброса:', error);
-            showNotification('Ошибка при сбросе', 'error');
-        }
-    }
+function resetDatabase() {
+    showNotification('Функция временно отключена', 'warning');
 }
 
 // ============================================
@@ -1047,7 +938,6 @@ function showNotification(message, type = 'success') {
     if (window.showNotification) {
         window.showNotification(message, type);
     } else {
-        console.log(`${type}: ${message}`);
         alert(message);
     }
 }
@@ -1081,7 +971,5 @@ window.triggerFileInput = triggerFileInput;
 window.importDatabase = importDatabase;
 window.refreshData = refreshData;
 window.createBackup = createBackup;
-window.restoreFromBackup = restoreFromBackup;
-window.restoreBackup = restoreBackup;
 window.deleteBackup = deleteBackup;
 window.resetDatabase = resetDatabase;
