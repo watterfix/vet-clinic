@@ -998,7 +998,7 @@ async function handleContactSubmit(event) {
     const phone = phoneInput ? phoneInput.value.trim() : '';
     const message = messageInput ? messageInput.value.trim() : '';
     
-    console.log('Получены данные:', { name, email, phone, message });
+    console.log('📋 Данные формы:', { name, email, phone, message });
     
     // Валидация
     if (!name) {
@@ -1035,9 +1035,10 @@ async function handleContactSubmit(event) {
         
         // Ждем инициализацию
         await DB_MANAGER.waitForInit();
+        console.log('✅ DB_MANAGER инициализирован');
         
         // Сохраняем сообщение
-        console.log('Сохраняем сообщение в БД...');
+        console.log('💾 Сохраняем сообщение в БД...');
         const result = await DB_MANAGER.addMessage({
             name: name,
             email: email,
@@ -1045,9 +1046,9 @@ async function handleContactSubmit(event) {
             message: message
         });
         
-        console.log('✅ Сообщение сохранено:', result);
+        console.log('✅ Сообщение успешно сохранено:', result);
         
-        // Показываем успех (используем простое уведомление вместо сложного alert)
+        // Показываем успех
         if (successDiv) {
             successDiv.style.display = 'block';
             successDiv.innerHTML = '✅ Спасибо за обращение! Мы свяжемся с вами в ближайшее время.';
@@ -1062,9 +1063,20 @@ async function handleContactSubmit(event) {
         // Показываем уведомление
         showNotification('Сообщение отправлено!', 'success');
         
+        // Отправляем сигнал об обновлении в админ-панель
+        if (DB_MANAGER.broadcastMessageUpdate) {
+            DB_MANAGER.broadcastMessageUpdate();
+        }
+        
     } catch (error) {
         console.error('❌ Ошибка при отправке сообщения:', error);
         showContactError('Ошибка при отправке: ' + error.message);
+        
+        // Детальный лог ошибки
+        if (error.details) console.error('Детали:', error.details);
+        if (error.hint) console.error('Подсказка:', error.hint);
+        if (error.code) console.error('Код ошибки:', error.code);
+        
     } finally {
         // Разблокируем кнопку
         if (submitBtn) {
