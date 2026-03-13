@@ -87,6 +87,145 @@ async function initAdminPage() {
 }
 
 // ============================================
+// ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ
+// ============================================
+
+async function addUser() {
+    console.log('➕ Попытка добавления пользователя');
+    
+    // Получаем значения из формы
+    const nameInput = document.getElementById('newUserName');
+    const emailInput = document.getElementById('newUserEmail');
+    const passwordInput = document.getElementById('newUserPassword');
+    const roleSelect = document.getElementById('newUserRole');
+    
+    const name = nameInput ? nameInput.value.trim() : '';
+    const email = emailInput ? emailInput.value.trim() : '';
+    const password = passwordInput ? passwordInput.value.trim() : '';
+    const role = roleSelect ? roleSelect.value : 'user';
+    
+    // Валидация
+    if (!name) {
+        showNotification('Введите имя пользователя', 'error');
+        return;
+    }
+    
+    if (!email) {
+        showNotification('Введите email', 'error');
+        return;
+    }
+    
+    if (!validateEmail(email)) {
+        showNotification('Введите корректный email', 'error');
+        return;
+    }
+    
+    if (!password) {
+        showNotification('Введите пароль', 'error');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showNotification('Пароль должен содержать минимум 6 символов', 'error');
+        return;
+    }
+    
+    try {
+        // Показываем индикатор загрузки
+        const addBtn = document.querySelector('#addUserForm .btn-save');
+        const originalText = addBtn ? addBtn.textContent : 'Сохранить';
+        if (addBtn) {
+            addBtn.disabled = true;
+            addBtn.textContent = 'Сохранение...';
+        }
+        
+        // Проверяем, существует ли пользователь
+        const exists = await DB_MANAGER.userExists(email);
+        
+        if (exists) {
+            showNotification('Пользователь с таким email уже существует', 'error');
+            return;
+        }
+        
+        // Добавляем пользователя
+        const result = await DB_MANAGER.addUser({
+            name: name,
+            email: email,
+            password: password,
+            role: role
+        });
+        
+        console.log('✅ Результат добавления:', result);
+        
+        if (result && (result.success || result.id)) {
+            showNotification('✅ Пользователь успешно добавлен', 'success');
+            
+            // Очищаем форму
+            nameInput.value = '';
+            emailInput.value = '';
+            passwordInput.value = '';
+            roleSelect.value = 'user';
+            
+            // Скрываем форму добавления
+            hideAddUserForm();
+            
+            // Обновляем таблицу
+            await DB_MANAGER.loadDatabase();
+            loadUsers();
+            updateStats();
+            
+        } else {
+            throw new Error('Не удалось добавить пользователя');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка добавления пользователя:', error);
+        showNotification('❌ Ошибка: ' + error.message, 'error');
+    } finally {
+        // Возвращаем кнопку в исходное состояние
+        const addBtn = document.querySelector('#addUserForm .btn-save');
+        if (addBtn) {
+            addBtn.disabled = false;
+            addBtn.textContent = '💾 Сохранить';
+        }
+    }
+}
+
+// ============================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================
+
+function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(String(email).toLowerCase());
+}
+
+// ============================================
+// УПРАВЛЕНИЕ ФОРМОЙ ДОБАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯ
+// ============================================
+
+function showAddUserForm() {
+    const form = document.getElementById('addUserForm');
+    if (form) {
+        form.style.display = 'block';
+        // Прокручиваем к форме
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function hideAddUserForm() {
+    const form = document.getElementById('addUserForm');
+    if (form) {
+        form.style.display = 'none';
+        // Очищаем форму
+        document.getElementById('newUserName').value = '';
+        document.getElementById('newUserEmail').value = '';
+        document.getElementById('newUserPassword').value = '';
+        document.getElementById('newUserRole').value = 'user';
+    }
+}
+
+// ============================================
 // СТИЛИЗОВАННОЕ ОКНО ПОДТВЕРЖДЕНИЯ
 // ============================================
 
