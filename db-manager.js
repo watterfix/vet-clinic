@@ -153,11 +153,16 @@ const DB_MANAGER = {
         return this.currentData.users.some(u => u.email === email);
     },
 
-    async addUser(userData) {
-        await this.waitForInit();
-        
+    // ============================================
+// ПОЛЬЗОВАТЕЛИ - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// ============================================
+
+async addUser(userData) {
+    await this.waitForInit();
+    console.log('➕ Добавление пользователя:', userData);
+    
+    try {
         const newUser = {
-            id: userData.email,
             email: userData.email,
             name: userData.name,
             password: userData.password,
@@ -165,18 +170,37 @@ const DB_MANAGER = {
             registered: new Date().toISOString()
         };
 
-        this.currentData.users.push(newUser);
-        
-        if (this.supabase) {
-            try {
-                await this.supabase.from('users').insert([newUser]);
-            } catch (error) {
-                console.error('Ошибка сохранения в Supabase:', error);
-            }
+        // Сохраняем в Supabase
+        const { data, error } = await this.supabase
+            .from('users')
+            .insert([newUser])
+            .select();
+
+        if (error) {
+            console.error('❌ Ошибка Supabase:', error);
+            throw error;
+        }
+
+        console.log('✅ Ответ Supabase:', data);
+
+        if (data && data[0]) {
+            // Добавляем в локальные данные
+            this.currentData.users.push(data[0]);
+            
+            // Отправляем сигнал об обновлении
+            this.broadcastUpdate();
+            
+            console.log('✅ Пользователь добавлен, ID:', data[0].id);
+            return { success: true, user: data[0] };
+        } else {
+            throw new Error('Нет данных в ответе Supabase');
         }
         
-        return newUser;
-    },
+    } catch (error) {
+        console.error('❌ Ошибка при добавлении пользователя:', error);
+        return { success: false, error: error.message };
+    }
+},
 
     async updateUser(email, userData) {
         const index = this.currentData.users.findIndex(u => u.email === email);
