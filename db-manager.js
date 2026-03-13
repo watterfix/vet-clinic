@@ -252,8 +252,11 @@ const DB_MANAGER = {
         return null;
     },
 
-    // Обновление товара (найдите эту функцию и замените)
-async function updateProduct(id, productData) {
+    // ============================================
+// МЕТОДЫ ДЛЯ ТОВАРОВ
+// ============================================
+
+async updateProduct(id, productData) {
     await this.waitForInit();
     
     const { data, error } = await this.supabase
@@ -269,7 +272,7 @@ async function updateProduct(id, productData) {
         this.currentData.products[index] = data[0];
     }
     
-    // Отправляем сигнал об обновлении цен на всех страницах
+    // Отправляем сигнал об обновлении цен
     this.broadcastPriceUpdate();
     
     return data ? data[0] : null;
