@@ -1,4 +1,4 @@
-const SCRIPT_VERSION = '7';
+const SCRIPT_VERSION = '10';
 
 console.log('📜 script.js загружен (версия', SCRIPT_VERSION + ')');
 
@@ -124,7 +124,6 @@ function createCartButton() {
     }
 }
 
-// Функция создания модального окна авторизации
 function createAuthModal() {
     if (document.getElementById('authModal')) return;
 
@@ -339,14 +338,12 @@ async function processOrder() {
     }
 
     const order = {
-        orderNumber: generateOrderNumber(),
         user: currentUser.email,
         userName: currentUser.name,
-        items: [...cart],
+        items: cart,
         delivery: isDelivery ? 'delivery' : 'pickup',
         deliveryCost: isDelivery ? (total >= 3000 ? 0 : 300) : 0,
-        total: total + (isDelivery ? (total >= 3000 ? 0 : 300) : 0),
-        date: new Date().toISOString()
+        total: total + (isDelivery ? (total >= 3000 ? 0 : 300) : 0)
     };
 
     if (isDelivery) {
@@ -364,7 +361,6 @@ async function processOrder() {
         showStyledAlert(`
             <div style="text-align: center;">
                 <h2 style="color: #2c6e49;">Заказ оформлен!</h2>
-                <p>Номер заказа: <strong>#${order.orderNumber}</strong></p>
                 <p>Сумма: ${order.total} ₽</p>
             </div>
         `);
@@ -373,6 +369,7 @@ async function processOrder() {
             displayCart();
         }
     } catch (error) {
+        console.error('Ошибка заказа:', error);
         showNotification('Ошибка при оформлении заказа', 'error');
     }
 }
@@ -398,8 +395,12 @@ async function updatePrice(productId) {
     
     const newPrice = document.getElementById(`price-${productId}`).value;
     if (newPrice && newPrice > 0) {
-        await DB_MANAGER.updateProduct(productId, { price: parseInt(newPrice) });
-        showNotification('Цена обновлена');
+        try {
+            await DB_MANAGER.updateProduct(productId, { price: parseInt(newPrice) });
+            showNotification('Цена обновлена');
+        } catch (error) {
+            showNotification('Ошибка обновления цены', 'error');
+        }
     }
 }
 
@@ -438,6 +439,7 @@ function switchAuthTab(tab) {
     }
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ РЕГИСТРАЦИИ
 async function register(event) {
     event.preventDefault();
     
@@ -445,50 +447,109 @@ async function register(event) {
     const email = document.getElementById('regEmail').value;
     const password = document.getElementById('regPassword').value;
 
-    if (!validateName(name) || !validateEmail(email) || password.length < 6) {
-        showNotification('Проверьте введенные данные', 'error');
+    if (!validateName(name)) {
+        showNotification('Имя должно содержать от 2 до 30 символов', 'error');
+        return;
+    }
+    
+    if (!validateEmail(email)) {
+        showNotification('Введите корректный email', 'error');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showNotification('Пароль должен содержать не менее 6 символов', 'error');
         return;
     }
 
     try {
-        await DB_MANAGER.loadDatabase();
+        // Ждем инициализацию DB_MANAGER
+        await DB_MANAGER.waitForInit();
         
-        if (DB_MANAGER.userExists(email)) {
-            showNotification('Email уже существует', 'error');
+        // Проверяем, существует ли пользователь
+        const exists = await DB_MANAGER.userExists(email);
+        
+        if (exists) {
+            showNotification('Пользователь с таким email уже существует', 'error');
             return;
         }
         
-        await DB_MANAGER.addUser({ name, email, password, role: 'user' });
+        // Регистрируем нового пользователя
+        await DB_MANAGER.addUser({
+            name: name,
+            email: email,
+            password: password,
+            role: 'user'
+        });
         
-        showNotification('Регистрация успешна!', 'success');
+        showNotification('Регистрация успешна! Теперь можно войти.', 'success');
+        
+        // Очищаем форму
+        document.getElementById('regName').value = '';
+        document.getElementById('regEmail').value = '';
+        document.getElementById('regPassword').value = '';
+        
+        // Переключаем на вкладку входа
         switchAuthTab('login');
+        
     } catch (error) {
-        showNotification('Ошибка регистрации', 'error');
+        console.error('Ошибка регистрации:', error);
+        showNotification('Ошибка при регистрации', 'error');
     }
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ ВХОДА
 async function login(event) {
     event.preventDefault();
     
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
 
+    console.log('🔐 Попытка входа:', email);
+
     try {
+        // Ждем инициализацию DB_MANAGER
+        await DB_MANAGER.waitForInit();
+        
+        // Загружаем свежие данные
         await DB_MANAGER.loadDatabase();
         
-        const user = DB_MANAGER.getUserByEmail(email);
+        // Ищем пользователя
+        const user = DB_MANAGER.currentData.users.find(u => u.email === email);
         
-        if (user && user.password === password) {
-            currentUser = { email: user.email, name: user.name, role: user.role };
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            closeAuthModal();
-            updateUI();
-            showNotification(`Добро пожаловать, ${user.name}!`, 'success');
+        if (user) {
+            console.log('✅ Пользователь найден:', user.email);
+            
+            if (user.password === password) {
+                currentUser = {
+                    email: user.email,
+                    name: user.name,
+                    role: user.role
+                };
+
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                closeAuthModal();
+                updateUI();
+                
+                showNotification(`Добро пожаловать, ${user.name}!`, 'success');
+                
+                // Очищаем форму
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
+                
+            } else {
+                console.log('❌ Неверный пароль');
+                showNotification('Неверный пароль!', 'error');
+            }
         } else {
-            showNotification('Неверный email или пароль', 'error');
+            console.log('❌ Пользователь не найден');
+            showNotification('Пользователь не найден!', 'error');
         }
+        
     } catch (error) {
-        showNotification('Ошибка входа', 'error');
+        console.error('❌ Ошибка входа:', error);
+        showNotification('Ошибка при входе в систему', 'error');
     }
 }
 
@@ -511,7 +572,11 @@ function addToCart(name, price) {
         showNotification('Администратор не может покупать', 'error');
         return;
     }
-    cart.push({ name, price, id: Date.now() });
+    cart.push({ 
+        name, 
+        price, 
+        id: Date.now() + Math.random()
+    });
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
     showNotification('Товар добавлен в корзину');
@@ -530,9 +595,9 @@ async function initialize() {
     
     console.log('Инициализация...');
     
-    // Загружаем данные с JSONBin
+    // Ждем инициализацию DB_MANAGER
     if (window.DB_MANAGER) {
-        await DB_MANAGER.loadDatabase();
+        await DB_MANAGER.waitForInit();
     }
     
     currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
@@ -540,6 +605,8 @@ async function initialize() {
     
     createAuthModal();
     updateUI();
+    
+    console.log('✅ Инициализация завершена');
 }
 
 document.addEventListener('DOMContentLoaded', initialize);
