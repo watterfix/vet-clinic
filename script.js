@@ -707,6 +707,22 @@ async function register(event) {
         }
     }
 }
+
+// Добавьте в script.js
+function showFormMessage(formId, message, type = 'success') {
+    const messageDiv = document.getElementById(formId);
+    if (messageDiv) {
+        messageDiv.textContent = message;
+        messageDiv.className = `form-message ${type}`;
+        messageDiv.style.display = 'block';
+        
+        // Автоматически скрываем через 3 секунды
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+        }, 3000);
+    }
+}
+
 // Функция для принудительного обновления данных в других вкладках
 function broadcastUpdate() {
     // Сохраняем временную метку в localStorage
