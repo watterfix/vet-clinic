@@ -31,11 +31,11 @@
             </div>
 
             <div class="export-buttons" style="display: none;">
-                <button onclick="exportDatabase()" class="btn-export">📥 Экспортировать БД</button>
-                <button onclick="triggerFileInput()" class="btn-export">📤 Импортировать БД</button>
+                <button onclick="exportDatabase()" class="btn-export">📥 Экспорт</button>
+                <button onclick="triggerFileInput()" class="btn-export">📤 Импорт</button>
                 <button onclick="refreshData()" class="btn-export">🔄 Обновить</button>
-                <button onclick="createBackup()" class="btn-export">💾 Создать бэкап</button>
-                <button onclick="resetDatabase()" class="btn-export danger">⚠️ Сбросить</button>
+                <button onclick="createBackup()" class="btn-export">💾 Бэкап</button>
+                <button onclick="resetDatabase()" class="btn-export danger">⚠️ Сброс</button>
             </div>
 
             <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="importDatabase(this.files[0])">
@@ -56,7 +56,7 @@
                 <button class="db-tab" onclick="switchTab('products')">📦 Товары</button>
                 <button class="db-tab" onclick="switchTab('orders')">📋 Заказы</button>
                 <button class="db-tab" onclick="switchTab('messages')">💬 Сообщения</button>
-                <button class="db-tab" onclick="switchTab('backups')">💾 Резервные копии</button>
+                <button class="db-tab" onclick="switchTab('backups')">💾 Бэкапы</button>
             </div>
 
             <!-- Панель пользователей -->
@@ -67,7 +67,7 @@
                     <input type="text" id="userSearch" placeholder="🔍 Поиск по имени или email..." onkeyup="searchUsers()">
                 </div>
 
-                <button onclick="showAddUserForm()" class="btn-add">➕ Добавить пользователя</button>
+                <button onclick="showAddUserForm()" class="btn-add">➕ Добавить</button>
 
                 <div id="addUserForm" class="add-form" style="display: none;">
                     <h3>Добавление нового пользователя</h3>
@@ -83,8 +83,8 @@
                         </select>
                     </div>
                     <div class="form-row">
-                        <button onclick="addUser()" class="btn-save">Сохранить</button>
-                        <button onclick="hideAddUserForm()" class="btn-delete">Отмена</button>
+                        <button onclick="addUser()" class="btn-save">💾 Сохранить</button>
+                        <button onclick="hideAddUserForm()" class="btn-delete">✖ Отмена</button>
                     </div>
                 </div>
 
@@ -114,7 +114,7 @@
                     <input type="text" id="productSearch" placeholder="🔍 Поиск по названию..." onkeyup="searchProducts()">
                 </div>
 
-                <button onclick="showAddProductForm()" class="btn-add">➕ Добавить товар</button>
+                <button onclick="showAddProductForm()" class="btn-add">➕ Добавить</button>
 
                 <div id="addProductForm" class="add-form" style="display: none;">
                     <h3>Добавление нового товара</h3>
@@ -125,18 +125,18 @@
                     <div class="form-row">
                         <input type="number" id="newProductPrice" placeholder="Цена" min="0">
                         <select id="newProductCategory">
-                            <option value="food">🍖 Корма</option>
-                            <option value="medicine">💊 Лекарства</option>
-                            <option value="accessories">🪀 Аксессуары</option>
-                            <option value="hygiene">🧼 Гигиена</option>
+                            <option value="food">Корма</option>
+                            <option value="medicine">Лекарства</option>
+                            <option value="accessories">Аксессуары</option>
+                            <option value="hygiene">Гигиена</option>
                         </select>
                     </div>
                     <div class="form-row">
                         <input type="text" id="newProductDescription" placeholder="Описание товара">
                     </div>
                     <div class="form-row">
-                        <button onclick="addProduct()" class="btn-save">Сохранить</button>
-                        <button onclick="hideAddProductForm()" class="btn-delete">Отмена</button>
+                        <button onclick="addProduct()" class="btn-save">💾 Сохранить</button>
+                        <button onclick="hideAddProductForm()" class="btn-delete">✖ Отмена</button>
                     </div>
                 </div>
 
@@ -164,7 +164,7 @@
                 <h2>📋 Управление заказами</h2>
 
                 <div class="search-box">
-                    <input type="text" id="orderSearch" placeholder="🔍 Поиск по номеру заказа или email..." onkeyup="searchOrders()">
+                    <input type="text" id="orderSearch" placeholder="🔍 Поиск по номеру или email..." onkeyup="searchOrders()">
                 </div>
 
                 <div class="table-container">
@@ -176,6 +176,7 @@
                                 <th>Пользователь</th>
                                 <th>Сумма</th>
                                 <th>Доставка</th>
+                                <th>Адрес</th>
                                 <th>Товаров</th>
                                 <th>Действия</th>
                             </tr>
@@ -189,7 +190,7 @@
 
             <!-- Панель сообщений -->
             <div id="messagesPanel" class="db-panel" style="display: none;">
-                <h2>💬 Сообщения с формы обратной связи</h2>
+                <h2>💬 Сообщения</h2>
 
                 <div class="table-container">
                     <table class="db-table" id="messagesTable">
@@ -216,8 +217,8 @@
                 <h2>💾 Резервные копии</h2>
 
                 <div class="export-buttons">
-                    <button onclick="createBackup()" class="btn-export">📀 Создать резервную копию</button>
-                    <button onclick="restoreFromBackup()" class="btn-export">🔄 Восстановить из последней</button>
+                    <button onclick="createBackup()" class="btn-export">📀 Создать</button>
+                    <button onclick="restoreFromBackup()" class="btn-export">🔄 Восстановить</button>
                 </div>
 
                 <div id="backupsList" class="backup-list">
@@ -232,16 +233,16 @@
         <p>📞 т. 222-22-22 | 📍 г. Воронеж, ул. Ветеринарная, д. 15</p>
     </footer>
 
-        <!-- Supabase SDK (всегда первый) -->
+    <!-- Supabase SDK (всегда первый) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <!-- DB Manager (второй, так как от него зависят другие) -->
-    <script src="db-manager.js?v=16"></script>
+    <script src="db-manager.js?v=17"></script>
     
     <!-- Основной скрипт (третий) -->
-    <script src="script.js?v=16"></script>
+    <script src="script.js?v=17"></script>
     
-    <!-- Админ-панель (последний, только если нужен) -->
-    <script src="db-viewer.js?v=16"></script>
+    <!-- Админ-панель (последний) -->
+    <script src="db-viewer.js?v=17"></script>
 </body>
 </html>
