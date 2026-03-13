@@ -3,8 +3,8 @@
 // ============================================
 
 // ВСТАВЬТЕ СВОИ ДАННЫЕ ИЗ SUPABASE
-const SUPABASE_URL = 'https://ваш-проект.supabase.co';
-const SUPABASE_KEY = 'ваш-anon-ключ';
+const SUPABASE_URL = 'https://ehksdceuihjnzbqdztog.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_K1dDdxBKQ_04yOqwkfCxsw_JyiHlkxW';
 
 const DB_MANAGER = {
     supabase: null,
