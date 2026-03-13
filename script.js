@@ -845,11 +845,22 @@ async function initialize() {
     if (isInitialized) return;
     isInitialized = true;
     
-    console.log('Инициализация...');
+    console.log('🔄 Инициализация...');
     
-    // Ждем инициализацию DB_MANAGER
+    // Ждем DB_MANAGER
+    await waitForDBManager();
+    
+    // Теперь проверяем наличие DB_MANAGER
     if (window.DB_MANAGER) {
-        await DB_MANAGER.waitForInit();
+        console.log('✅ DB_MANAGER найден');
+        try {
+            await DB_MANAGER.waitForInit();
+            console.log('✅ DB_MANAGER инициализирован');
+        } catch (error) {
+            console.error('❌ Ошибка инициализации DB_MANAGER:', error);
+        }
+    } else {
+        console.warn('⚠️ DB_MANAGER не найден, работа в автономном режиме');
     }
     
     currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
@@ -857,19 +868,6 @@ async function initialize() {
     
     createAuthModal();
     updateUI();
-    
-    // Добавляем обработчик для обновления данных при фокусе на вкладке
-    window.addEventListener('focus', async function() {
-        if (window.location.pathname.includes('db-viewer.html')) {
-            console.log('👁️ Вкладка получила фокус, обновляем данные...');
-            await DB_MANAGER.loadDatabase();
-            if (typeof loadUsers === 'function') loadUsers();
-            if (typeof loadProducts === 'function') loadProducts();
-            if (typeof loadOrders === 'function') loadOrders();
-            if (typeof loadMessages === 'function') loadMessages();
-            if (typeof updateStats === 'function') updateStats();
-        }
-    });
     
     console.log('✅ Инициализация завершена');
 }
