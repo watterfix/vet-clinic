@@ -263,40 +263,34 @@ const DB_MANAGER = {
     // ЗАКАЗЫ
     // ============================================
 
-    async addOrder(orderData) {
-        await this.waitForInit();
+    // ЗАМЕНИТЕ функцию addOrder в db-manager.js на эту
+async addOrder(orderData) {
+    await this.waitForInit();
 
-        // Генерируем номер заказа
-        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        const numbers = '0123456789';
-        let orderNumber = '';
-        for (let i = 0; i < 2; i++) orderNumber += letters[Math.floor(Math.random() * letters.length)];
-        for (let i = 0; i < 4; i++) orderNumber += numbers[Math.floor(Math.random() * numbers.length)];
+    const { data, error } = await this.supabase
+        .from('orders')
+        .insert([{
+            order_number: orderData.orderNumber, // Сохраняем сгенерированный номер
+            user_email: orderData.user,
+            user_name: orderData.userName,
+            items: orderData.items,
+            delivery: orderData.delivery,
+            delivery_address: orderData.deliveryAddress || null,
+            delivery_phone: orderData.deliveryPhone || null,
+            delivery_cost: orderData.deliveryCost || 0,
+            total: orderData.total,
+            date: orderData.date || new Date().toISOString()
+        }])
+        .select();
 
-        const { data, error } = await this.supabase
-            .from('orders')
-            .insert([{
-                order_number: orderNumber,
-                user_email: orderData.user,
-                user_name: orderData.userName,
-                items: orderData.items,
-                delivery: orderData.delivery,
-                delivery_address: orderData.deliveryAddress,
-                delivery_phone: orderData.deliveryPhone,
-                delivery_cost: orderData.deliveryCost || 0,
-                total: orderData.total,
-                date: new Date().toISOString()
-            }])
-            .select();
-
-        if (error) throw error;
-        
-        if (data && data[0]) {
-            this.currentData.orders.unshift(data[0]);
-            return data[0];
-        }
-        return null;
-    },
+    if (error) throw error;
+    
+    if (data && data[0]) {
+        this.currentData.orders.unshift(data[0]);
+        return data[0];
+    }
+    return null;
+},
 
     async deleteOrder(orderId) {
         await this.waitForInit();
