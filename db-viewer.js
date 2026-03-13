@@ -11,10 +11,8 @@ let adminCurrentUser = null;
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM загружен, инициализация админ-панели...');
     
-    // Даем время на загрузку DB_MANAGER
-    setTimeout(() => {
-        initAdminPage();
-    }, 500);
+    // Ждем инициализацию DB_MANAGER
+    initAdminPage();
 });
 
 // Функция инициализации с проверками
@@ -30,16 +28,19 @@ async function initAdminPage() {
     
     console.log('✅ DB_MANAGER найден');
     
+    // Ждем инициализацию DB_MANAGER
+    await DB_MANAGER.waitForInit();
+    
     // Проверяем права администратора
     if (!checkAdminAccess()) {
         return;
     }
     
     // Показываем загрузку
-    showAdminLoading('Загрузка данных с JSONBin...');
+    showAdminLoading('Загрузка данных...');
     
     try {
-        // Загружаем данные
+        // Загружаем данные (еще раз для надежности)
         await DB_MANAGER.loadDatabase();
         console.log('✅ Данные загружены успешно');
         
@@ -69,6 +70,8 @@ async function initAdminPage() {
         showAdminError('Ошибка загрузки данных: ' + error.message);
     }
 }
+
+// ... остальной код db-viewer.js без изменений ...
 
 // Показать сообщение об ошибке
 function showAdminError(message) {
