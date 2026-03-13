@@ -1,41 +1,6 @@
 // ============================================
 // СКРИПТ ДЛЯ УПРАВЛЕНИЯ БАЗОЙ ДАННЫХ (db-viewer)
 // ============================================
-// В начало файла добавьте:
-console.log('📊 db-viewer.js загружен');
-
-// Функция ожидания DB_MANAGER
-function waitForDBManager() {
-    return new Promise((resolve) => {
-        if (window.DB_MANAGER && DB_MANAGER.isInitialized) {
-            resolve();
-        } else {
-            let attempts = 0;
-            const interval = setInterval(() => {
-                attempts++;
-                if (window.DB_MANAGER && DB_MANAGER.isInitialized) {
-                    clearInterval(interval);
-                    resolve();
-                } else if (attempts > 50) {
-                    clearInterval(interval);
-                    console.error('❌ DB_MANAGER не инициализирован');
-                    resolve();
-                }
-            }, 100);
-        }
-    });
-}
-
-// Ждем загрузки DOM и всех скриптов
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('DOM загружен, ожидание DB_MANAGER...');
-    
-    // Ждем DB_MANAGER
-    await waitForDBManager();
-    
-    // Даем еще немного времени
-    setTimeout(initAdminPage, 500);
-});
 
 console.log('📊 db-viewer.js загружен');
 
@@ -50,38 +15,52 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(initAdminPage, 500);
 });
 
-// Функция инициализации с проверками
+// Функция инициализации
 async function initAdminPage() {
     console.log('Инициализация админ-панели...');
+    
+    const adminCheck = document.getElementById('adminCheck');
+    if (!adminCheck) return;
+    
+    adminCheck.style.display = 'block';
+    adminCheck.innerHTML = '⏳ Проверка подключения...';
+    adminCheck.style.backgroundColor = '#ffc107';
+    adminCheck.style.color = '#1e4d2f';
     
     // Проверяем наличие DB_MANAGER
     if (typeof DB_MANAGER === 'undefined') {
         console.error('❌ DB_MANAGER не загружен!');
-        showAdminError('Ошибка загрузки менеджера БД. Проверьте подключение скриптов.');
+        adminCheck.innerHTML = '❌ Ошибка: DB_MANAGER не загружен';
+        adminCheck.style.backgroundColor = '#dc3545';
+        adminCheck.style.color = 'white';
         return;
     }
     
-    console.log('✅ DB_MANAGER найден');
-    
     try {
-        // Проверяем статус DB_MANAGER
-        const status = DB_MANAGER.getStatus();
-        console.log('Статус DB_MANAGER:', status);
-        
         // Ждем инициализацию
         await DB_MANAGER.waitForInit();
         
         // Проверяем права администратора
-        if (!checkAdminAccess()) {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        
+        if (!currentUser) {
+            adminCheck.innerHTML = '⚠️ Необходимо войти в систему!';
+            adminCheck.style.backgroundColor = '#dc3545';
+            adminCheck.style.color = 'white';
             return;
         }
         
-        // Показываем загрузку
-        showAdminLoading('Загрузка данных...');
+        if (currentUser.role !== 'admin') {
+            adminCheck.innerHTML = '⚠️ Доступ запрещен! Только администратор';
+            adminCheck.style.backgroundColor = '#dc3545';
+            adminCheck.style.color = 'white';
+            return;
+        }
+        
+        adminCheck.innerHTML = '⏳ Загрузка данных...';
         
         // Загружаем данные
-        const data = await DB_MANAGER.loadDatabase();
-        console.log('✅ Данные загружены успешно:', data);
+        await DB_MANAGER.loadDatabase();
         
         // Загружаем все панели
         loadUsers();
@@ -91,85 +70,27 @@ async function initAdminPage() {
         updateStats();
         loadBackups();
         
-        console.log('✅ Админ-панель инициализирована');
-        
         // Показываем интерфейс
         document.querySelectorAll('.db-panel, .export-buttons, .import-area, .db-tabs').forEach(el => {
             if (el) el.style.display = '';
         });
         
-        // Скрываем сообщение о загрузке
-        const adminCheck = document.getElementById('adminCheck');
-        if (adminCheck) {
-            adminCheck.style.display = 'none';
-        }
+        adminCheck.style.display = 'none';
+        console.log('✅ Админ-панель готова');
         
     } catch (error) {
-        console.error('❌ Ошибка инициализации:', error);
-        showAdminError('Ошибка инициализации: ' + error.message);
-    }
-}
-
-// Показать сообщение об ошибке
-function showAdminError(message) {
-    const adminCheck = document.getElementById('adminCheck');
-    if (adminCheck) {
-        adminCheck.style.display = 'block';
-        adminCheck.innerHTML = `❌ ${message}`;
+        console.error('❌ Ошибка:', error);
+        adminCheck.innerHTML = `❌ Ошибка: ${error.message}`;
         adminCheck.style.backgroundColor = '#dc3545';
         adminCheck.style.color = 'white';
-        adminCheck.style.borderColor = '#dc3545';
     }
 }
 
-// Показать сообщение о загрузке
-function showAdminLoading(message) {
-    const adminCheck = document.getElementById('adminCheck');
-    if (adminCheck) {
-        adminCheck.style.display = 'block';
-        adminCheck.innerHTML = `⏳ ${message}`;
-        adminCheck.style.backgroundColor = '#ffc107';
-        adminCheck.style.color = '#1e4d2f';
-        adminCheck.style.borderColor = '#ffc107';
-    }
-}
+// ============================================
+// ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
+// ============================================
 
-// Проверка прав администратора
-function checkAdminAccess() {
-    const adminCheck = document.getElementById('adminCheck');
-    if (!adminCheck) {
-        console.error('❌ Элемент adminCheck не найден');
-        return false;
-    }
-
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    console.log('Текущий пользователь:', currentUser);
-
-    if (!currentUser) {
-        adminCheck.style.display = 'block';
-        adminCheck.innerHTML = '⚠️ Необходимо войти в систему!';
-        adminCheck.style.backgroundColor = '#dc3545';
-        adminCheck.style.color = 'white';
-        adminCheck.style.borderColor = '#dc3545';
-        return false;
-    }
-
-    if (currentUser.role !== 'admin') {
-        adminCheck.style.display = 'block';
-        adminCheck.innerHTML = '⚠️ Доступ запрещен! Только администратор может просматривать эту страницу.';
-        adminCheck.style.backgroundColor = '#dc3545';
-        adminCheck.style.color = 'white';
-        adminCheck.style.borderColor = '#dc3545';
-        return false;
-    }
-
-    return true;
-}
-
-// Переключение вкладок
 function switchTab(tabName) {
-    if (!checkAdminAccess()) return;
-
     document.querySelectorAll('.db-tab').forEach(tab => {
         tab.classList.remove('active');
     });
@@ -182,7 +103,6 @@ function switchTab(tabName) {
     const panel = document.getElementById(tabName + 'Panel');
     if (panel) panel.classList.add('active');
 
-    // Загружаем данные для соответствующей вкладки
     switch (tabName) {
         case 'users':
             loadUsers();
@@ -206,7 +126,6 @@ function switchTab(tabName) {
 // УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ
 // ============================================
 
-// Загрузка пользователей
 function loadUsers() {
     const tbody = document.getElementById('usersTableBody');
     if (!tbody) return;
@@ -232,8 +151,7 @@ function loadUsers() {
                 <td><span class="role-badge ${roleClass}">${roleText}</span></td>
                 <td>${registered}</td>
                 <td class="action-buttons">
-                    <button onclick="editUser('${user.email}')" class="btn-edit">✏️ Ред.</button>
-                    <button onclick="deleteUser('${user.email}')" class="btn-delete" ${user.email === 'admin@vetclinic.ru' ? 'disabled' : ''}>🗑️ Удал.</button>
+                    <button onclick="deleteUser('${user.email}')" class="btn-delete" ${user.email === 'admin@vetclinic.ru' ? 'disabled' : ''}>🗑️ Удалить</button>
                 </td>
             </tr>
         `;
@@ -242,7 +160,6 @@ function loadUsers() {
     tbody.innerHTML = html;
 }
 
-// Поиск пользователей
 function searchUsers() {
     const searchText = document.getElementById('userSearch').value.toLowerCase();
     const rows = document.querySelectorAll('#usersTableBody tr');
@@ -253,147 +170,29 @@ function searchUsers() {
     });
 }
 
-// Показать форму добавления пользователя
-function showAddUserForm() {
-    document.getElementById('addUserForm').style.display = 'block';
-}
-
-// Скрыть форму добавления пользователя
-function hideAddUserForm() {
-    document.getElementById('addUserForm').style.display = 'none';
-}
-
-// Добавление пользователя
-async function addUser() {
-    const name = document.getElementById('newUserName').value;
-    const email = document.getElementById('newUserEmail').value;
-    const password = document.getElementById('newUserPassword').value;
-    const role = document.getElementById('newUserRole').value;
-
-    if (!name || !email || !password) {
-        showNotification('Заполните все поля!', 'error');
-        return;
-    }
-
-    try {
-        const users = DB_MANAGER.currentData?.users || [];
-        if (users.some(u => u.email === email)) {
-            showNotification('Пользователь с таким email уже существует!', 'error');
-            return;
-        }
-
-        const result = await DB_MANAGER.addUser({
-            name: name,
-            email: email,
-            password: password,
-            role: role
-        });
-
-        if (result) {
-            showNotification('Пользователь добавлен!', 'success');
-            hideAddUserForm();
-            loadUsers();
-            updateStats();
-
-            document.getElementById('newUserName').value = '';
-            document.getElementById('newUserEmail').value = '';
-            document.getElementById('newUserPassword').value = '';
-        }
-    } catch (error) {
-        console.error('Ошибка добавления пользователя:', error);
-        showNotification('Ошибка при добавлении пользователя', 'error');
-    }
-}
-
-// Редактирование пользователя
-function editUser(email) {
-    const safeEmail = email.replace(/[@.]/g, '_');
-    const row = document.getElementById(`user-${safeEmail}`);
-    const user = DB_MANAGER.currentData?.users.find(u => u.email === email);
-
-    if (!user) return;
-
-    row.innerHTML = `
-        <td>${email}</td>
-        <td><input type="text" id="edit-name-${safeEmail}" value="${user.name}" class="edit-input"></td>
-        <td>
-            <select id="edit-role-${safeEmail}" class="edit-input">
-                <option value="user" ${user.role === 'user' ? 'selected' : ''}>Пользователь</option>
-                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Администратор</option>
-            </select>
-        </td>
-        <td>
-            <input type="password" id="edit-password-${safeEmail}" value="" class="edit-input" placeholder="Новый пароль">
-        </td>
-        <td class="action-buttons">
-            <button onclick="saveUserEdit('${email}')" class="btn-save">💾 Сохр.</button>
-            <button onclick="cancelUserEdit('${email}')" class="btn-delete">✖ Отм.</button>
-        </td>
-    `;
-}
-
-// Сохранение редактирования пользователя
-async function saveUserEdit(email) {
-    const safeEmail = email.replace(/[@.]/g, '_');
-    const newName = document.getElementById(`edit-name-${safeEmail}`).value;
-    const newRole = document.getElementById(`edit-role-${safeEmail}`).value;
-    const newPassword = document.getElementById(`edit-password-${safeEmail}`).value;
-
-    const updateData = {
-        name: newName,
-        role: newRole
-    };
-
-    if (newPassword) {
-        updateData.password = newPassword;
-    }
-
-    try {
-        const result = await DB_MANAGER.updateUser(email, updateData);
-        if (result) {
-            showNotification('Пользователь обновлен', 'success');
-            loadUsers();
-        }
-    } catch (error) {
-        console.error('Ошибка обновления пользователя:', error);
-        showNotification('Ошибка при обновлении', 'error');
-    }
-}
-
-// Отмена редактирования пользователя
-function cancelUserEdit(email) {
-    loadUsers();
-}
-
-// Удаление пользователя
 async function deleteUser(email) {
     if (email === 'admin@vetclinic.ru') {
-        showDbNotification('Нельзя удалить главного администратора!', 'error');
+        showNotification('Нельзя удалить главного администратора!', 'error');
         return;
     }
 
-    showConfirmDialog(`Удалить пользователя ${email}?`, async () => {
+    if (confirm(`Удалить пользователя ${email}?`)) {
         try {
-            const result = await DB_MANAGER.deleteUser(email);
-            if (result) {
-                showDbNotification('Пользователь удален', 'success');
-                loadUsers();
-                updateStats();
-            } else {
-                showDbNotification('Ошибка при удалении', 'error');
-            }
+            await DB_MANAGER.deleteUser(email);
+            showNotification('Пользователь удален', 'success');
+            loadUsers();
+            updateStats();
         } catch (error) {
             console.error('Ошибка удаления:', error);
-            showDbNotification('Ошибка при удалении', 'error');
+            showNotification('Ошибка при удалении', 'error');
         }
-    });
+    }
 }
 
 // ============================================
 // УПРАВЛЕНИЕ ТОВАРАМИ
 // ============================================
 
-// Загрузка товаров
 function loadProducts() {
     const tbody = document.getElementById('productsTableBody');
     if (!tbody) return;
@@ -413,7 +212,7 @@ function loadProducts() {
         html += `
             <tr id="product-${product.id}">
                 <td><code>${product.id}</code></td>
-                <td><strong>${product.name}</strong></td>
+                <td>${product.name}</td>
                 <td><strong style="color: #2c6e49;">${product.price} ₽</strong></td>
                 <td><span class="category-badge ${categoryClass}">${categoryName}</span></td>
                 <td>${product.description || '—'}</td>
@@ -428,7 +227,6 @@ function loadProducts() {
     tbody.innerHTML = html;
 }
 
-// Поиск товаров
 function searchProducts() {
     const searchText = document.getElementById('productSearch').value.toLowerCase();
     const rows = document.querySelectorAll('#productsTableBody tr');
@@ -439,17 +237,14 @@ function searchProducts() {
     });
 }
 
-// Показать форму добавления товара
 function showAddProductForm() {
     document.getElementById('addProductForm').style.display = 'block';
 }
 
-// Скрыть форму добавления товара
 function hideAddProductForm() {
     document.getElementById('addProductForm').style.display = 'none';
 }
 
-// Добавление товара
 async function addProduct() {
     const id = document.getElementById('newProductId').value;
     const name = document.getElementById('newProductName').value;
@@ -463,13 +258,7 @@ async function addProduct() {
     }
 
     try {
-        const products = DB_MANAGER.currentData?.products || [];
-        if (products.some(p => p.id === id)) {
-            showNotification('Товар с таким ID уже существует!', 'error');
-            return;
-        }
-
-        const result = await DB_MANAGER.addProduct({
+        await DB_MANAGER.addProduct({
             id: id,
             name: name,
             price: parseInt(price),
@@ -477,24 +266,22 @@ async function addProduct() {
             description: description
         });
 
-        if (result) {
-            showNotification('Товар добавлен!', 'success');
-            hideAddProductForm();
-            loadProducts();
-            updateStats();
+        showNotification('Товар добавлен!', 'success');
+        hideAddProductForm();
+        loadProducts();
+        updateStats();
 
-            document.getElementById('newProductId').value = '';
-            document.getElementById('newProductName').value = '';
-            document.getElementById('newProductPrice').value = '';
-            document.getElementById('newProductDescription').value = '';
-        }
+        document.getElementById('newProductId').value = '';
+        document.getElementById('newProductName').value = '';
+        document.getElementById('newProductPrice').value = '';
+        document.getElementById('newProductDescription').value = '';
+        
     } catch (error) {
         console.error('Ошибка добавления товара:', error);
         showNotification('Ошибка при добавлении товара', 'error');
     }
 }
 
-// Редактирование товара
 function editProduct(productId) {
     const row = document.getElementById(`product-${productId}`);
     const product = DB_MANAGER.currentData?.products.find(p => p.id === productId);
@@ -515,71 +302,60 @@ function editProduct(productId) {
         </td>
         <td><input type="text" id="edit-product-desc-${productId}" value="${product.description || ''}" class="edit-input" placeholder="Описание"></td>
         <td class="action-buttons">
-            <button onclick="saveProductEdit('${productId}')" class="btn-save">💾 Сохр.</button>
-            <button onclick="cancelProductEdit('${productId}')" class="btn-delete">✖ Отм.</button>
+            <button onclick="saveProductEdit('${productId}')" class="btn-save">💾 Сохранить</button>
+            <button onclick="cancelProductEdit('${productId}')" class="btn-delete">Отмена</button>
         </td>
     `;
 }
 
-// Сохранение редактирования товара
 async function saveProductEdit(productId) {
     const newName = document.getElementById(`edit-product-name-${productId}`).value;
     const newPrice = document.getElementById(`edit-product-price-${productId}`).value;
     const newCategory = document.getElementById(`edit-product-category-${productId}`).value;
     const newDesc = document.getElementById(`edit-product-desc-${productId}`).value;
 
-    const updateData = {
-        name: newName,
-        price: parseInt(newPrice),
-        category: newCategory,
-        description: newDesc
-    };
-
     try {
-        const result = await DB_MANAGER.updateProduct(productId, updateData);
-        if (result) {
-            showDbNotification('Товар обновлен', 'success');
-            loadProducts();
-            
-            // Отправляем сигнал об обновлении цен
-            DB_MANAGER.broadcastPriceUpdate();
-        }
+        await DB_MANAGER.updateProduct(productId, {
+            name: newName,
+            price: parseInt(newPrice),
+            category: newCategory,
+            description: newDesc
+        });
+
+        showNotification('Товар обновлен', 'success');
+        loadProducts();
+        
     } catch (error) {
         console.error('Ошибка обновления товара:', error);
-        showDbNotification('Ошибка при обновлении', 'error');
+        showNotification('Ошибка при обновлении', 'error');
     }
 }
 
-// Отмена редактирования товара
 function cancelProductEdit(productId) {
     loadProducts();
 }
 
-// Удаление товара
 async function deleteProduct(productId) {
     const product = DB_MANAGER.currentData?.products.find(p => p.id === productId);
     if (!product) return;
 
-    showConfirmDialog(`Удалить товар "${product.name}"?`, async () => {
+    if (confirm(`Удалить товар "${product.name}"?`)) {
         try {
-            const result = await DB_MANAGER.deleteProduct(productId);
-            if (result) {
-                showDbNotification('Товар удален', 'success');
-                loadProducts();
-                updateStats();
-            }
+            await DB_MANAGER.deleteProduct(productId);
+            showNotification('Товар удален', 'success');
+            loadProducts();
+            updateStats();
         } catch (error) {
             console.error('Ошибка удаления:', error);
-            showDbNotification('Ошибка при удалении', 'error');
+            showNotification('Ошибка при удалении', 'error');
         }
-    });
+    }
 }
 
 // ============================================
 // УПРАВЛЕНИЕ ЗАКАЗАМИ
 // ============================================
 
-// Загрузка заказов
 function loadOrders() {
     const tbody = document.getElementById('ordersTableBody');
     if (!tbody) return;
@@ -595,15 +371,13 @@ function loadOrders() {
     orders.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(order => {
         const date = new Date(order.date).toLocaleString();
 
-        // Формируем адрес доставки
         let deliveryAddress = '';
         if (order.delivery === 'pickup') {
-            deliveryAddress = '🚶 Самовывоз (ул. Ветеринарная, 15)';
+            deliveryAddress = '🚶 Самовывоз';
         } else {
             deliveryAddress = `🚚 ${order.delivery_address || 'Адрес не указан'}`;
         }
 
-        // Телефон
         const phone = order.delivery_phone || order.pickup_phone || 'Не указан';
 
         html += `
@@ -612,20 +386,15 @@ function loadOrders() {
                 <td>${date}</td>
                 <td>
                     ${order.user_name}<br>
-                    <small style="color: #666;">${order.user_email}</small><br>
-                    <small style="color: #666;">📞 ${phone}</small>
+                    <small>${order.user_email}</small>
                 </td>
-                <td><strong style="color: #2c6e49;">${order.total} ₽</strong></td>
+                <td><strong>${order.total} ₽</strong></td>
                 <td>${order.delivery === 'pickup' ? '🚶 Самовывоз' : '🚚 Доставка'}</td>
-                <td>
-                    <div style="max-width: 200px; word-break: break-word;">
-                        ${deliveryAddress}
-                    </div>
-                </td>
+                <td>${deliveryAddress}</td>
                 <td>${order.items ? order.items.length : 0} шт.</td>
                 <td class="action-buttons">
-                    <button onclick="viewOrderDetails('${order.id}')" class="btn-view">👁️ Дет.</button>
-                    <button onclick="deleteOrder('${order.id}')" class="btn-delete">🗑️ Удал.</button>
+                    <button onclick="viewOrderDetails('${order.id}')" class="btn-view">👁️ Детали</button>
+                    <button onclick="deleteOrder('${order.id}')" class="btn-delete">🗑️ Удалить</button>
                 </td>
             </tr>
         `;
@@ -634,7 +403,6 @@ function loadOrders() {
     tbody.innerHTML = html;
 }
 
-// Поиск заказов
 function searchOrders() {
     const searchText = document.getElementById('orderSearch').value.toLowerCase();
     const rows = document.querySelectorAll('#ordersTableBody tr');
@@ -645,39 +413,47 @@ function searchOrders() {
     });
 }
 
-// Просмотр деталей заказа
 function viewOrderDetails(orderId) {
     const order = DB_MANAGER.currentData?.orders.find(o => o.id == orderId);
-    if (!order) {
-        showDbNotification('Заказ не найден', 'error');
-        return;
-    }
-    
-    showOrderDetails(order);
+    if (!order) return;
+
+    let itemsList = '';
+    order.items.forEach(item => {
+        itemsList += `${item.name} - ${item.price} ₽\n`;
+    });
+
+    alert(`Заказ #${order.order_number}
+        
+Дата: ${new Date(order.date).toLocaleString()}
+Клиент: ${order.user_name} (${order.user_email})
+
+Состав заказа:
+${itemsList}
+Сумма: ${order.total} ₽
+
+Доставка: ${order.delivery === 'pickup' ? 'Самовывоз' : 'Доставка'}
+${order.delivery_address ? 'Адрес: ' + order.delivery_address : ''}
+${order.delivery_phone ? 'Телефон: ' + order.delivery_phone : ''}`);
 }
 
-// Удаление заказа
 async function deleteOrder(orderId) {
-    showConfirmDialog('Удалить заказ?', async () => {
+    if (confirm('Удалить заказ?')) {
         try {
-            const result = await DB_MANAGER.deleteOrder(orderId);
-            if (result) {
-                showDbNotification('Заказ удален', 'success');
-                loadOrders();
-                updateStats();
-            }
+            await DB_MANAGER.deleteOrder(orderId);
+            showNotification('Заказ удален', 'success');
+            loadOrders();
+            updateStats();
         } catch (error) {
             console.error('Ошибка удаления заказа:', error);
-            showDbNotification('Ошибка при удалении', 'error');
+            showNotification('Ошибка при удалении', 'error');
         }
-    });
+    }
 }
 
 // ============================================
 // УПРАВЛЕНИЕ СООБЩЕНИЯМИ
 // ============================================
 
-// Загрузка сообщений
 function loadMessages() {
     const tbody = document.getElementById('messagesTableBody');
     if (!tbody) return;
@@ -701,15 +477,11 @@ function loadMessages() {
                 <td>${message.name}</td>
                 <td>${message.email}</td>
                 <td>${message.phone || '—'}</td>
-                <td>
-                    <div style="max-width: 300px; word-break: break-word;">
-                        ${message.message}
-                    </div>
-                </td>
+                <td>${message.message}</td>
                 <td><span class="status-badge ${statusClass}">${statusText}</span></td>
                 <td class="action-buttons">
-                    <button onclick="markMessageAsRead('${message.id}')" class="btn-edit" ${message.status === 'read' ? 'disabled' : ''}>✓ Прочит.</button>
-                    <button onclick="deleteMessage('${message.id}')" class="btn-delete">🗑️ Удал.</button>
+                    <button onclick="markMessageAsRead('${message.id}')" class="btn-edit" ${message.status === 'read' ? 'disabled' : ''}>✓ Прочитать</button>
+                    <button onclick="deleteMessage('${message.id}')" class="btn-delete">🗑️ Удалить</button>
                 </td>
             </tr>
         `;
@@ -718,33 +490,27 @@ function loadMessages() {
     tbody.innerHTML = html;
 }
 
-// Отметить сообщение как прочитанное
 async function markMessageAsRead(messageId) {
     try {
-        const result = await DB_MANAGER.markMessageAsRead(messageId);
-        if (result) {
-            showNotification('Сообщение отмечено как прочитанное', 'success');
-            loadMessages();
-            updateStats();
-        }
+        await DB_MANAGER.markMessageAsRead(messageId);
+        showNotification('Сообщение отмечено как прочитанное', 'success');
+        loadMessages();
+        updateStats();
     } catch (error) {
-        console.error('Ошибка при отметке сообщения:', error);
+        console.error('Ошибка:', error);
         showNotification('Ошибка при отметке', 'error');
     }
 }
 
-// Удаление сообщения
 async function deleteMessage(messageId) {
     if (confirm('Удалить сообщение?')) {
         try {
-            const result = await DB_MANAGER.deleteMessage(messageId);
-            if (result) {
-                showNotification('Сообщение удалено', 'success');
-                loadMessages();
-                updateStats();
-            }
+            await DB_MANAGER.deleteMessage(messageId);
+            showNotification('Сообщение удалено', 'success');
+            loadMessages();
+            updateStats();
         } catch (error) {
-            console.error('Ошибка удаления сообщения:', error);
+            console.error('Ошибка удаления:', error);
             showNotification('Ошибка при удалении', 'error');
         }
     }
@@ -754,7 +520,6 @@ async function deleteMessage(messageId) {
 // СТАТИСТИКА
 // ============================================
 
-// Обновление статистики
 function updateStats() {
     const stats = DB_MANAGER.getStats();
 
@@ -797,7 +562,6 @@ function updateStats() {
 // РЕЗЕРВНЫЕ КОПИИ
 // ============================================
 
-// Загрузка списка бэкапов
 function loadBackups() {
     const backupsList = document.getElementById('backupsList');
     if (!backupsList) return;
@@ -816,12 +580,11 @@ function loadBackups() {
             <li>
                 <div class="backup-info">
                     <strong>${backup.name}</strong><br>
-                    <small>${date}</small><br>
-                    <small>👥 ${backup.stats?.totalUsers || 0} пользователей</small>
+                    <small>${date}</small>
                 </div>
                 <div class="backup-actions">
-                    <button onclick="restoreBackup(${index})" class="btn-save">🔄 Восст.</button>
-                    <button onclick="deleteBackup(${index})" class="btn-delete">🗑️ Удал.</button>
+                    <button onclick="restoreBackup(${index})" class="btn-save">🔄 Восстановить</button>
+                    <button onclick="deleteBackup(${index})" class="btn-delete">🗑️ Удалить</button>
                 </div>
             </li>
         `;
@@ -831,7 +594,6 @@ function loadBackups() {
     backupsList.innerHTML = html;
 }
 
-// Создание резервной копии
 function createBackup() {
     const stats = DB_MANAGER.getStats();
     const backup = {
@@ -856,7 +618,6 @@ function createBackup() {
     loadBackups();
 }
 
-// Удаление бэкапа
 function deleteBackup(index) {
     if (!confirm('Удалить эту резервную копию?')) return;
 
@@ -872,7 +633,6 @@ function deleteBackup(index) {
 // РАБОТА С ФАЙЛАМИ
 // ============================================
 
-// Экспорт базы данных
 function exportDatabase() {
     const data = {
         users: DB_MANAGER.currentData.users,
@@ -894,30 +654,11 @@ function exportDatabase() {
     showNotification('База данных экспортирована', 'success');
 }
 
-// Триггер для выбора файла
 function triggerFileInput() {
     document.getElementById('fileInput').click();
 }
 
-// Импорт базы данных
-async function importDatabase(file) {
-    const reader = new FileReader();
-
-    reader.onload = async function(e) {
-        try {
-            const data = JSON.parse(e.target.result);
-            showNotification('Импорт пока не реализован', 'warning');
-        } catch (error) {
-            showNotification('Ошибка импорта: ' + error.message, 'error');
-        }
-    };
-
-    reader.readAsText(file);
-}
-
-// Обновление данных
 async function refreshData() {
-    showAdminLoading('Обновление данных...');
     await DB_MANAGER.loadDatabase();
     loadUsers();
     loadProducts();
@@ -925,23 +666,12 @@ async function refreshData() {
     loadMessages();
     updateStats();
     showNotification('Данные обновлены', 'success');
-    
-    const adminCheck = document.getElementById('adminCheck');
-    if (adminCheck) {
-        adminCheck.style.display = 'none';
-    }
-}
-
-// Сброс базы данных
-function resetDatabase() {
-    showNotification('Функция временно отключена', 'warning');
 }
 
 // ============================================
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ============================================
 
-// Получение названия категории
 function getCategoryName(category) {
     const categories = {
         'food': '🍖 Корма',
@@ -952,7 +682,6 @@ function getCategoryName(category) {
     return categories[category] || category;
 }
 
-// Показать уведомление
 function showNotification(message, type = 'success') {
     if (window.showNotification) {
         window.showNotification(message, type);
@@ -961,176 +690,9 @@ function showNotification(message, type = 'success') {
     }
 }
 
-// ============================================
-// СТИЛИЗОВАННЫЕ МОДАЛЬНЫЕ ОКНА
-// ============================================
-
-// Функция для показа подтверждения удаления
-function showConfirmDialog(message, onConfirm) {
-    const overlay = document.createElement('div');
-    overlay.className = 'db-modal-overlay';
-    overlay.innerHTML = `
-        <div class="db-modal">
-            <div class="db-modal-confirm">
-                <div class="db-modal-confirm-icon">⚠️</div>
-                <h3>Подтверждение</h3>
-                <p>${message}</p>
-                <div class="db-modal-confirm-buttons">
-                    <button class="db-modal-btn db-modal-btn-secondary" onclick="this.closest('.db-modal-overlay').remove()">Отмена</button>
-                    <button class="db-modal-btn db-modal-btn-danger" id="confirmDeleteBtn">Удалить</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(overlay);
-    
-    document.getElementById('confirmDeleteBtn').onclick = function() {
-        onConfirm();
-        overlay.remove();
-    };
-}
-
-// Функция для показа деталей заказа
-function showOrderDetails(order) {
-    const overlay = document.createElement('div');
-    overlay.className = 'db-modal-overlay';
-    
-    let itemsHtml = '';
-    if (order.items && Array.isArray(order.items)) {
-        order.items.forEach(item => {
-            itemsHtml += `
-                <div class="db-modal-item-row">
-                    <span class="db-modal-item-name">${item.name}</span>
-                    <span class="db-modal-item-price">${item.price} ₽</span>
-                </div>
-            `;
-        });
-    }
-    
-    overlay.innerHTML = `
-        <div class="db-modal">
-            <div class="db-modal-header">
-                <h2>Детали заказа #${order.order_number || 'Н/Д'}</h2>
-                <button class="db-modal-close" onclick="this.closest('.db-modal-overlay').remove()">&times;</button>
-            </div>
-            <div class="db-modal-content">
-                <div class="db-order-details">
-                    <div class="db-order-header">
-                        <div class="db-order-number">#${order.order_number || 'Н/Д'}</div>
-                        <div class="db-order-date">${order.date ? new Date(order.date).toLocaleString() : 'Н/Д'}</div>
-                    </div>
-                    
-                    <div class="db-order-section">
-                        <h4>👤 Информация о клиенте</h4>
-                        <div class="db-order-info-grid">
-                            <div class="db-order-info-item">
-                                <div class="db-order-info-label">Имя</div>
-                                <div class="db-order-info-value">${order.user_name || 'Н/Д'}</div>
-                            </div>
-                            <div class="db-order-info-item">
-                                <div class="db-order-info-label">Email</div>
-                                <div class="db-order-info-value">${order.user_email || order.user || 'Н/Д'}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="db-order-section">
-                        <h4>🚚 Информация о доставке</h4>
-                        <div class="db-order-info-grid">
-                            <div class="db-order-info-item">
-                                <div class="db-order-info-label">Способ</div>
-                                <div class="db-order-info-value">${order.delivery === 'pickup' ? '🚶 Самовывоз' : '🚚 Доставка'}</div>
-                            </div>
-                            <div class="db-order-info-item">
-                                <div class="db-order-info-label">Телефон</div>
-                                <div class="db-order-info-value">${order.delivery_phone || order.pickup_phone || '222-22-22'}</div>
-                            </div>
-                            ${order.delivery_address ? `
-                            <div class="db-order-info-item">
-                                <div class="db-order-info-label">Адрес</div>
-                                <div class="db-order-info-value">${order.delivery_address}</div>
-                            </div>
-                            ` : ''}
-                            ${order.delivery_comment ? `
-                            <div class="db-order-info-item">
-                                <div class="db-order-info-label">Комментарий</div>
-                                <div class="db-order-info-value">${order.delivery_comment}</div>
-                            </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                    
-                    <div class="db-modal-items">
-                        <h3>Состав заказа</h3>
-                        ${itemsHtml || '<p style="text-align: center; color: #999;">Нет товаров</p>'}
-                        <div class="db-modal-total-row">
-                            <span>ИТОГО:</span>
-                            <span>${order.total || 0} ₽</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="db-modal-footer">
-                <button class="db-modal-btn db-modal-btn-secondary" onclick="this.closest('.db-modal-overlay').remove()">Закрыть</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-}
-
-// Функция для показа уведомлений в стиле сайта
-function showDbNotification(message, type = 'success') {
-    // Используем глобальную функцию если она есть
-    if (window.showNotification) {
-        window.showNotification(message, type);
-        return;
-    }
-    
-    // Своя реализация
-    const notification = document.createElement('div');
-    notification.className = `db-notification db-notification-${type}`;
-    
-    const icons = {
-        success: '✅',
-        error: '❌',
-        warning: '⚠️'
-    };
-    
-    const titles = {
-        success: 'Успех',
-        error: 'Ошибка',
-        warning: 'Внимание'
-    };
-    
-    notification.innerHTML = `
-        <span class="db-notification-icon">${icons[type]}</span>
-        <div class="db-notification-content">
-            <div class="db-notification-title">${titles[type]}</div>
-            <div class="db-notification-message">${message}</div>
-        </div>
-        <button class="db-notification-close" onclick="this.closest('.db-notification').remove()">&times;</button>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
-        }
-    }, 5000);
-}
-
-// Делаем функцию глобальной
-window.showDbNotification = showDbNotification;
+// Делаем функции глобальными
 window.switchTab = switchTab;
 window.searchUsers = searchUsers;
-window.showAddUserForm = showAddUserForm;
-window.hideAddUserForm = hideAddUserForm;
-window.addUser = addUser;
-window.editUser = editUser;
-window.saveUserEdit = saveUserEdit;
-window.cancelUserEdit = cancelUserEdit;
 window.deleteUser = deleteUser;
 window.searchProducts = searchProducts;
 window.showAddProductForm = showAddProductForm;
@@ -1148,11 +710,6 @@ window.markMessageAsRead = markMessageAsRead;
 window.deleteMessage = deleteMessage;
 window.exportDatabase = exportDatabase;
 window.triggerFileInput = triggerFileInput;
-window.importDatabase = importDatabase;
 window.refreshData = refreshData;
 window.createBackup = createBackup;
 window.deleteBackup = deleteBackup;
-window.resetDatabase = resetDatabase;
-window.showConfirmDialog = showConfirmDialog;
-window.showOrderDetails = showOrderDetails;
-window.showDbNotification = showDbNotification;
