@@ -1,359 +1,320 @@
 // ============================================
-// МЕНЕДЖЕР БАЗЫ ДАННЫХ (с поддержкой объектного формата)
+// МЕНЕДЖЕР БАЗЫ ДАННЫХ (Supabase)
 // ============================================
 
-const DB_MANAGER = {
-    // Ваши данные из JSONBin
-    BIN_ID: '69b34a7ab7ec241ddc639917',
-    API_KEY: '$2a$10$nh6Q.DQPxUy3JGi6.fEL3e6DOeE02iVHQ1FBZ7N5FeF8sW0atefpK',
-    BASE_URL: 'https://api.jsonbin.io/v3',
+// ВСТАВЬТЕ СВОИ ДАННЫЕ ИЗ SUPABASE
+const SUPABASE_URL = 'https://ваш-проект.supabase.co';
+const SUPABASE_KEY = 'ваш-anon-ключ';
 
+const DB_MANAGER = {
+    supabase: null,
     currentData: {
         users: [],
         products: [],
         orders: [],
-        messages: [],
-        settings: {}
+        messages: []
     },
 
-    // ============================================
-    // ОСНОВНЫЕ МЕТОДЫ
-    // ============================================
+    async init() {
+        console.log('🔄 Подключение к Supabase...');
+        this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        await this.loadDatabase();
+        return this;
+    },
 
-    // Загрузка данных с сервера
     async loadDatabase() {
-        console.log('🔄 Загрузка данных с JSONBin...');
-
         try {
-            const response = await fetch(`${this.BASE_URL}/b/${this.BIN_ID}/latest`, {
-                headers: {
-                    'X-Master-Key': this.API_KEY
-                },
-                cache: 'no-cache'
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-            const data = result.record || result;
+            console.log('📦 Загрузка данных из Supabase...');
             
-            console.log('📦 Получены данные:', data);
+            const [users, products, orders, messages] = await Promise.all([
+                this.supabase.from('users').select('*'),
+                this.supabase.from('products').select('*'),
+                this.supabase.from('orders').select('*').order('date', { ascending: false }),
+                this.supabase.from('messages').select('*').order('date', { ascending: false })
+            ]);
 
-            // Преобразуем users из объекта в массив (если нужно)
-            if (data.users && typeof data.users === 'object' && !Array.isArray(data.users)) {
-                this.currentData.users = Object.keys(data.users).map(email => ({
-                    id: email,
-                    email: email,
-                    name: data.users[email].name,
-                    password: data.users[email].password,
-                    role: data.users[email].role,
-                    registered: data.users[email].registered || new Date().toISOString()
-                }));
-                console.log('✅ Преобразовано пользователей из объекта в массив');
-            } else if (Array.isArray(data.users)) {
-                this.currentData.users = data.users;
-            } else {
-                this.currentData.users = [];
-            }
-
-            // Преобразуем products из объекта в массив (если нужно)
-            if (data.products && typeof data.products === 'object' && !Array.isArray(data.products)) {
-                this.currentData.products = Object.keys(data.products).map(id => ({
-                    id: id,
-                    name: data.products[id].name,
-                    price: data.products[id].price,
-                    category: data.products[id].category,
-                    description: data.products[id].description || ''
-                }));
-                console.log('✅ Преобразовано товаров из объекта в массив');
-            } else if (Array.isArray(data.products)) {
-                this.currentData.products = data.products;
-            } else {
-                this.currentData.products = [];
-            }
-
-            // Заказы (обычно уже массив)
-            this.currentData.orders = Array.isArray(data.orders) ? data.orders : [];
-            
-            // Сообщения
-            this.currentData.messages = Array.isArray(data.messages) ? data.messages : [];
-            
-            // Настройки
-            this.currentData.settings = data.settings || {};
+            this.currentData = {
+                users: users.data || [],
+                products: products.data || [],
+                orders: orders.data || [],
+                messages: messages.data || []
+            };
 
             console.log(`✅ Загружено пользователей: ${this.currentData.users.length}`);
             console.log(`✅ Загружено товаров: ${this.currentData.products.length}`);
             console.log(`✅ Загружено заказов: ${this.currentData.orders.length}`);
-
-            return this.currentData;
-
-        } catch (error) {
-            console.error('❌ Ошибка загрузки с JSONBin:', error);
-            // Если сервер недоступен, создаем пустые массивы
-            this.currentData = {
-                users: [],
-                products: [],
-                orders: [],
-                messages: [],
-                settings: {}
-            };
-            return this.currentData;
-        }
-    },
-
-    // Сохранение данных на сервер
-    async saveToServer() {
-        console.log('💾 Сохранение данных на JSONBin...');
-
-        // Подготавливаем данные для сохранения (конвертируем массивы обратно в объекты)
-        const saveData = {
-            users: {},
-            products: {},
-            orders: this.currentData.orders,
-            messages: this.currentData.messages,
-            settings: this.currentData.settings
-        };
-
-        // Конвертируем пользователей в объект
-        this.currentData.users.forEach(user => {
-            saveData.users[user.email] = {
-                name: user.name,
-                password: user.password,
-                role: user.role,
-                registered: user.registered
-            };
-        });
-
-        // Конвертируем товары в объект
-        this.currentData.products.forEach(product => {
-            saveData.products[product.id] = {
-                name: product.name,
-                price: product.price,
-                category: product.category,
-                description: product.description
-            };
-        });
-
-        try {
-            const response = await fetch(`${this.BASE_URL}/b/${this.BIN_ID}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': this.API_KEY,
-                    'X-Bin-Versioning': 'false'
-                },
-                body: JSON.stringify(saveData)
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-            }
-
-            console.log('✅ Данные сохранены на JSONBin');
-            return true;
-
-        } catch (error) {
-            console.error('❌ Ошибка сохранения на JSONBin:', error);
             
-            if (window.showNotification) {
-                window.showNotification('Ошибка соединения с сервером. Данные не сохранены.', 'error');
-            }
+            return this.currentData;
             
-            return false;
+        } catch (error) {
+            console.error('❌ Ошибка загрузки:', error);
+            return null;
         }
     },
 
     // ============================================
-    // МЕТОДЫ ДЛЯ ПОЛЬЗОВАТЕЛЕЙ
+    // ПОЛЬЗОВАТЕЛИ
     // ============================================
 
-    // Получение пользователя по email
-    getUserByEmail(email) {
-        return this.currentData.users.find(u => u.email === email);
+    async getUserByEmail(email) {
+        const { data } = await this.supabase
+            .from('users')
+            .select('*')
+            .eq('email', email)
+            .maybeSingle();
+        return data;
     },
 
-    // Проверка существования пользователя
-    userExists(email) {
-        return this.currentData.users.some(u => u.email === email);
+    async userExists(email) {
+        const { data } = await this.supabase
+            .from('users')
+            .select('email')
+            .eq('email', email);
+        return data && data.length > 0;
     },
 
-    // Добавление пользователя
     async addUser(userData) {
-        const newUser = {
-            id: userData.email,
-            email: userData.email,
-            name: userData.name,
-            password: userData.password,
-            role: userData.role || 'user',
-            registered: new Date().toISOString()
-        };
+        const { data, error } = await this.supabase
+            .from('users')
+            .insert([{
+                email: userData.email,
+                name: userData.name,
+                password: userData.password,
+                role: userData.role || 'user',
+                registered: new Date().toISOString()
+            }])
+            .select();
 
-        this.currentData.users.push(newUser);
-        const saved = await this.saveToServer();
+        if (error) throw error;
         
-        if (saved) {
-            console.log('✅ Пользователь добавлен:', userData.email);
+        if (data && data[0]) {
+            this.currentData.users.push(data[0]);
+        }
+        return data ? data[0] : null;
+    },
+
+    async updateUser(email, userData) {
+        const { data, error } = await this.supabase
+            .from('users')
+            .update(userData)
+            .eq('email', email)
+            .select();
+
+        if (error) throw error;
+        
+        const index = this.currentData.users.findIndex(u => u.email === email);
+        if (index !== -1 && data && data[0]) {
+            this.currentData.users[index] = data[0];
         }
         
-        return newUser;
+        return data ? data[0] : null;
     },
 
-    // Обновление пользователя
-    async updateUser(email, userData) {
-        const index = this.currentData.users.findIndex(u => u.email === email);
-        if (index === -1) return false;
-
-        this.currentData.users[index] = {
-            ...this.currentData.users[index],
-            ...userData
-        };
-
-        await this.saveToServer();
-        return true;
-    },
-
-    // Удаление пользователя
     async deleteUser(email) {
         if (email === 'admin@vetclinic.ru') {
-            console.warn('Нельзя удалить главного администратора');
+            console.warn('Нельзя удалить администратора');
             return false;
         }
 
-        this.currentData.users = this.currentData.users.filter(u => u.email !== email);
-        await this.saveToServer();
-        return true;
-    },
+        const { error } = await this.supabase
+            .from('users')
+            .delete()
+            .eq('email', email);
 
-    // ============================================
-    // МЕТОДЫ ДЛЯ ТОВАРОВ
-    // ============================================
-
-    // Добавление товара
-    async addProduct(productData) {
-        this.currentData.products.push(productData);
-        await this.saveToServer();
-        return productData;
-    },
-
-    // Обновление товара
-    async updateProduct(id, productData) {
-        const index = this.currentData.products.findIndex(p => p.id === id);
-        if (index === -1) return false;
-
-        this.currentData.products[index] = {
-            ...this.currentData.products[index],
-            ...productData
-        };
-
-        await this.saveToServer();
-        return true;
-    },
-
-    // Удаление товара
-    async deleteProduct(id) {
-        this.currentData.products = this.currentData.products.filter(p => p.id !== id);
-        await this.saveToServer();
-        return true;
-    },
-
-    // Получение товара по ID
-    getProduct(id) {
-        return this.currentData.products.find(p => p.id === id);
-    },
-
-    // ============================================
-    // МЕТОДЫ ДЛЯ ЗАКАЗОВ
-    // ============================================
-
-    // Добавление заказа
-    async addOrder(orderData) {
-        const newOrder = {
-            ...orderData,
-            id: Date.now().toString(),
-            date: orderData.date || new Date().toISOString(),
-            status: 'new'
-        };
+        if (error) throw error;
         
-        if (newOrder.items) {
-            newOrder.items = newOrder.items.map(item => ({
-                id: item.id || Date.now() + Math.random(),
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity || 1
-            }));
+        this.currentData.users = this.currentData.users.filter(u => u.email !== email);
+        return true;
+    },
+
+    // ============================================
+    // ТОВАРЫ
+    // ============================================
+
+    async getProduct(id) {
+        const { data } = await this.supabase
+            .from('products')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+        return data;
+    },
+
+    async addProduct(productData) {
+        const { data, error } = await this.supabase
+            .from('products')
+            .insert([productData])
+            .select();
+
+        if (error) throw error;
+        
+        if (data && data[0]) {
+            this.currentData.products.push(data[0]);
+        }
+        return data ? data[0] : null;
+    },
+
+    async updateProduct(id, productData) {
+        const { data, error } = await this.supabase
+            .from('products')
+            .update(productData)
+            .eq('id', id)
+            .select();
+
+        if (error) throw error;
+        
+        const index = this.currentData.products.findIndex(p => p.id === id);
+        if (index !== -1 && data && data[0]) {
+            this.currentData.products[index] = data[0];
         }
         
-        this.currentData.orders.push(newOrder);
-        await this.saveToServer();
-        console.log('✅ Заказ добавлен:', newOrder.orderNumber);
-        return newOrder;
+        return data ? data[0] : null;
     },
 
-    // Удаление заказа
+    async deleteProduct(id) {
+        const { error } = await this.supabase
+            .from('products')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        
+        this.currentData.products = this.currentData.products.filter(p => p.id !== id);
+        return true;
+    },
+
+    // ============================================
+    // ЗАКАЗЫ
+    // ============================================
+
+    async addOrder(orderData) {
+        // Генерируем номер заказа, если его нет
+        if (!orderData.order_number) {
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const numbers = '0123456789';
+            let orderNumber = '';
+            for (let i = 0; i < 2; i++) orderNumber += letters[Math.floor(Math.random() * letters.length)];
+            for (let i = 0; i < 4; i++) orderNumber += numbers[Math.floor(Math.random() * numbers.length)];
+            orderData.order_number = orderNumber;
+        }
+
+        const { data, error } = await this.supabase
+            .from('orders')
+            .insert([{
+                order_number: orderData.order_number,
+                user_email: orderData.user,
+                user_name: orderData.userName,
+                items: orderData.items,
+                delivery: orderData.delivery,
+                delivery_address: orderData.deliveryAddress,
+                delivery_phone: orderData.deliveryPhone,
+                delivery_cost: orderData.deliveryCost || 0,
+                total: orderData.total,
+                date: new Date().toISOString()
+            }])
+            .select();
+
+        if (error) throw error;
+        
+        if (data && data[0]) {
+            this.currentData.orders.unshift(data[0]);
+        }
+        return data ? data[0] : null;
+    },
+
     async deleteOrder(orderId) {
-        this.currentData.orders = this.currentData.orders.filter(o => o.id != orderId);
-        await this.saveToServer();
+        const { error } = await this.supabase
+            .from('orders')
+            .delete()
+            .eq('id', orderId);
+
+        if (error) throw error;
+        
+        this.currentData.orders = this.currentData.orders.filter(o => o.id !== orderId);
         return true;
     },
 
-    // Получение заказа по ID
-    getOrder(orderId) {
-        return this.currentData.orders.find(o => o.id == orderId);
+    async getOrder(orderId) {
+        const { data } = await this.supabase
+            .from('orders')
+            .select('*')
+            .eq('id', orderId)
+            .maybeSingle();
+        return data;
     },
 
-    // Получение заказов пользователя
-    getUserOrders(email) {
-        return this.currentData.orders.filter(o => o.user === email);
+    async getUserOrders(email) {
+        const { data } = await this.supabase
+            .from('orders')
+            .select('*')
+            .eq('user_email', email)
+            .order('date', { ascending: false });
+        return data || [];
     },
 
     // ============================================
-    // МЕТОДЫ ДЛЯ СООБЩЕНИЙ
+    // СООБЩЕНИЯ
     // ============================================
 
-    // Добавление сообщения
     async addMessage(messageData) {
-        const newMessage = {
-            ...messageData,
-            id: Date.now().toString(),
-            date: new Date().toISOString(),
-            status: 'new'
-        };
+        const { data, error } = await this.supabase
+            .from('messages')
+            .insert([{
+                name: messageData.name,
+                email: messageData.email,
+                phone: messageData.phone || '',
+                message: messageData.message,
+                status: 'new',
+                date: new Date().toISOString()
+            }])
+            .select();
 
-        this.currentData.messages.push(newMessage);
-        await this.saveToServer();
-        return newMessage;
+        if (error) throw error;
+        
+        if (data && data[0]) {
+            this.currentData.messages.unshift(data[0]);
+        }
+        return data ? data[0] : null;
     },
 
-    // Получение всех сообщений
-    getMessages() {
-        return this.currentData.messages;
+    async getMessages() {
+        const { data } = await this.supabase
+            .from('messages')
+            .select('*')
+            .order('date', { ascending: false });
+        return data || [];
     },
 
-    // Отметить сообщение как прочитанное
     async markMessageAsRead(messageId) {
-        const index = this.currentData.messages.findIndex(m => m.id === messageId);
-        if (index === -1) return false;
+        const { error } = await this.supabase
+            .from('messages')
+            .update({ status: 'read' })
+            .eq('id', messageId);
 
-        this.currentData.messages[index].status = 'read';
-        await this.saveToServer();
+        if (error) throw error;
+        
+        const message = this.currentData.messages.find(m => m.id === messageId);
+        if (message) message.status = 'read';
+        
         return true;
     },
 
-    // Удаление сообщения
     async deleteMessage(messageId) {
+        const { error } = await this.supabase
+            .from('messages')
+            .delete()
+            .eq('id', messageId);
+
+        if (error) throw error;
+        
         this.currentData.messages = this.currentData.messages.filter(m => m.id !== messageId);
-        await this.saveToServer();
         return true;
     },
 
     // ============================================
-    // МЕТОДЫ ДЛЯ СТАТИСТИКИ
+    // СТАТИСТИКА
     // ============================================
 
-    // Получение статистики
     getStats() {
         const totalUsers = this.currentData.users.length;
         const totalOrders = this.currentData.orders.length;
@@ -364,9 +325,10 @@ const DB_MANAGER = {
         const adminCount = this.currentData.users.filter(u => u.role === 'admin').length;
 
         const today = new Date().toDateString();
-        const todayOrders = this.currentData.orders.filter(o => new Date(o.date).toDateString() === today).length;
+        const todayOrders = this.currentData.orders.filter(o => 
+            o.date && new Date(o.date).toDateString() === today
+        ).length;
 
-        // Статистика по категориям товаров
         const productsByCategory = {};
         this.currentData.products.forEach(p => {
             productsByCategory[p.category] = (productsByCategory[p.category] || 0) + 1;
@@ -384,12 +346,24 @@ const DB_MANAGER = {
             averageOrderValue: totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0,
             productsByCategory
         };
+    },
+
+    // Сброс данных (только для разработки)
+    async resetToDefault() {
+        // Очищаем таблицы
+        await this.supabase.from('orders').delete().neq('id', 0);
+        await this.supabase.from('messages').delete().neq('id', 0);
+        
+        // Перезагружаем данные
+        await this.loadDatabase();
+        return this.currentData;
     }
 };
 
 // Делаем глобальным
 window.DB_MANAGER = DB_MANAGER;
-console.log('✅ DB_MANAGER готов (с поддержкой объектного формата)');
 
-// Автоматическая загрузка данных
-DB_MANAGER.loadDatabase();
+// Автоматическая инициализация
+DB_MANAGER.init().then(() => {
+    console.log('✅ DB_MANAGER готов (Supabase)');
+});
