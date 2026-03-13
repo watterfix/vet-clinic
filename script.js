@@ -78,7 +78,23 @@ function showNotification(message, type = 'success') {
     setTimeout(() => notification.remove(), 3000);
 }
 
+// Функция для показа стилизованного диалогового окна (исправленная)
 function showStyledAlert(content) {
+    // Проверяем, не вызвана ли функция из самой себя
+    if (window._isAlertShown) {
+        console.log('Предотвращена рекурсия в showStyledAlert');
+        return;
+    }
+    
+    window._isAlertShown = true;
+    
+    // Удаляем предыдущее окно, если есть
+    const oldOverlay = document.querySelector('.custom-alert-overlay');
+    if (oldOverlay) {
+        oldOverlay.remove();
+    }
+    
+    // Создаем затемненный фон
     const overlay = document.createElement('div');
     overlay.className = 'custom-alert-overlay';
     overlay.style.cssText = `
@@ -94,6 +110,7 @@ function showStyledAlert(content) {
         align-items: center;
     `;
 
+    // Создаем само диалоговое окно
     const alertBox = document.createElement('div');
     alertBox.className = 'custom-alert';
     alertBox.style.cssText = `
@@ -109,6 +126,7 @@ function showStyledAlert(content) {
         border: 3px solid #2c6e49;
     `;
 
+    // Добавляем кнопку закрытия
     const closeButton = document.createElement('span');
     closeButton.innerHTML = '&times;';
     closeButton.style.cssText = `
@@ -120,18 +138,26 @@ function showStyledAlert(content) {
         color: #999;
         z-index: 10;
     `;
-    closeButton.onclick = () => document.body.removeChild(overlay);
+    
+    closeButton.onclick = function() {
+        document.body.removeChild(overlay);
+        window._isAlertShown = false;
+    };
 
+    // Добавляем содержимое
     alertBox.innerHTML = content;
     alertBox.appendChild(closeButton);
     overlay.appendChild(alertBox);
     document.body.appendChild(overlay);
 
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) document.body.removeChild(overlay);
+    // Закрытие по клику на фон
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) {
+            document.body.removeChild(overlay);
+            window._isAlertShown = false;
+        }
     });
 }
-
 function createAuthCorner() {
     if (!document.getElementById('authCorner')) {
         const authCorner = document.createElement('div');
@@ -985,8 +1011,8 @@ async function handleContactSubmit(event) {
         return false;
     }
     
-    if (!message || !validateContactMessage(message)) {
-        showContactError('Сообщение должно содержать от 10 до 1000 символов');
+    if (!message || message.length < 10) {
+        showContactError('Сообщение должно содержать минимум 10 символов');
         return false;
     }
     
@@ -1021,7 +1047,7 @@ async function handleContactSubmit(event) {
         
         console.log('✅ Сообщение сохранено:', result);
         
-        // Показываем успех
+        // Показываем успех (используем простое уведомление вместо сложного alert)
         if (successDiv) {
             successDiv.style.display = 'block';
             successDiv.innerHTML = '✅ Спасибо за обращение! Мы свяжемся с вами в ближайшее время.';
@@ -1060,11 +1086,9 @@ function showContactError(message) {
     if (errorDiv) {
         errorDiv.style.display = 'block';
         errorDiv.innerHTML = '❌ ' + message;
-    } else {
-        alert(message);
     }
     
-    // Также показываем уведомление
+    // Показываем уведомление
     showNotification(message, 'error');
 }
 
