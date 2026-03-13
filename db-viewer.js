@@ -87,6 +87,80 @@ async function initAdminPage() {
 }
 
 // ============================================
+// СТИЛИЗОВАННОЕ ОКНО ПОДТВЕРЖДЕНИЯ
+// ============================================
+
+function showConfirmDialog(options) {
+    const {
+        title = 'Подтверждение',
+        message = 'Вы уверены?',
+        confirmText = 'Да',
+        cancelText = 'Нет',
+        type = 'warning', // warning, danger, info
+        icon = '⚠️',
+        onConfirm,
+        onCancel
+    } = options;
+
+    // Создаем затемненный фон
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-modal-overlay';
+
+    // Определяем иконку по умолчанию
+    let defaultIcon = icon;
+    if (!icon) {
+        switch(type) {
+            case 'danger':
+                defaultIcon = '❌';
+                break;
+            case 'info':
+                defaultIcon = 'ℹ️';
+                break;
+            default:
+                defaultIcon = '⚠️';
+        }
+    }
+
+    // Создаем содержимое
+    overlay.innerHTML = `
+        <div class="confirm-modal">
+            <div class="confirm-icon ${type}">${defaultIcon}</div>
+            <div class="confirm-title ${type}">${title}</div>
+            <div class="confirm-message">${message}</div>
+            <div class="confirm-buttons">
+                <button class="confirm-btn confirm-btn-${type === 'danger' ? 'danger' : 'confirm'}" id="confirmYes">
+                    ${confirmText}
+                </button>
+                <button class="confirm-btn confirm-btn-cancel" id="confirmNo">
+                    ${cancelText}
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Обработчики кнопок
+    document.getElementById('confirmYes').onclick = () => {
+        overlay.remove();
+        if (onConfirm) onConfirm();
+    };
+
+    document.getElementById('confirmNo').onclick = () => {
+        overlay.remove();
+        if (onCancel) onCancel();
+    };
+
+    // Закрытие по клику на фон
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            overlay.remove();
+            if (onCancel) onCancel();
+        }
+    });
+}
+
+// ============================================
 // ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
 // ============================================
 
@@ -172,23 +246,40 @@ function searchUsers() {
 
 async function deleteUser(email) {
     if (email === 'admin@vetclinic.ru') {
-        showNotification('Нельзя удалить главного администратора!', 'error');
+        showConfirmDialog({
+            title: 'Ошибка',
+            message: 'Нельзя удалить главного администратора!',
+            confirmText: 'OK',
+            cancelText: '',
+            type: 'danger',
+            icon: '⛔',
+            onConfirm: () => {}
+        });
         return;
     }
 
-    if (confirm(`Удалить пользователя ${email}?`)) {
-        try {
-            await DB_MANAGER.deleteUser(email);
-            showNotification('Пользователь удален', 'success');
-            // Принудительно перезагружаем данные
-            await DB_MANAGER.loadDatabase();
-            loadUsers();
-            updateStats();
-        } catch (error) {
-            console.error('Ошибка удаления:', error);
-            showNotification('Ошибка при удалении', 'error');
+    showConfirmDialog({
+        title: 'Удаление пользователя',
+        message: `Вы уверены, что хотите удалить пользователя <span class="confirm-highlight">${email}</span>?`,
+        confirmText: '🗑️ Удалить',
+        cancelText: '↩️ Отмена',
+        type: 'danger',
+        icon: '⚠️',
+        onConfirm: async () => {
+            try {
+                const result = await DB_MANAGER.deleteUser(email);
+                if (result) {
+                    showNotification('Пользователь удален', 'success');
+                    await DB_MANAGER.loadDatabase();
+                    loadUsers();
+                    updateStats();
+                }
+            } catch (error) {
+                console.error('Ошибка удаления:', error);
+                showNotification('Ошибка при удалении', 'error');
+            }
         }
-    }
+    });
 }
 
 // ============================================
@@ -343,18 +434,26 @@ async function deleteProduct(productId) {
     const product = DB_MANAGER.currentData?.products.find(p => p.id === productId);
     if (!product) return;
 
-    if (confirm(`Удалить товар "${product.name}"?`)) {
-        try {
-            await DB_MANAGER.deleteProduct(productId);
-            showNotification('Товар удален', 'success');
-            await DB_MANAGER.loadDatabase();
-            loadProducts();
-            updateStats();
-        } catch (error) {
-            console.error('Ошибка удаления:', error);
-            showNotification('Ошибка при удалении', 'error');
+    showConfirmDialog({
+        title: 'Удаление товара',
+        message: `Вы уверены, что хотите удалить товар <span class="confirm-highlight">${product.name}</span>?`,
+        confirmText: '🗑️ Удалить',
+        cancelText: '↩️ Отмена',
+        type: 'danger',
+        icon: '⚠️',
+        onConfirm: async () => {
+            try {
+                await DB_MANAGER.deleteProduct(productId);
+                showNotification('Товар удален', 'success');
+                await DB_MANAGER.loadDatabase();
+                loadProducts();
+                updateStats();
+            } catch (error) {
+                console.error('Ошибка удаления:', error);
+                showNotification('Ошибка при удалении', 'error');
+            }
         }
-    }
+    });
 }
 
 // ============================================
@@ -546,56 +645,33 @@ function viewOrderDetails(orderId) {
 // ============================================
 
 async function deleteOrder(orderId) {
-    console.log('Попытка удаления заказа:', orderId);
-    
-    // Спрашиваем подтверждение
-    if (!confirm('Вы уверены, что хотите удалить этот заказ?')) {
-        return;
-    }
-    
-    try {
-        // Показываем индикатор загрузки на кнопке
-        const deleteBtn = event?.target;
-        const originalText = deleteBtn?.textContent;
-        if (deleteBtn) {
-            deleteBtn.textContent = 'Удаление...';
-            deleteBtn.disabled = true;
+    const order = DB_MANAGER.currentData?.orders.find(o => o.id == orderId);
+    if (!order) return;
+
+    showConfirmDialog({
+        title: 'Удаление заказа',
+        message: `Вы уверены, что хотите удалить заказ <span class="confirm-highlight">#${order.order_number}</span>?`,
+        confirmText: '🗑️ Удалить',
+        cancelText: '↩️ Отмена',
+        type: 'danger',
+        icon: '⚠️',
+        onConfirm: async () => {
+            try {
+                if (typeof DB_MANAGER.deleteOrder === 'function') {
+                    await DB_MANAGER.deleteOrder(orderId);
+                    showNotification('Заказ удален', 'success');
+                    await DB_MANAGER.loadDatabase();
+                    loadOrders();
+                    updateStats();
+                } else {
+                    throw new Error('Метод удаления не найден');
+                }
+            } catch (error) {
+                console.error('Ошибка удаления заказа:', error);
+                showNotification('Ошибка при удалении: ' + error.message, 'error');
+            }
         }
-        
-        // Проверяем наличие метода
-        if (typeof DB_MANAGER.deleteOrder !== 'function') {
-            throw new Error('Метод удаления заказов не найден');
-        }
-        
-        // Удаляем заказ
-        const result = await DB_MANAGER.deleteOrder(orderId);
-        
-        if (result) {
-            showNotification('Заказ успешно удален', 'success');
-            
-            // Принудительно перезагружаем данные
-            await DB_MANAGER.loadDatabase();
-            
-            // Обновляем отображение
-            loadOrders();
-            updateStats();
-            
-            console.log('✅ Заказ удален, таблица обновлена');
-        } else {
-            throw new Error('Не удалось удалить заказ');
-        }
-        
-    } catch (error) {
-        console.error('❌ Ошибка удаления заказа:', error);
-        showNotification('Ошибка при удалении: ' + error.message, 'error');
-    } finally {
-        // Возвращаем кнопку в исходное состояние
-        const deleteBtn = event?.target;
-        if (deleteBtn) {
-            deleteBtn.textContent = originalText || '🗑️ Удалить';
-            deleteBtn.disabled = false;
-        }
-    }
+    });
 }
 
 // ============================================
@@ -657,23 +733,45 @@ async function markMessageAsRead(messageId) {
 }
 
 async function deleteMessage(messageId) {
-    if (confirm('Удалить сообщение?')) {
-        try {
-            if (typeof DB_MANAGER.deleteMessage === 'function') {
-                await DB_MANAGER.deleteMessage(messageId);
-                showNotification('Сообщение удалено', 'success');
-                await DB_MANAGER.loadDatabase();
-                loadMessages();
-                updateStats();
-            } else {
-                console.error('Метод deleteMessage не найден в DB_MANAGER');
-                showNotification('Ошибка: метод удаления не найден', 'error');
+    const message = DB_MANAGER.currentData?.messages.find(m => m.id === messageId);
+    if (!message) return;
+
+    showConfirmDialog({
+        title: 'Удаление сообщения',
+        message: `Вы уверены, что хотите удалить сообщение от <span class="confirm-highlight">${message.name}</span>?`,
+        confirmText: '🗑️ Удалить',
+        cancelText: '↩️ Отмена',
+        type: 'danger',
+        icon: '⚠️',
+        onConfirm: async () => {
+            try {
+                if (typeof DB_MANAGER.deleteMessage === 'function') {
+                    await DB_MANAGER.deleteMessage(messageId);
+                    showNotification('Сообщение удалено', 'success');
+                    await DB_MANAGER.loadDatabase();
+                    loadMessages();
+                    updateStats();
+                } else {
+                    throw new Error('Метод удаления не найден');
+                }
+            } catch (error) {
+                console.error('Ошибка удаления:', error);
+                showNotification('Ошибка при удалении', 'error');
             }
-        } catch (error) {
-            console.error('Ошибка удаления:', error);
-            showNotification('Ошибка при удалении', 'error');
         }
-    }
+    });
+}
+
+function showInfoDialog(message, title = 'Информация') {
+    showConfirmDialog({
+        title: title,
+        message: message,
+        confirmText: 'OK',
+        cancelText: '',
+        type: 'info',
+        icon: 'ℹ️',
+        onConfirm: () => {}
+    });
 }
 
 // ============================================
