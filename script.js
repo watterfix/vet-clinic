@@ -397,16 +397,37 @@ function addPriceEditButtons() {
     });
 }
 
+// Обновить цену товара (только для админа)
 async function updatePrice(productId) {
-    if (!currentUser || currentUser.role !== 'admin') return;
-    
+    if (!currentUser || currentUser.role !== 'admin') {
+        showNotification('Только администратор может изменять цены!', 'error');
+        return;
+    }
+
     const newPrice = document.getElementById(`price-${productId}`).value;
     if (newPrice && newPrice > 0) {
         try {
+            // Обновляем цену через DB_MANAGER
             await DB_MANAGER.updateProduct(productId, { price: parseInt(newPrice) });
-            showNotification('Цена обновлена');
+            
+            // Обновляем локально
+            const row = document.querySelector(`tr[data-id="${productId}"]`);
+            if (row) {
+                row.setAttribute('data-price', newPrice);
+                const priceCell = row.querySelector('.price');
+                if (priceCell) {
+                    priceCell.textContent = newPrice + ' руб.';
+                }
+            }
+            
+            // Отправляем сигнал об обновлении цен
+            DB_MANAGER.broadcastPriceUpdate();
+            
+            showNotification('Цена успешно обновлена!', 'success');
+            
         } catch (error) {
-            showNotification('Ошибка обновления цены', 'error');
+            console.error('❌ Ошибка обновления цены:', error);
+            showNotification('Ошибка при обновлении цены', 'error');
         }
     }
 }
@@ -1031,6 +1052,25 @@ async function refreshProductPrices() {
         console.error('❌ Ошибка при обновлении цен:', error);
     }
 }
+
+// Слушаем изменения цен в localStorage
+window.addEventListener('storage', function(e) {
+    if (e.key === 'price_update_timestamp') {
+        console.log('💰 Получен сигнал обновления цен');
+        
+        // Обновляем цены на странице товаров
+        if (window.location.pathname.includes('characteristics.html')) {
+            refreshProductPrices();
+        }
+    }
+});
+
+// Периодическая проверка цен (каждые 30 секунд)
+setInterval(async () => {
+    if (window.location.pathname.includes('characteristics.html')) {
+        await refreshProductPrices();
+    }
+}, 30000);
 
 // Делаем функцию глобальной
 window.refreshProductPrices = refreshProductPrices;
