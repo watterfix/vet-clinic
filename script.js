@@ -778,4 +778,137 @@ async function initialize() {
     console.log('✅ Инициализация завершена');
 }
 
+// ============================================
+// ОБРАБОТКА ФОРМЫ КОНТАКТОВ
+// ============================================
+
+// Функция валидации сообщения
+function validateContactMessage(message) {
+    return message && message.trim().length >= 10 && message.trim().length <= 1000;
+}
+
+// Обработчик отправки формы контактов
+async function handleContactSubmit(event) {
+    event.preventDefault();
+    
+    console.log('📝 Отправка формы контактов...');
+    
+    // Получаем элементы
+    const nameInput = document.getElementById('contactName');
+    const emailInput = document.getElementById('contactEmail');
+    const phoneInput = document.getElementById('contactPhone');
+    const messageInput = document.getElementById('contactMessage');
+    const successDiv = document.getElementById('formSuccess');
+    const errorDiv = document.getElementById('formError');
+    const submitBtn = document.getElementById('contactSubmitBtn');
+    
+    // Очищаем предыдущие сообщения
+    if (successDiv) successDiv.style.display = 'none';
+    if (errorDiv) errorDiv.style.display = 'none';
+    
+    // Получаем значения
+    const name = nameInput ? nameInput.value.trim() : '';
+    const email = emailInput ? emailInput.value.trim() : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const message = messageInput ? messageInput.value.trim() : '';
+    
+    console.log('Получены данные:', { name, email, phone, message });
+    
+    // Валидация
+    if (!name) {
+        showContactError('Укажите ваше имя');
+        return false;
+    }
+    
+    if (!email || !validateEmail(email)) {
+        showContactError('Укажите корректный email');
+        return false;
+    }
+    
+    if (!message || !validateContactMessage(message)) {
+        showContactError('Сообщение должно содержать от 10 до 1000 символов');
+        return false;
+    }
+    
+    if (phone && !validatePhone(phone)) {
+        showContactError('Укажите корректный номер телефона');
+        return false;
+    }
+    
+    // Блокируем кнопку
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Отправка...';
+    }
+    
+    try {
+        // Проверяем наличие DB_MANAGER
+        if (!window.DB_MANAGER) {
+            throw new Error('Менеджер базы данных не загружен');
+        }
+        
+        // Ждем инициализацию
+        await DB_MANAGER.waitForInit();
+        
+        // Сохраняем сообщение
+        console.log('Сохраняем сообщение в БД...');
+        const result = await DB_MANAGER.addMessage({
+            name: name,
+            email: email,
+            phone: phone || '',
+            message: message
+        });
+        
+        console.log('✅ Сообщение сохранено:', result);
+        
+        // Показываем успех
+        if (successDiv) {
+            successDiv.style.display = 'block';
+            successDiv.innerHTML = '✅ Спасибо за обращение! Мы свяжемся с вами в ближайшее время.';
+        }
+        
+        // Очищаем форму
+        if (nameInput) nameInput.value = '';
+        if (emailInput) emailInput.value = '';
+        if (phoneInput) phoneInput.value = '';
+        if (messageInput) messageInput.value = '';
+        
+        // Показываем уведомление
+        showNotification('Сообщение отправлено!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Ошибка при отправке сообщения:', error);
+        showContactError('Ошибка при отправке: ' + error.message);
+    } finally {
+        // Разблокируем кнопку
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Отправить';
+        }
+    }
+    
+    return false;
+}
+
+// Вспомогательная функция для показа ошибки в форме контактов
+function showContactError(message) {
+    const errorDiv = document.getElementById('formError');
+    const successDiv = document.getElementById('formSuccess');
+    
+    if (successDiv) successDiv.style.display = 'none';
+    
+    if (errorDiv) {
+        errorDiv.style.display = 'block';
+        errorDiv.innerHTML = '❌ ' + message;
+    } else {
+        alert(message);
+    }
+    
+    // Также показываем уведомление
+    showNotification(message, 'error');
+}
+
+// Делаем функцию глобальной
+window.handleContactSubmit = handleContactSubmit;
+
 document.addEventListener('DOMContentLoaded', initialize);
