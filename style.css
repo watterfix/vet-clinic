@@ -2944,3 +2944,356 @@ input[type="tel"] {
 .db-modal::-webkit-scrollbar-thumb:hover {
     background: #ffd700;
 }
+
+/* ============================================
+   СТИЛИ ДЛЯ КНОПОК В ПАНЕЛИ УПРАВЛЕНИЯ БД
+   ============================================ */
+
+/* Контейнер для кнопок действий */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+/* Базовые стили для всех кнопок */
+.btn-edit, 
+.btn-save, 
+.btn-delete, 
+.btn-add, 
+.btn-view, 
+.btn-export,
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    letter-spacing: 0.3px;
+    min-width: 80px;
+}
+
+/* Стили для кнопки редактирования */
+.btn-edit {
+    background: linear-gradient(135deg, #ffd700, #ffc107);
+    color: #1e4d2f;
+    border: 1px solid #e6b800;
+}
+
+.btn-edit:hover {
+    background: linear-gradient(135deg, #ffc107, #ffd700);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+}
+
+/* Стили для кнопки сохранения */
+.btn-save {
+    background: linear-gradient(135deg, #2c6e49, #1e4d2f);
+    color: white;
+    border: 1px solid #1e4d2f;
+}
+
+.btn-save:hover {
+    background: linear-gradient(135deg, #1e4d2f, #2c6e49);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(44, 110, 73, 0.4);
+}
+
+/* Стили для кнопки удаления */
+.btn-delete {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    border: 1px solid #c82333;
+}
+
+.btn-delete:hover {
+    background: linear-gradient(135deg, #c82333, #dc3545);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+}
+
+.btn-delete:disabled {
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Стили для кнопки добавления */
+.btn-add {
+    background: linear-gradient(135deg, #2c6e49, #1e4d2f);
+    color: white;
+    padding: 10px 24px;
+    font-size: 14px;
+    border: 1px solid #1e4d2f;
+    margin-bottom: 15px;
+}
+
+.btn-add:hover {
+    background: linear-gradient(135deg, #1e4d2f, #2c6e49);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(44, 110, 73, 0.4);
+}
+
+.btn-add::before {
+    content: "➕";
+    font-size: 14px;
+    margin-right: 5px;
+}
+
+/* Стили для кнопки просмотра */
+.btn-view {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    color: white;
+    border: 1px solid #138496;
+}
+
+.btn-view:hover {
+    background: linear-gradient(135deg, #138496, #17a2b8);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(23, 162, 184, 0.4);
+}
+
+.btn-view::before {
+    content: "👁️";
+    font-size: 14px;
+    margin-right: 5px;
+}
+
+/* Стили для кнопок экспорта */
+.btn-export {
+    background: linear-gradient(135deg, #1e4d2f, #2c6e49);
+    color: white;
+    padding: 10px 20px;
+    font-size: 13px;
+    border: 1px solid #1e4d2f;
+}
+
+.btn-export:hover {
+    background: linear-gradient(135deg, #2c6e49, #1e4d2f);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(44, 110, 73, 0.4);
+}
+
+.btn-export.danger {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    border: 1px solid #c82333;
+}
+
+.btn-export.danger:hover {
+    background: linear-gradient(135deg, #c82333, #dc3545);
+    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+}
+
+/* Стили для кнопок в модальных окнах */
+.db-modal-btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 100px;
+}
+
+.db-modal-btn-primary {
+    background: linear-gradient(135deg, #2c6e49, #1e4d2f);
+    color: white;
+    border: 1px solid #1e4d2f;
+}
+
+.db-modal-btn-primary:hover {
+    background: linear-gradient(135deg, #1e4d2f, #2c6e49);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(44, 110, 73, 0.4);
+}
+
+.db-modal-btn-secondary {
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    color: white;
+    border: 1px solid #5a6268;
+}
+
+.db-modal-btn-secondary:hover {
+    background: linear-gradient(135deg, #5a6268, #6c757d);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+}
+
+.db-modal-btn-danger {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    border: 1px solid #c82333;
+}
+
+.db-modal-btn-danger:hover {
+    background: linear-gradient(135deg, #c82333, #dc3545);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+}
+
+/* Стили для маленьких кнопок в шапке */
+.button-small {
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #ffd700, #ffc107);
+    color: #1e4d2f;
+    border: 1px solid #e6b800;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.button-small:hover {
+    background: linear-gradient(135deg, #ffc107, #ffd700);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
+}
+
+/* Стили для кнопок в формах добавления */
+.add-form .btn-save,
+.add-form .btn-delete {
+    padding: 10px 24px;
+    font-size: 14px;
+    min-width: 120px;
+}
+
+/* Стили для кнопок в таблицах */
+.db-table .action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
+.db-table .btn-edit,
+.db-table .btn-save,
+.db-table .btn-delete,
+.db-table .btn-view {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-width: 65px;
+}
+
+/* Стили для кнопок в панели экспорта */
+.export-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 12px;
+    border: 2px solid #ffd700;
+}
+
+/* Стили для иконок в кнопках */
+.btn-edit::before { content: "✏️"; margin-right: 5px; font-size: 14px; }
+.btn-save::before { content: "💾"; margin-right: 5px; font-size: 14px; }
+.btn-delete::before { content: "🗑️"; margin-right: 5px; font-size: 14px; }
+.btn-view::before { content: "👁️"; margin-right: 5px; font-size: 14px; }
+.btn-export::before { content: "📥"; margin-right: 5px; font-size: 14px; }
+.btn-export.danger::before { content: "⚠️"; }
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+        width: 100%;
+        gap: 5px;
+    }
+    
+    .btn-edit, 
+    .btn-save, 
+    .btn-delete, 
+    .btn-add, 
+    .btn-view, 
+    .btn-export {
+        width: 100%;
+        min-width: auto;
+        padding: 10px;
+    }
+    
+    .export-buttons {
+        flex-direction: column;
+    }
+    
+    .db-table .action-buttons {
+        flex-direction: column;
+    }
+    
+    .db-table .btn-edit,
+    .db-table .btn-save,
+    .db-table .btn-delete,
+    .db-table .btn-view {
+        width: 100%;
+    }
+}
+
+/* Стили для кнопки "Наверх" */
+.back-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #2c6e49, #1e4d2f);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    font-size: 24px;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    border: 2px solid #ffd700;
+    transition: all 0.3s ease;
+    z-index: 999;
+}
+
+.back-to-top:hover {
+    transform: translateY(-5px);
+    background: linear-gradient(135deg, #1e4d2f, #2c6e49);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+/* Эффекты при нажатии на кнопки */
+.btn-edit:active,
+.btn-save:active,
+.btn-delete:active,
+.btn-add:active,
+.btn-view:active,
+.btn-export:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Стили для неактивных кнопок */
+.btn-delete:disabled,
+.btn-edit:disabled,
+.btn-save:disabled,
+.btn-view:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+    filter: grayscale(50%);
+}
