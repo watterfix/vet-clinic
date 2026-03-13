@@ -418,29 +418,127 @@ function searchOrders() {
     });
 }
 
+// ============================================
+// ПРОСМОТР ДЕТАЛЕЙ ЗАКАЗА (СТИЛИЗОВАННАЯ ВЕРСИЯ)
+// ============================================
+
 function viewOrderDetails(orderId) {
     const order = DB_MANAGER.currentData?.orders.find(o => o.id == orderId);
-    if (!order) return;
-
-    let itemsList = '';
-    if (order.items && Array.isArray(order.items)) {
-        order.items.forEach(item => {
-            itemsList += `${item.name} - ${item.price} ₽\n`;
-        });
+    if (!order) {
+        showNotification('Заказ не найден', 'error');
+        return;
     }
 
-    alert(`Заказ #${order.order_number || 'Н/Д'}
+    // Создаем затемненный фон
+    const overlay = document.createElement('div');
+    overlay.className = 'order-details-modal';
+    
+    // Формируем список товаров
+    let itemsHtml = '';
+    if (order.items && Array.isArray(order.items)) {
+        // Группируем одинаковые товары
+        const itemCount = {};
+        order.items.forEach(item => {
+            const key = `${item.name}_${item.price}`;
+            if (itemCount[key]) {
+                itemCount[key].quantity++;
+            } else {
+                itemCount[key] = {
+                    name: item.name,
+                    price: item.price,
+                    quantity: 1
+                };
+            }
+        });
         
-Дата: ${new Date(order.date).toLocaleString()}
-Клиент: ${order.user_name} (${order.user_email})
+        // Сортируем товары по имени
+        const sortedItems = Object.values(itemCount).sort((a, b) => a.name.localeCompare(b.name));
+        
+        itemsHtml = sortedItems.map(item => `
+            <div class="order-item-row">
+                <span class="order-item-name">
+                    ${item.name} ${item.quantity > 1 ? `<span style="color: #666; font-size: 12px;">(x${item.quantity})</span>` : ''}
+                </span>
+                <span class="order-item-price">${item.price * item.quantity} ₽</span>
+            </div>
+        `).join('');
+    }
 
-Состав заказа:
-${itemsList || 'Нет товаров'}
-Сумма: ${order.total || 0} ₽
+    // Формируем информацию о доставке
+    let deliveryInfo = '';
+    if (order.delivery === 'pickup') {
+        deliveryInfo = `
+            <div class="order-delivery-info">
+                <p><strong>📍 Адрес самовывоза:</strong> г. Воронеж, ул. Ветеринарная, д. 15</p>
+                <p><strong>🕒 Режим работы:</strong> круглосуточно</p>
+                <p><strong>📞 Телефон:</strong> 222-22-22</p>
+            </div>
+        `;
+    } else {
+        deliveryInfo = `
+            <div class="order-delivery-info">
+                <p><strong>🚚 Адрес доставки:</strong> ${order.delivery_address || 'Не указан'}</p>
+                <p><strong>📞 Телефон:</strong> ${order.delivery_phone || 'Не указан'}</p>
+                ${order.delivery_comment ? `<p><strong>💬 Комментарий:</strong> ${order.delivery_comment}</p>` : ''}
+                <p><strong>💰 Стоимость доставки:</strong> ${order.delivery_cost > 0 ? order.delivery_cost + ' ₽' : 'Бесплатно'}</p>
+            </div>
+        `;
+    }
 
-Доставка: ${order.delivery === 'pickup' ? 'Самовывоз' : 'Доставка'}
-${order.delivery_address ? 'Адрес: ' + order.delivery_address : ''}
-${order.delivery_phone ? 'Телефон: ' + order.delivery_phone : ''}`);
+    // Создаем содержимое модального окна
+    overlay.innerHTML = `
+        <div class="order-details-content">
+            <div class="order-details-close" onclick="this.closest('.order-details-modal').remove()">×</div>
+            
+            <div class="order-details-header">
+                <div class="order-details-number">#${order.order_number || 'Н/Д'}</div>
+                <div class="order-details-date">${order.date ? new Date(order.date).toLocaleString() : 'Дата не указана'}</div>
+            </div>
+            
+            <div class="order-details-section">
+                <h3>Информация о клиенте</h3>
+                <div class="order-info-grid">
+                    <div class="order-info-item">
+                        <div class="order-info-label">Имя</div>
+                        <div class="order-info-value">${order.user_name || 'Н/Д'}</div>
+                    </div>
+                    <div class="order-info-item">
+                        <div class="order-info-label">Email</div>
+                        <div class="order-info-value">${order.user_email || order.user || 'Н/Д'}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="order-details-section">
+                <h3>Состав заказа</h3>
+                <div class="order-items-list">
+                    ${itemsHtml || '<p style="text-align: center; color: #999;">Нет товаров</p>'}
+                </div>
+                <div class="order-total-row">
+                    <span class="order-total-label">ИТОГО:</span>
+                    <span class="order-total-value">${order.total || 0} ₽</span>
+                </div>
+            </div>
+            
+            <div class="order-details-section">
+                <h3>Информация о доставке</h3>
+                ${deliveryInfo}
+            </div>
+            
+            <button class="order-details-button" onclick="this.closest('.order-details-modal').remove()">
+                Закрыть
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    
+    // Закрытие по клику на фон
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            overlay.remove();
+        }
+    });
 }
 
 // ============================================
