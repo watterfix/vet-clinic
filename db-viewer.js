@@ -1107,3 +1107,6 @@ window.refreshData = refreshData;
 window.createBackup = createBackup;
 window.deleteBackup = deleteBackup;
 window.resetDatabase = resetDatabase;
+window.showConfirmDialog = showConfirmDialog;
+window.showOrderDetails = showOrderDetails;
+window.showDbNotification = showDbNotification;
