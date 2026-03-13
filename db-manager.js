@@ -252,24 +252,28 @@ const DB_MANAGER = {
         return null;
     },
 
-    async updateProduct(id, productData) {
-        await this.waitForInit();
-        
-        const { data, error } = await this.supabase
-            .from('products')
-            .update(productData)
-            .eq('id', id)
-            .select();
+    // Обновление товара (найдите эту функцию и замените)
+async function updateProduct(id, productData) {
+    await this.waitForInit();
+    
+    const { data, error } = await this.supabase
+        .from('products')
+        .update(productData)
+        .eq('id', id)
+        .select();
 
-        if (error) throw error;
-        
-        const index = this.currentData.products.findIndex(p => p.id === id);
-        if (index !== -1 && data && data[0]) {
-            this.currentData.products[index] = data[0];
-        }
-        
-        return data ? data[0] : null;
-    },
+    if (error) throw error;
+    
+    const index = this.currentData.products.findIndex(p => p.id === id);
+    if (index !== -1 && data && data[0]) {
+        this.currentData.products[index] = data[0];
+    }
+    
+    // Отправляем сигнал об обновлении цен на всех страницах
+    this.broadcastPriceUpdate();
+    
+    return data ? data[0] : null;
+}
 
     async deleteProduct(id) {
         await this.waitForInit();
