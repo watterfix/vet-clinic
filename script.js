@@ -446,7 +446,7 @@ function switchAuthTab(tab) {
     }
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ РЕГИСТРАЦИИ
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ РЕГИСТРАЦИИ С АВТОМАТИЧЕСКИМ ОБНОВЛЕНИЕМ
 async function register(event) {
     event.preventDefault();
     
@@ -469,6 +469,12 @@ async function register(event) {
         return;
     }
 
+    // Показываем индикатор загрузки на кнопке
+    const registerBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = registerBtn.textContent;
+    registerBtn.textContent = 'Регистрация...';
+    registerBtn.disabled = true;
+
     try {
         // Ждем инициализацию DB_MANAGER
         await DB_MANAGER.waitForInit();
@@ -478,16 +484,23 @@ async function register(event) {
         
         if (exists) {
             showNotification('Пользователь с таким email уже существует', 'error');
+            registerBtn.textContent = originalText;
+            registerBtn.disabled = false;
             return;
         }
         
         // Регистрируем нового пользователя
-        await DB_MANAGER.addUser({
+        const newUser = await DB_MANAGER.addUser({
             name: name,
             email: email,
             password: password,
             role: 'user'
         });
+        
+        console.log('✅ Новый пользователь зарегистрирован:', newUser);
+        
+        // ПОЛНОЕ ОБНОВЛЕНИЕ ДАННЫХ
+        await DB_MANAGER.loadDatabase(); // Принудительно перезагружаем данные с сервера
         
         showNotification('Регистрация успешна! Теперь можно войти.', 'success');
         
@@ -499,18 +512,35 @@ async function register(event) {
         // Переключаем на вкладку входа
         switchAuthTab('login');
         
-        // Принудительно обновляем данные в админ-панели (если открыта)
+        // ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ АДМИН-ПАНЕЛИ (если открыта)
         if (window.location.pathname.includes('db-viewer.html')) {
-            setTimeout(() => {
-                loadUsers();
-                updateStats();
-            }, 1000);
+            console.log('🔄 Обновление админ-панели...');
+            setTimeout(async () => {
+                await DB_MANAGER.loadDatabase();
+                if (typeof loadUsers === 'function') loadUsers();
+                if (typeof updateStats === 'function') updateStats();
+                showDbNotification('Данные пользователей обновлены', 'success');
+            }, 500);
         }
         
+        // ОБНОВЛЕНИЕ ДАННЫХ В ДРУГИХ ВКЛАДКАХ
+        broadcastUpdate();
+        
     } catch (error) {
-        console.error('Ошибка регистрации:', error);
-        showNotification('Ошибка при регистрации', 'error');
+        console.error('❌ Ошибка регистрации:', error);
+        showNotification('Ошибка при регистрации: ' + error.message, 'error');
+    } finally {
+        // Возвращаем кнопку в исходное состояние
+        registerBtn.textContent = originalText;
+        registerBtn.disabled = false;
     }
+}
+
+// Функция для принудительного обновления данных в других вкладках
+function broadcastUpdate() {
+    // Сохраняем временную метку в localStorage
+    localStorage.setItem('db_update_timestamp', Date.now().toString());
+    console.log('📢 Отправлен сигнал обновления данных');
 }
 
 // ИСПРАВЛЕННАЯ ФУНКЦИЯ СОЗДАНИЯ ЗАКАЗА
@@ -782,6 +812,19 @@ async function initialize() {
     createAuthModal();
     updateUI();
     
+    // Добавляем обработчик для обновления данных при фокусе на вкладке
+    window.addEventListener('focus', async function() {
+        if (window.location.pathname.includes('db-viewer.html')) {
+            console.log('👁️ Вкладка получила фокус, обновляем данные...');
+            await DB_MANAGER.loadDatabase();
+            if (typeof loadUsers === 'function') loadUsers();
+            if (typeof loadProducts === 'function') loadProducts();
+            if (typeof loadOrders === 'function') loadOrders();
+            if (typeof loadMessages === 'function') loadMessages();
+            if (typeof updateStats === 'function') updateStats();
+        }
+    });
+    
     console.log('✅ Инициализация завершена');
 }
 
@@ -914,6 +957,26 @@ function showContactError(message) {
     // Также показываем уведомление
     showNotification(message, 'error');
 }
+
+// Слушаем изменения в localStorage для обновления данных в реальном времени
+window.addEventListener('storage', function(e) {
+    if (e.key === 'db_update_timestamp') {
+        console.log('🔄 Получен сигнал обновления данных');
+        
+        // Если мы на странице админ-панели, обновляем данные
+        if (window.location.pathname.includes('db-viewer.html')) {
+            setTimeout(async () => {
+                await DB_MANAGER.loadDatabase();
+                if (typeof loadUsers === 'function') loadUsers();
+                if (typeof loadProducts === 'function') loadProducts();
+                if (typeof loadOrders === 'function') loadOrders();
+                if (typeof loadMessages === 'function') loadMessages();
+                if (typeof updateStats === 'function') updateStats();
+                showDbNotification('Данные обновлены', 'success');
+            }, 500);
+        }
+    }
+});
 
 // Делаем функцию глобальной
 window.handleContactSubmit = handleContactSubmit;
