@@ -62,33 +62,45 @@ const DB_MANAGER = {
         }
     },
 
-    // Сохранение данных на сервер
-    async saveToServer() {
-        console.log('💾 Сохранение данных...');
+    // Сохранение данных на сервер (исправленная версия)
+async saveToServer() {
+    console.log('💾 Сохранение данных...', this.currentData);
 
-        try {
-            const response = await fetch(`${this.BASE_URL}/b/${this.BIN_ID}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': this.API_KEY
-                },
-                body: JSON.stringify(this.currentData)
-            });
+    try {
+        const response = await fetch(`${this.BASE_URL}/b/${this.BIN_ID}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': this.API_KEY,
+                'X-Bin-Versioning': 'false' // Добавляем для отключения версионирования
+            },
+            body: JSON.stringify(this.currentData)
+        });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            console.log('✅ Данные сохранены');
-            this.saveToLocalStorage();
-            return true;
-
-        } catch (error) {
-            console.error('❌ Ошибка сохранения:', error);
-            return false;
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
-    },
+
+        const result = await response.json();
+        console.log('✅ Данные сохранены на JSONBin:', result);
+        this.saveToLocalStorage();
+        return true;
+
+    } catch (error) {
+        console.error('❌ Ошибка сохранения на JSONBin:', error);
+        
+        // Сохраняем локально как резервную копию
+        this.saveToLocalStorage();
+        
+        // Показываем уведомление пользователю
+        if (window.showNotification) {
+            window.showNotification('Заказ сохранен локально. Проблема с соединением с сервером.', 'warning');
+        }
+        
+        return false;
+    }
+}
 
     // Сохранение в localStorage (для совместимости со старым кодом)
     saveToLocalStorage() {
