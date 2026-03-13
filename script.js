@@ -203,6 +203,7 @@ function createAuthModal() {
                     <input type="email" id="loginEmail" placeholder="Email" required>
                     <p>Пароль:</p>
                     <input type="password" id="loginPassword" placeholder="Пароль" required>
+                    <div id="loginMessage" class="form-message" style="display: none;"></div>
                     <button type="submit" class="button" style="width: 100%;">Войти</button>
                 </form>
             </div>
@@ -215,6 +216,7 @@ function createAuthModal() {
                     <input type="email" id="regEmail" placeholder="Email" required>
                     <p>Пароль:</p>
                     <input type="password" id="regPassword" placeholder="Пароль" required>
+                    <div id="registerMessage" class="form-message" style="display: none;"></div>
                     <button type="submit" class="button" style="width: 100%;">Зарегистрироваться</button>
                 </form>
             </div>
