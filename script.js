@@ -977,8 +977,63 @@ window.addEventListener('storage', function(e) {
         }
     }
 });
+// ============================================
+// ОБНОВЛЕНИЕ ЦЕН НА СТРАНИЦЕ ТОВАРОВ
+// ============================================
+
+// Функция для обновления отображаемых цен
+async function refreshProductPrices() {
+    // Проверяем, находимся ли мы на странице товаров
+    if (!window.location.pathname.includes('characteristics.html')) {
+        return;
+    }
+    
+    console.log('🔄 Обновление цен на странице товаров...');
+    
+    try {
+        // Получаем актуальные данные из БД
+        await DB_MANAGER.waitForInit();
+        await DB_MANAGER.loadDatabase();
+        
+        // Обновляем цены в каждой строке таблицы
+        document.querySelectorAll('tr[data-id]').forEach(row => {
+            const productId = row.getAttribute('data-id');
+            const product = DB_MANAGER.currentData.products.find(p => p.id === productId);
+            
+            if (product) {
+                // Обновляем атрибут data-price
+                row.setAttribute('data-price', product.price);
+                
+                // Обновляем отображаемую цену
+                const priceCell = row.querySelector('.price');
+                if (priceCell) {
+                    priceCell.textContent = product.price + ' руб.';
+                }
+                
+                // Если есть кнопки редактирования для админа, обновляем их
+                if (currentUser && currentUser.role === 'admin') {
+                    const priceInput = document.getElementById(`price-${productId}`);
+                    if (priceInput) {
+                        priceInput.value = product.price;
+                    }
+                }
+            }
+        });
+        
+        console.log('✅ Цены обновлены');
+        
+        // Показываем уведомление (только если не админ-панель)
+        if (!window.location.pathname.includes('db-viewer.html')) {
+            showNotification('Цены обновлены', 'success');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка при обновлении цен:', error);
+    }
+}
 
 // Делаем функцию глобальной
+window.refreshProductPrices = refreshProductPrices;
 window.handleContactSubmit = handleContactSubmit;
 
 document.addEventListener('DOMContentLoaded', initialize);
