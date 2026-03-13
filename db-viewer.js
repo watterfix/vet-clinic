@@ -333,25 +333,25 @@ function cancelUserEdit(email) {
 // Удаление пользователя
 async function deleteUser(email) {
     if (email === 'admin@vetclinic.ru') {
-        showNotification('Нельзя удалить главного администратора!', 'error');
+        showDbNotification('Нельзя удалить главного администратора!', 'error');
         return;
     }
 
-    if (confirm(`Удалить пользователя ${email}?`)) {
+    showConfirmDialog(`Удалить пользователя ${email}?`, async () => {
         try {
             const result = await DB_MANAGER.deleteUser(email);
             if (result) {
-                showNotification('Пользователь удален', 'success');
+                showDbNotification('Пользователь удален', 'success');
                 loadUsers();
                 updateStats();
             } else {
-                showNotification('Ошибка при удалении', 'error');
+                showDbNotification('Ошибка при удалении', 'error');
             }
         } catch (error) {
             console.error('Ошибка удаления:', error);
-            showNotification('Ошибка при удалении', 'error');
+            showDbNotification('Ошибка при удалении', 'error');
         }
-    }
+    });
 }
 
 // ============================================
@@ -522,19 +522,19 @@ async function deleteProduct(productId) {
     const product = DB_MANAGER.currentData?.products.find(p => p.id === productId);
     if (!product) return;
 
-    if (confirm(`Удалить товар "${product.name}"?`)) {
+    showConfirmDialog(`Удалить товар "${product.name}"?`, async () => {
         try {
             const result = await DB_MANAGER.deleteProduct(productId);
             if (result) {
-                showNotification('Товар удален', 'success');
+                showDbNotification('Товар удален', 'success');
                 loadProducts();
                 updateStats();
             }
         } catch (error) {
             console.error('Ошибка удаления:', error);
-            showNotification('Ошибка при удалении', 'error');
+            showDbNotification('Ошибка при удалении', 'error');
         }
-    }
+    });
 }
 
 // ============================================
@@ -610,48 +610,29 @@ function searchOrders() {
 // Просмотр деталей заказа
 function viewOrderDetails(orderId) {
     const order = DB_MANAGER.currentData?.orders.find(o => o.id == orderId);
-    if (!order) return;
-
-    let itemsHtml = '';
-    order.items.forEach(item => {
-        itemsHtml += `${item.name} - ${item.price} ₽\n`;
-    });
-
-    let deliveryInfo = '';
-    if (order.delivery === 'pickup') {
-        deliveryInfo = `Адрес самовывоза: г. Воронеж, ул. Ветеринарная, д. 15`;
-    } else {
-        deliveryInfo = `Адрес доставки: ${order.delivery_address}\nТелефон: ${order.delivery_phone}`;
+    if (!order) {
+        showDbNotification('Заказ не найден', 'error');
+        return;
     }
-
-    alert(`
-        Заказ #${order.order_number}
-        Дата: ${new Date(order.date).toLocaleString()}
-        Пользователь: ${order.user_name} (${order.user_email})
-        
-        Состав заказа:
-        ${itemsHtml}
-        
-        Сумма: ${order.total} ₽
-        ${deliveryInfo}
-    `);
+    
+    showOrderDetails(order);
 }
 
 // Удаление заказа
 async function deleteOrder(orderId) {
-    if (confirm('Удалить заказ?')) {
+    showConfirmDialog('Удалить заказ?', async () => {
         try {
             const result = await DB_MANAGER.deleteOrder(orderId);
             if (result) {
-                showNotification('Заказ удален', 'success');
+                showDbNotification('Заказ удален', 'success');
                 loadOrders();
                 updateStats();
             }
         } catch (error) {
             console.error('Ошибка удаления заказа:', error);
-            showNotification('Ошибка при удалении', 'error');
+            showDbNotification('Ошибка при удалении', 'error');
         }
-    }
+    });
 }
 
 // ============================================
