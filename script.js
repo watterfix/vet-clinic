@@ -1,5 +1,30 @@
 const SCRIPT_VERSION = '10';
 
+// В самом начале script.js добавьте:
+console.log('📜 script.js загружается...');
+
+// Функция ожидания DB_MANAGER
+async function waitForDBManager() {
+    return new Promise((resolve) => {
+        if (window.DB_MANAGER) {
+            resolve();
+        } else {
+            let attempts = 0;
+            const interval = setInterval(() => {
+                attempts++;
+                if (window.DB_MANAGER) {
+                    clearInterval(interval);
+                    resolve();
+                } else if (attempts > 50) { // 5 секунд максимум
+                    clearInterval(interval);
+                    console.error('❌ DB_MANAGER не загрузился за 5 секунд');
+                    resolve();
+                }
+            }, 100);
+        }
+    });
+}
+
 console.log('📜 script.js загружен (версия', SCRIPT_VERSION + ')');
 
 // Делаем функции глобальными
