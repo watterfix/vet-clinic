@@ -222,35 +222,82 @@ const DB_MANAGER = {
     // ТОВАРЫ
     // ============================================
 
-    async getProduct(id) {
-        await this.waitForInit();
-        
-        const { data, error } = await this.supabase
-            .from('products')
-            .select('*')
-            .eq('id', id)
-            .maybeSingle();
+async getProduct(id) {
+    await this.waitForInit();
+    
+    const { data, error } = await this.supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
 
-        if (error) console.error('Ошибка getProduct:', error);
-        return data;
-    },
+    if (error) console.error('Ошибка getProduct:', error);
+    return data;
+},
 
-    async addProduct(productData) {
-        await this.waitForInit();
-        
-        const { data, error } = await this.supabase
-            .from('products')
-            .insert([productData])
-            .select();
+async addProduct(productData) {
+    await this.waitForInit();
+    
+    const { data, error } = await this.supabase
+        .from('products')
+        .insert([productData])
+        .select();
 
-        if (error) throw error;
-        
-        if (data && data[0]) {
-            this.currentData.products.push(data[0]);
-            return data[0];
-        }
-        return null;
-    },
+    if (error) throw error;
+    
+    if (data && data[0]) {
+        this.currentData.products.push(data[0]);
+        return data[0];
+    }
+    return null;
+},
+
+async updateProduct(id, productData) {
+    await this.waitForInit();
+    
+    const { data, error } = await this.supabase
+        .from('products')
+        .update(productData)
+        .eq('id', id)
+        .select();
+
+    if (error) throw error;
+    
+    const index = this.currentData.products.findIndex(p => p.id === id);
+    if (index !== -1 && data && data[0]) {
+        this.currentData.products[index] = data[0];
+    }
+    
+    // Отправляем сигнал об обновлении цен
+    this.broadcastPriceUpdate();
+    
+    return data ? data[0] : null;
+},
+
+async deleteProduct(id) {
+    await this.waitForInit();
+    
+    const { error } = await this.supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+    
+    this.currentData.products = this.currentData.products.filter(p => p.id !== id);
+    
+    // Отправляем сигнал об обновлении цен (при удалении тоже)
+    this.broadcastPriceUpdate();
+    
+    return true;
+},
+
+// Добавьте этот метод после всех методов для товаров
+broadcastPriceUpdate() {
+    // Сохраняем временную метку для обновления цен
+    localStorage.setItem('price_update_timestamp', Date.now().toString());
+    console.log('💰 Сигнал обновления цен отправлен');
+},
 
     // ============================================
 // МЕТОДЫ ДЛЯ ТОВАРОВ
