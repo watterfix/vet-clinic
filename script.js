@@ -1,4 +1,4 @@
-const SCRIPT_VERSION = '6';
+const SCRIPT_VERSION = '7';
 
 console.log('📜 script.js загружен (версия', SCRIPT_VERSION + ')');
 
@@ -122,6 +122,49 @@ function createCartButton() {
         `;
         document.body.appendChild(cartButton);
     }
+}
+
+// Функция создания модального окна авторизации
+function createAuthModal() {
+    if (document.getElementById('authModal')) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'authModal';
+    modal.className = 'auth-modal';
+    modal.innerHTML = `
+        <div class="auth-modal-content">
+            <span class="auth-modal-close" onclick="closeAuthModal()">&times;</span>
+            
+            <div class="auth-tabs">
+                <div id="loginTab" class="auth-tab active" onclick="switchAuthTab('login')">Вход</div>
+                <div id="registerTab" class="auth-tab" onclick="switchAuthTab('register')">Регистрация</div>
+            </div>
+            
+            <div id="loginForm" class="auth-form active">
+                <form onsubmit="login(event)">
+                    <p>Email:</p>
+                    <input type="email" id="loginEmail" placeholder="Email" required>
+                    <p>Пароль:</p>
+                    <input type="password" id="loginPassword" placeholder="Пароль" required>
+                    <button type="submit" class="button" style="width: 100%;">Войти</button>
+                </form>
+            </div>
+            
+            <div id="registerForm" class="auth-form">
+                <form onsubmit="register(event)">
+                    <p>Имя:</p>
+                    <input type="text" id="regName" placeholder="Ваше имя" required>
+                    <p>Email:</p>
+                    <input type="email" id="regEmail" placeholder="Email" required>
+                    <p>Пароль:</p>
+                    <input type="password" id="regPassword" placeholder="Пароль" required>
+                    <button type="submit" class="button" style="width: 100%;">Зарегистрироваться</button>
+                </form>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
 }
 
 function updateUI() {
@@ -334,44 +377,39 @@ async function processOrder() {
     }
 }
 
-function openAuthModal(tab = 'login') {
-    let modal = document.getElementById('authModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'authModal';
-        modal.className = 'auth-modal';
-        modal.innerHTML = `
-            <div class="auth-modal-content">
-                <span class="auth-modal-close" onclick="closeAuthModal()">&times;</span>
-                <div class="auth-tabs">
-                    <div id="loginTab" class="auth-tab active" onclick="switchAuthTab('login')">Вход</div>
-                    <div id="registerTab" class="auth-tab" onclick="switchAuthTab('register')">Регистрация</div>
+function addPriceEditButtons() {
+    document.querySelectorAll('tr[data-id]').forEach(row => {
+        const productId = row.dataset.id;
+        const price = row.dataset.price;
+        const actionCell = row.querySelector('td:last-child');
+        if (actionCell) {
+            actionCell.innerHTML = `
+                <div style="display: flex; gap: 5px;">
+                    <input type="number" value="${price}" id="price-${productId}" style="width: 80px; padding: 5px;">
+                    <button onclick="updatePrice('${productId}')" class="button">Изменить</button>
                 </div>
-                <div id="loginForm" class="auth-form active">
-                    <form onsubmit="login(event)">
-                        <p>Email:</p>
-                        <input type="email" id="loginEmail" required>
-                        <p>Пароль:</p>
-                        <input type="password" id="loginPassword" required>
-                        <button type="submit" class="button">Войти</button>
-                    </form>
-                </div>
-                <div id="registerForm" class="auth-form">
-                    <form onsubmit="register(event)">
-                        <p>Имя:</p>
-                        <input type="text" id="regName" required>
-                        <p>Email:</p>
-                        <input type="email" id="regEmail" required>
-                        <p>Пароль:</p>
-                        <input type="password" id="regPassword" required>
-                        <button type="submit" class="button">Зарегистрироваться</button>
-                    </form>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
+            `;
+        }
+    });
+}
+
+async function updatePrice(productId) {
+    if (!currentUser || currentUser.role !== 'admin') return;
+    
+    const newPrice = document.getElementById(`price-${productId}`).value;
+    if (newPrice && newPrice > 0) {
+        await DB_MANAGER.updateProduct(productId, { price: parseInt(newPrice) });
+        showNotification('Цена обновлена');
     }
-    modal.classList.add('active');
+}
+
+function openAuthModal(tab = 'login') {
+    const modal = document.getElementById('authModal');
+    if (!modal) {
+        createAuthModal();
+    }
+
+    document.getElementById('authModal').classList.add('active');
     switchAuthTab(tab);
 }
 
@@ -380,10 +418,24 @@ function closeAuthModal() {
 }
 
 function switchAuthTab(tab) {
-    document.getElementById('loginTab')?.classList.toggle('active', tab === 'login');
-    document.getElementById('registerTab')?.classList.toggle('active', tab === 'register');
-    document.getElementById('loginForm')?.classList.toggle('active', tab === 'login');
-    document.getElementById('registerForm')?.classList.toggle('active', tab === 'register');
+    const loginTab = document.getElementById('loginTab');
+    const registerTab = document.getElementById('registerTab');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+
+    if (loginTab && registerTab && loginForm && registerForm) {
+        if (tab === 'login') {
+            loginTab.classList.add('active');
+            registerTab.classList.remove('active');
+            loginForm.classList.add('active');
+            registerForm.classList.remove('active');
+        } else {
+            registerTab.classList.add('active');
+            loginTab.classList.remove('active');
+            registerForm.classList.add('active');
+            loginForm.classList.remove('active');
+        }
+    }
 }
 
 async function register(event) {
@@ -479,7 +531,9 @@ async function initialize() {
     console.log('Инициализация...');
     
     // Загружаем данные с JSONBin
-    await DB_MANAGER.loadDatabase();
+    if (window.DB_MANAGER) {
+        await DB_MANAGER.loadDatabase();
+    }
     
     currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
     cart = JSON.parse(localStorage.getItem('cart')) || [];
