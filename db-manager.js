@@ -331,6 +331,41 @@ const DB_MANAGER = {
         return true;
     },
 
+// ============================================
+// МЕТОДЫ ДЛЯ СООБЩЕНИЙ
+// ============================================
+
+async addMessage(messageData) {
+    await this.waitForInit();
+    
+    console.log('💾 Сохранение сообщения:', messageData);
+    
+    const { data, error } = await this.supabase
+        .from('messages')
+        .insert([{
+            name: messageData.name,
+            email: messageData.email,
+            phone: messageData.phone || '',
+            message: messageData.message,
+            status: 'new',
+            date: new Date().toISOString()
+        }])
+        .select();
+
+    if (error) {
+        console.error('❌ Ошибка сохранения сообщения:', error);
+        throw error;
+    }
+    
+    if (data && data[0]) {
+        this.currentData.messages.unshift(data[0]);
+        console.log('✅ Сообщение сохранено:', data[0]);
+        return data[0];
+    }
+    
+    return null;
+},
+
     // ============================================
     // СООБЩЕНИЯ
     // ============================================
