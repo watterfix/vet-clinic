@@ -4,8 +4,8 @@
 
 const DB_MANAGER = {
     // Ваши данные из JSONBin
-    BIN_ID: '69b32b80b7ec241ddc6348dd',
-    API_KEY: '$2a$10$tBa4S2lF6C0Qua271by8BuxrbzFEdlyz0lYj/oK52ynRQPDFexbC2',
+    BIN_ID: '69b34a7ab7ec241ddc639917',
+    API_KEY: '$2a$10$nh6Q.DQPxUy3JGi6.fEL3e6DOeE02iVHQ1FBZ7N5FeF8sW0atefpK',
     BASE_URL: 'https://api.jsonbin.io/v3',
 
     currentData: {
