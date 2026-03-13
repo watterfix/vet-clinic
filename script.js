@@ -352,6 +352,12 @@ async function processOrder() {
         return;
     }
 
+    const checkoutBtn = document.querySelector('.checkout-btn');
+    if (checkoutBtn) {
+        checkoutBtn.textContent = 'Оформление...';
+        checkoutBtn.disabled = true;
+    }
+
     const total = cart.reduce((sum, item) => sum + item.price, 0);
     const isDelivery = document.getElementById('deliveryMethod')?.checked;
     
@@ -361,48 +367,130 @@ async function processOrder() {
         
         if (!address || address.length < 10) {
             document.getElementById('deliveryAddressError').textContent = 'Введите корректный адрес';
+            if (checkoutBtn) {
+                checkoutBtn.textContent = 'Оформить заказ';
+                checkoutBtn.disabled = false;
+            }
             return;
         }
         if (!phone || !validatePhone(phone)) {
             document.getElementById('deliveryPhoneError').textContent = 'Введите корректный телефон';
+            if (checkoutBtn) {
+                checkoutBtn.textContent = 'Оформить заказ';
+                checkoutBtn.disabled = false;
+            }
             return;
         }
     }
 
+    // Генерируем номер заказа
+    const orderNumber = generateOrderNumber();
+    const deliveryCost = isDelivery ? (total >= 3000 ? 0 : 300) : 0;
+    const finalTotal = total + deliveryCost;
+
+    // Создаем заказ с полной информацией
     const order = {
+        orderNumber: orderNumber,
         user: currentUser.email,
         userName: currentUser.name,
-        items: cart,
+        items: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: 1
+        })),
         delivery: isDelivery ? 'delivery' : 'pickup',
-        deliveryCost: isDelivery ? (total >= 3000 ? 0 : 300) : 0,
-        total: total + (isDelivery ? (total >= 3000 ? 0 : 300) : 0)
+        deliveryCost: deliveryCost,
+        total: finalTotal
     };
 
     if (isDelivery) {
         order.deliveryAddress = document.getElementById('deliveryAddress').value;
         order.deliveryPhone = document.getElementById('deliveryPhone').value;
+        order.deliveryComment = document.getElementById('deliveryComment')?.value || '';
     }
 
     try {
-        await DB_MANAGER.addOrder(order);
+        console.log('📦 Отправка заказа:', order);
         
+        // Сохраняем заказ в Supabase
+        const savedOrder = await DB_MANAGER.addOrder(order);
+        console.log('✅ Заказ сохранен:', savedOrder);
+        
+        // Очищаем корзину
         cart = [];
         localStorage.setItem('cart', JSON.stringify(cart));
         updateCartCount();
         
+        // Формируем информацию о доставке
+        let deliveryInfo = '';
+        if (isDelivery) {
+            deliveryInfo = `
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
+                    <p><strong>🚚 Адрес доставки:</strong> ${order.deliveryAddress}</p>
+                    <p><strong>📞 Телефон:</strong> ${order.deliveryPhone}</p>
+                    ${order.deliveryComment ? `<p><strong>💬 Комментарий:</strong> ${order.deliveryComment}</p>` : ''}
+                    <p><strong>💰 Стоимость доставки:</strong> ${deliveryCost > 0 ? deliveryCost + ' руб.' : 'Бесплатно'}</p>
+                </div>
+            `;
+        } else {
+            deliveryInfo = `
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
+                    <p><strong>📍 Адрес самовывоза:</strong> г. Воронеж, ул. Ветеринарная, д. 15</p>
+                    <p><strong>🕒 Режим работы:</strong> круглосуточно</p>
+                    <p><strong>📞 Телефон:</strong> 222-22-22</p>
+                </div>
+            `;
+        }
+
+        // Показываем подтверждение
         showStyledAlert(`
             <div style="text-align: center;">
-                <h2 style="color: #2c6e49;">Заказ оформлен!</h2>
-                <p>Сумма: ${order.total} ₽</p>
+                <div style="font-size: 48px; margin-bottom: 15px;">🎉</div>
+                <h2 style="color: #2c6e49; margin-bottom: 15px;">ЗАКАЗ ОФОРМЛЕН!</h2>
+                <div style="background: linear-gradient(135deg, #2c6e49, #1e4d2f); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong style="font-size: 24px;">#${orderNumber}</strong>
+                </div>
+                
+                ${deliveryInfo}
+                
+                <div style="background-color: #e8f4e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #2c6e49; margin-bottom: 10px;">Ваш заказ:</h3>
+                    ${order.items.map(item => `
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #2c6e49;">
+                            <span>${item.name}</span>
+                            <span style="font-weight: bold;">${item.price} ₽</span>
+                        </div>
+                    `).join('')}
+                    <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 2px solid #2c6e49; font-weight: bold;">
+                        <span>ИТОГО:</span>
+                        <span>${finalTotal} ₽</span>
+                    </div>
+                </div>
+                
+                <p>✅ Заказ сохранен в базе данных</p>
+                <button onclick="location.href='characteristics.html'" class="button" style="margin-top: 15px;">🛒 Продолжить покупки</button>
             </div>
         `);
         
+        // Обновляем отображение корзины
         if (window.location.pathname.includes('cart.html')) {
             displayCart();
         }
+        
+        // Отправляем сигнал об обновлении
+        if (DB_MANAGER.broadcastPriceUpdate) {
+            DB_MANAGER.broadcastPriceUpdate();
+        }
+        
     } catch (error) {
-        console.error('Ошибка заказа:', error);
-        showNotification('Ошибка при оформлении заказа', 'error');
+        console.error('❌ Ошибка заказа:', error);
+        showNotification('Ошибка при оформлении заказа: ' + error.message, 'error');
+    } finally {
+        if (checkoutBtn) {
+            checkoutBtn.textContent = 'Оформить заказ';
+            checkoutBtn.disabled = false;
+        }
     }
 }
 
