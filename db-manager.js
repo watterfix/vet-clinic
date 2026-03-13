@@ -1,5 +1,5 @@
 // ============================================
-// МЕНЕДЖЕР БАЗЫ ДАННЫХ (только JSONBin.io)
+// МЕНЕДЖЕР БАЗЫ ДАННЫХ (с поддержкой объектного формата)
 // ============================================
 
 const DB_MANAGER = {
@@ -38,12 +38,49 @@ const DB_MANAGER = {
 
             const result = await response.json();
             const data = result.record || result;
+            
+            console.log('📦 Получены данные:', data);
 
-            // Преобразуем данные в нужный формат
-            this.currentData.users = Array.isArray(data.users) ? data.users : [];
-            this.currentData.products = Array.isArray(data.products) ? data.products : [];
+            // Преобразуем users из объекта в массив (если нужно)
+            if (data.users && typeof data.users === 'object' && !Array.isArray(data.users)) {
+                this.currentData.users = Object.keys(data.users).map(email => ({
+                    id: email,
+                    email: email,
+                    name: data.users[email].name,
+                    password: data.users[email].password,
+                    role: data.users[email].role,
+                    registered: data.users[email].registered || new Date().toISOString()
+                }));
+                console.log('✅ Преобразовано пользователей из объекта в массив');
+            } else if (Array.isArray(data.users)) {
+                this.currentData.users = data.users;
+            } else {
+                this.currentData.users = [];
+            }
+
+            // Преобразуем products из объекта в массив (если нужно)
+            if (data.products && typeof data.products === 'object' && !Array.isArray(data.products)) {
+                this.currentData.products = Object.keys(data.products).map(id => ({
+                    id: id,
+                    name: data.products[id].name,
+                    price: data.products[id].price,
+                    category: data.products[id].category,
+                    description: data.products[id].description || ''
+                }));
+                console.log('✅ Преобразовано товаров из объекта в массив');
+            } else if (Array.isArray(data.products)) {
+                this.currentData.products = data.products;
+            } else {
+                this.currentData.products = [];
+            }
+
+            // Заказы (обычно уже массив)
             this.currentData.orders = Array.isArray(data.orders) ? data.orders : [];
+            
+            // Сообщения
             this.currentData.messages = Array.isArray(data.messages) ? data.messages : [];
+            
+            // Настройки
             this.currentData.settings = data.settings || {};
 
             console.log(`✅ Загружено пользователей: ${this.currentData.users.length}`);
@@ -70,6 +107,35 @@ const DB_MANAGER = {
     async saveToServer() {
         console.log('💾 Сохранение данных на JSONBin...');
 
+        // Подготавливаем данные для сохранения (конвертируем массивы обратно в объекты)
+        const saveData = {
+            users: {},
+            products: {},
+            orders: this.currentData.orders,
+            messages: this.currentData.messages,
+            settings: this.currentData.settings
+        };
+
+        // Конвертируем пользователей в объект
+        this.currentData.users.forEach(user => {
+            saveData.users[user.email] = {
+                name: user.name,
+                password: user.password,
+                role: user.role,
+                registered: user.registered
+            };
+        });
+
+        // Конвертируем товары в объект
+        this.currentData.products.forEach(product => {
+            saveData.products[product.id] = {
+                name: product.name,
+                price: product.price,
+                category: product.category,
+                description: product.description
+            };
+        });
+
         try {
             const response = await fetch(`${this.BASE_URL}/b/${this.BIN_ID}`, {
                 method: 'PUT',
@@ -78,7 +144,7 @@ const DB_MANAGER = {
                     'X-Master-Key': this.API_KEY,
                     'X-Bin-Versioning': 'false'
                 },
-                body: JSON.stringify(this.currentData)
+                body: JSON.stringify(saveData)
             });
 
             if (!response.ok) {
@@ -323,7 +389,7 @@ const DB_MANAGER = {
 
 // Делаем глобальным
 window.DB_MANAGER = DB_MANAGER;
-console.log('✅ DB_MANAGER готов (только JSONBin)');
+console.log('✅ DB_MANAGER готов (с поддержкой объектного формата)');
 
 // Автоматическая загрузка данных
 DB_MANAGER.loadDatabase();
