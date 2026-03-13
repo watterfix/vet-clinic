@@ -443,24 +443,59 @@ ${order.delivery_address ? 'Адрес: ' + order.delivery_address : ''}
 ${order.delivery_phone ? 'Телефон: ' + order.delivery_phone : ''}`);
 }
 
+// ============================================
+// УПРАВЛЕНИЕ ЗАКАЗАМИ - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// ============================================
+
 async function deleteOrder(orderId) {
-    if (confirm('Удалить заказ?')) {
-        try {
-            // Проверяем, есть ли метод deleteOrder в DB_MANAGER
-            if (typeof DB_MANAGER.deleteOrder === 'function') {
-                await DB_MANAGER.deleteOrder(orderId);
-                showNotification('Заказ удален', 'success');
-                // Принудительно перезагружаем данные
-                await DB_MANAGER.loadDatabase();
-                loadOrders();
-                updateStats();
-            } else {
-                console.error('Метод deleteOrder не найден в DB_MANAGER');
-                showNotification('Ошибка: метод удаления не найден', 'error');
-            }
-        } catch (error) {
-            console.error('Ошибка удаления заказа:', error);
-            showNotification('Ошибка при удалении: ' + error.message, 'error');
+    console.log('Попытка удаления заказа:', orderId);
+    
+    // Спрашиваем подтверждение
+    if (!confirm('Вы уверены, что хотите удалить этот заказ?')) {
+        return;
+    }
+    
+    try {
+        // Показываем индикатор загрузки на кнопке
+        const deleteBtn = event?.target;
+        const originalText = deleteBtn?.textContent;
+        if (deleteBtn) {
+            deleteBtn.textContent = 'Удаление...';
+            deleteBtn.disabled = true;
+        }
+        
+        // Проверяем наличие метода
+        if (typeof DB_MANAGER.deleteOrder !== 'function') {
+            throw new Error('Метод удаления заказов не найден');
+        }
+        
+        // Удаляем заказ
+        const result = await DB_MANAGER.deleteOrder(orderId);
+        
+        if (result) {
+            showNotification('Заказ успешно удален', 'success');
+            
+            // Принудительно перезагружаем данные
+            await DB_MANAGER.loadDatabase();
+            
+            // Обновляем отображение
+            loadOrders();
+            updateStats();
+            
+            console.log('✅ Заказ удален, таблица обновлена');
+        } else {
+            throw new Error('Не удалось удалить заказ');
+        }
+        
+    } catch (error) {
+        console.error('❌ Ошибка удаления заказа:', error);
+        showNotification('Ошибка при удалении: ' + error.message, 'error');
+    } finally {
+        // Возвращаем кнопку в исходное состояние
+        const deleteBtn = event?.target;
+        if (deleteBtn) {
+            deleteBtn.textContent = originalText || '🗑️ Удалить';
+            deleteBtn.disabled = false;
         }
     }
 }
