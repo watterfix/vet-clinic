@@ -2,12 +2,14 @@
 // МЕНЕДЖЕР БАЗЫ ДАННЫХ (Supabase)
 // ============================================
 
-// ВСТАВЬТЕ СВОИ ДАННЫЕ ИЗ SUPABASE
 const SUPABASE_URL = 'https://ehksdceuihjnzbqdztog.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_K1dDdxBKQ_04yOqwkfCxsw_JyiHlkxW';
 
 const DB_MANAGER = {
     supabase: null,
+    isInitialized: false,
+    initPromise: null,
+    
     currentData: {
         users: [],
         products: [],
@@ -15,23 +17,64 @@ const DB_MANAGER = {
         messages: []
     },
 
+    // Инициализация (вызывается один раз)
     async init() {
-        console.log('🔄 Подключение к Supabase...');
-        this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        await this.loadDatabase();
-        return this;
+        if (this.initPromise) return this.initPromise;
+        
+        this.initPromise = new Promise(async (resolve) => {
+            console.log('🔄 Инициализация Supabase...');
+            
+            try {
+                // Ждем загрузки Supabase SDK
+                if (typeof supabase === 'undefined') {
+                    console.log('⏳ Ожидание загрузки Supabase SDK...');
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+                
+                // Создаем клиент Supabase
+                this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('✅ Supabase клиент создан');
+                
+                // Загружаем данные
+                await this.loadDatabase();
+                
+                this.isInitialized = true;
+                console.log('✅ DB_MANAGER инициализирован');
+                resolve(true);
+                
+            } catch (error) {
+                console.error('❌ Ошибка инициализации Supabase:', error);
+                this.isInitialized = false;
+                resolve(false);
+            }
+        });
+        
+        return this.initPromise;
     },
 
+    // Загрузка всех данных
     async loadDatabase() {
+        console.log('📦 Загрузка данных из Supabase...');
+        
+        if (!this.supabase) {
+            console.error('❌ Supabase не инициализирован');
+            return null;
+        }
+
         try {
-            console.log('📦 Загрузка данных из Supabase...');
-            
+            // Загружаем все таблицы параллельно
             const [users, products, orders, messages] = await Promise.all([
                 this.supabase.from('users').select('*'),
                 this.supabase.from('products').select('*'),
                 this.supabase.from('orders').select('*').order('date', { ascending: false }),
                 this.supabase.from('messages').select('*').order('date', { ascending: false })
             ]);
+
+            // Проверяем ошибки
+            if (users.error) throw users.error;
+            if (products.error) throw products.error;
+            if (orders.error) throw orders.error;
+            if (messages.error) throw messages.error;
 
             this.currentData = {
                 users: users.data || [],
@@ -43,6 +86,7 @@ const DB_MANAGER = {
             console.log(`✅ Загружено пользователей: ${this.currentData.users.length}`);
             console.log(`✅ Загружено товаров: ${this.currentData.products.length}`);
             console.log(`✅ Загружено заказов: ${this.currentData.orders.length}`);
+            console.log(`✅ Загружено сообщений: ${this.currentData.messages.length}`);
             
             return this.currentData;
             
@@ -52,28 +96,44 @@ const DB_MANAGER = {
         }
     },
 
+    // Дождаться инициализации
+    async waitForInit() {
+        if (this.isInitialized) return true;
+        return this.init();
+    },
+
     // ============================================
     // ПОЛЬЗОВАТЕЛИ
     // ============================================
 
     async getUserByEmail(email) {
-        const { data } = await this.supabase
+        await this.waitForInit();
+        
+        const { data, error } = await this.supabase
             .from('users')
             .select('*')
             .eq('email', email)
             .maybeSingle();
+
+        if (error) console.error('Ошибка getUserByEmail:', error);
         return data;
     },
 
     async userExists(email) {
-        const { data } = await this.supabase
+        await this.waitForInit();
+        
+        const { data, error } = await this.supabase
             .from('users')
             .select('email')
             .eq('email', email);
+
+        if (error) console.error('Ошибка userExists:', error);
         return data && data.length > 0;
     },
 
     async addUser(userData) {
+        await this.waitForInit();
+        
         const { data, error } = await this.supabase
             .from('users')
             .insert([{
@@ -89,11 +149,14 @@ const DB_MANAGER = {
         
         if (data && data[0]) {
             this.currentData.users.push(data[0]);
+            return data[0];
         }
-        return data ? data[0] : null;
+        return null;
     },
 
     async updateUser(email, userData) {
+        await this.waitForInit();
+        
         const { data, error } = await this.supabase
             .from('users')
             .update(userData)
@@ -116,6 +179,8 @@ const DB_MANAGER = {
             return false;
         }
 
+        await this.waitForInit();
+
         const { error } = await this.supabase
             .from('users')
             .delete()
@@ -132,15 +197,21 @@ const DB_MANAGER = {
     // ============================================
 
     async getProduct(id) {
-        const { data } = await this.supabase
+        await this.waitForInit();
+        
+        const { data, error } = await this.supabase
             .from('products')
             .select('*')
             .eq('id', id)
             .maybeSingle();
+
+        if (error) console.error('Ошибка getProduct:', error);
         return data;
     },
 
     async addProduct(productData) {
+        await this.waitForInit();
+        
         const { data, error } = await this.supabase
             .from('products')
             .insert([productData])
@@ -150,11 +221,14 @@ const DB_MANAGER = {
         
         if (data && data[0]) {
             this.currentData.products.push(data[0]);
+            return data[0];
         }
-        return data ? data[0] : null;
+        return null;
     },
 
     async updateProduct(id, productData) {
+        await this.waitForInit();
+        
         const { data, error } = await this.supabase
             .from('products')
             .update(productData)
@@ -172,6 +246,8 @@ const DB_MANAGER = {
     },
 
     async deleteProduct(id) {
+        await this.waitForInit();
+        
         const { error } = await this.supabase
             .from('products')
             .delete()
@@ -188,20 +264,19 @@ const DB_MANAGER = {
     // ============================================
 
     async addOrder(orderData) {
-        // Генерируем номер заказа, если его нет
-        if (!orderData.order_number) {
-            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            const numbers = '0123456789';
-            let orderNumber = '';
-            for (let i = 0; i < 2; i++) orderNumber += letters[Math.floor(Math.random() * letters.length)];
-            for (let i = 0; i < 4; i++) orderNumber += numbers[Math.floor(Math.random() * numbers.length)];
-            orderData.order_number = orderNumber;
-        }
+        await this.waitForInit();
+
+        // Генерируем номер заказа
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const numbers = '0123456789';
+        let orderNumber = '';
+        for (let i = 0; i < 2; i++) orderNumber += letters[Math.floor(Math.random() * letters.length)];
+        for (let i = 0; i < 4; i++) orderNumber += numbers[Math.floor(Math.random() * numbers.length)];
 
         const { data, error } = await this.supabase
             .from('orders')
             .insert([{
-                order_number: orderData.order_number,
+                order_number: orderNumber,
                 user_email: orderData.user,
                 user_name: orderData.userName,
                 items: orderData.items,
@@ -218,11 +293,14 @@ const DB_MANAGER = {
         
         if (data && data[0]) {
             this.currentData.orders.unshift(data[0]);
+            return data[0];
         }
-        return data ? data[0] : null;
+        return null;
     },
 
     async deleteOrder(orderId) {
+        await this.waitForInit();
+        
         const { error } = await this.supabase
             .from('orders')
             .delete()
@@ -235,21 +313,16 @@ const DB_MANAGER = {
     },
 
     async getOrder(orderId) {
-        const { data } = await this.supabase
+        await this.waitForInit();
+        
+        const { data, error } = await this.supabase
             .from('orders')
             .select('*')
             .eq('id', orderId)
             .maybeSingle();
-        return data;
-    },
 
-    async getUserOrders(email) {
-        const { data } = await this.supabase
-            .from('orders')
-            .select('*')
-            .eq('user_email', email)
-            .order('date', { ascending: false });
-        return data || [];
+        if (error) console.error('Ошибка getOrder:', error);
+        return data;
     },
 
     // ============================================
@@ -257,6 +330,8 @@ const DB_MANAGER = {
     // ============================================
 
     async addMessage(messageData) {
+        await this.waitForInit();
+        
         const { data, error } = await this.supabase
             .from('messages')
             .insert([{
@@ -273,19 +348,14 @@ const DB_MANAGER = {
         
         if (data && data[0]) {
             this.currentData.messages.unshift(data[0]);
+            return data[0];
         }
-        return data ? data[0] : null;
-    },
-
-    async getMessages() {
-        const { data } = await this.supabase
-            .from('messages')
-            .select('*')
-            .order('date', { ascending: false });
-        return data || [];
+        return null;
     },
 
     async markMessageAsRead(messageId) {
+        await this.waitForInit();
+        
         const { error } = await this.supabase
             .from('messages')
             .update({ status: 'read' })
@@ -300,6 +370,8 @@ const DB_MANAGER = {
     },
 
     async deleteMessage(messageId) {
+        await this.waitForInit();
+        
         const { error } = await this.supabase
             .from('messages')
             .delete()
@@ -346,24 +418,15 @@ const DB_MANAGER = {
             averageOrderValue: totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0,
             productsByCategory
         };
-    },
-
-    // Сброс данных (только для разработки)
-    async resetToDefault() {
-        // Очищаем таблицы
-        await this.supabase.from('orders').delete().neq('id', 0);
-        await this.supabase.from('messages').delete().neq('id', 0);
-        
-        // Перезагружаем данные
-        await this.loadDatabase();
-        return this.currentData;
     }
 };
 
 // Делаем глобальным
 window.DB_MANAGER = DB_MANAGER;
 
-// Автоматическая инициализация
-DB_MANAGER.init().then(() => {
-    console.log('✅ DB_MANAGER готов (Supabase)');
+// Автоматически запускаем инициализацию
+DB_MANAGER.init().then(success => {
+    console.log('🚀 DB_MANAGER готов, статус:', success ? '✅' : '❌');
 });
+
+console.log('📦 DB_MANAGER загружен');
