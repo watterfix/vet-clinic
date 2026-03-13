@@ -180,6 +180,8 @@ async function deleteUser(email) {
         try {
             await DB_MANAGER.deleteUser(email);
             showNotification('Пользователь удален', 'success');
+            // Принудительно перезагружаем данные
+            await DB_MANAGER.loadDatabase();
             loadUsers();
             updateStats();
         } catch (error) {
@@ -268,6 +270,7 @@ async function addProduct() {
 
         showNotification('Товар добавлен!', 'success');
         hideAddProductForm();
+        await DB_MANAGER.loadDatabase();
         loadProducts();
         updateStats();
 
@@ -323,6 +326,7 @@ async function saveProductEdit(productId) {
         });
 
         showNotification('Товар обновлен', 'success');
+        await DB_MANAGER.loadDatabase();
         loadProducts();
         
     } catch (error) {
@@ -343,6 +347,7 @@ async function deleteProduct(productId) {
         try {
             await DB_MANAGER.deleteProduct(productId);
             showNotification('Товар удален', 'success');
+            await DB_MANAGER.loadDatabase();
             loadProducts();
             updateStats();
         } catch (error) {
@@ -353,7 +358,7 @@ async function deleteProduct(productId) {
 }
 
 // ============================================
-// УПРАВЛЕНИЕ ЗАКАЗАМИ
+// УПРАВЛЕНИЕ ЗАКАЗАМИ - ИСПРАВЛЕННАЯ ВЕРСИЯ
 // ============================================
 
 function loadOrders() {
@@ -418,18 +423,20 @@ function viewOrderDetails(orderId) {
     if (!order) return;
 
     let itemsList = '';
-    order.items.forEach(item => {
-        itemsList += `${item.name} - ${item.price} ₽\n`;
-    });
+    if (order.items && Array.isArray(order.items)) {
+        order.items.forEach(item => {
+            itemsList += `${item.name} - ${item.price} ₽\n`;
+        });
+    }
 
-    alert(`Заказ #${order.order_number}
+    alert(`Заказ #${order.order_number || 'Н/Д'}
         
 Дата: ${new Date(order.date).toLocaleString()}
 Клиент: ${order.user_name} (${order.user_email})
 
 Состав заказа:
-${itemsList}
-Сумма: ${order.total} ₽
+${itemsList || 'Нет товаров'}
+Сумма: ${order.total || 0} ₽
 
 Доставка: ${order.delivery === 'pickup' ? 'Самовывоз' : 'Доставка'}
 ${order.delivery_address ? 'Адрес: ' + order.delivery_address : ''}
@@ -439,19 +446,27 @@ ${order.delivery_phone ? 'Телефон: ' + order.delivery_phone : ''}`);
 async function deleteOrder(orderId) {
     if (confirm('Удалить заказ?')) {
         try {
-            await DB_MANAGER.deleteOrder(orderId);
-            showNotification('Заказ удален', 'success');
-            loadOrders();
-            updateStats();
+            // Проверяем, есть ли метод deleteOrder в DB_MANAGER
+            if (typeof DB_MANAGER.deleteOrder === 'function') {
+                await DB_MANAGER.deleteOrder(orderId);
+                showNotification('Заказ удален', 'success');
+                // Принудительно перезагружаем данные
+                await DB_MANAGER.loadDatabase();
+                loadOrders();
+                updateStats();
+            } else {
+                console.error('Метод deleteOrder не найден в DB_MANAGER');
+                showNotification('Ошибка: метод удаления не найден', 'error');
+            }
         } catch (error) {
             console.error('Ошибка удаления заказа:', error);
-            showNotification('Ошибка при удалении', 'error');
+            showNotification('Ошибка при удалении: ' + error.message, 'error');
         }
     }
 }
 
 // ============================================
-// УПРАВЛЕНИЕ СООБЩЕНИЯМИ
+// УПРАВЛЕНИЕ СООБЩЕНИЯМИ - ИСПРАВЛЕННАЯ ВЕРСИЯ
 // ============================================
 
 function loadMessages() {
@@ -492,10 +507,16 @@ function loadMessages() {
 
 async function markMessageAsRead(messageId) {
     try {
-        await DB_MANAGER.markMessageAsRead(messageId);
-        showNotification('Сообщение отмечено как прочитанное', 'success');
-        loadMessages();
-        updateStats();
+        if (typeof DB_MANAGER.markMessageAsRead === 'function') {
+            await DB_MANAGER.markMessageAsRead(messageId);
+            showNotification('Сообщение отмечено как прочитанное', 'success');
+            await DB_MANAGER.loadDatabase();
+            loadMessages();
+            updateStats();
+        } else {
+            console.error('Метод markMessageAsRead не найден в DB_MANAGER');
+            showNotification('Ошибка: метод не найден', 'error');
+        }
     } catch (error) {
         console.error('Ошибка:', error);
         showNotification('Ошибка при отметке', 'error');
@@ -505,10 +526,16 @@ async function markMessageAsRead(messageId) {
 async function deleteMessage(messageId) {
     if (confirm('Удалить сообщение?')) {
         try {
-            await DB_MANAGER.deleteMessage(messageId);
-            showNotification('Сообщение удалено', 'success');
-            loadMessages();
-            updateStats();
+            if (typeof DB_MANAGER.deleteMessage === 'function') {
+                await DB_MANAGER.deleteMessage(messageId);
+                showNotification('Сообщение удалено', 'success');
+                await DB_MANAGER.loadDatabase();
+                loadMessages();
+                updateStats();
+            } else {
+                console.error('Метод deleteMessage не найден в DB_MANAGER');
+                showNotification('Ошибка: метод удаления не найден', 'error');
+            }
         } catch (error) {
             console.error('Ошибка удаления:', error);
             showNotification('Ошибка при удалении', 'error');
