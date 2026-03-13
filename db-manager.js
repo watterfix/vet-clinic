@@ -342,6 +342,59 @@ async addOrder(orderData) {
 },
 
 // ============================================
+// УДАЛЕНИЕ ЗАКАЗА - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// ============================================
+
+async deleteOrder(orderId) {
+    await this.waitForInit();
+    console.log('🗑️ Удаление заказа:', orderId);
+    
+    try {
+        // Удаляем из локальных данных
+        this.currentData.orders = this.currentData.orders.filter(o => o.id != orderId);
+        
+        // Удаляем из Supabase
+        if (this.supabase) {
+            const { error } = await this.supabase
+                .from('orders')
+                .delete()
+                .eq('id', orderId);
+                
+            if (error) {
+                console.error('❌ Ошибка удаления из Supabase:', error);
+                // Если ошибка, пробуем удалить по другому полю
+                const { error: error2 } = await this.supabase
+                    .from('orders')
+                    .delete()
+                    .eq('order_number', orderId);
+                    
+                if (error2) {
+                    console.error('❌ Ошибка удаления по номеру заказа:', error2);
+                    throw error2;
+                }
+            }
+        }
+        
+        console.log('✅ Заказ удален');
+        
+        // Отправляем сигнал об обновлении
+        this.broadcastUpdate();
+        
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Ошибка при удалении заказа:', error);
+        return false;
+    }
+},
+
+// Добавьте этот метод, если его нет
+broadcastUpdate() {
+    localStorage.setItem('db_update_timestamp', Date.now().toString());
+    console.log('📢 Сигнал обновления отправлен');
+},
+    
+// ============================================
 // СООБЩЕНИЯ - ИСПРАВЛЕННАЯ ВЕРСИЯ
 // ============================================
 
