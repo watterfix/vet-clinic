@@ -1,5 +1,5 @@
 // ============================================
-// МЕНЕДЖЕР БАЗЫ ДАННЫХ (с JSONBin.io)
+// МЕНЕДЖЕР БАЗЫ ДАННЫХ (только JSONBin.io)
 // ============================================
 
 const DB_MANAGER = {
@@ -37,119 +37,66 @@ const DB_MANAGER = {
             }
 
             const result = await response.json();
-            this.currentData = result.record || result;
+            const data = result.record || result;
 
-            // Убеждаемся, что все поля - массивы
-            if (!Array.isArray(this.currentData.users)) this.currentData.users = [];
-            if (!Array.isArray(this.currentData.products)) this.currentData.products = [];
-            if (!Array.isArray(this.currentData.orders)) this.currentData.orders = [];
-            if (!Array.isArray(this.currentData.messages)) this.currentData.messages = [];
-            if (!this.currentData.settings) this.currentData.settings = {};
+            // Преобразуем данные в нужный формат
+            this.currentData.users = Array.isArray(data.users) ? data.users : [];
+            this.currentData.products = Array.isArray(data.products) ? data.products : [];
+            this.currentData.orders = Array.isArray(data.orders) ? data.orders : [];
+            this.currentData.messages = Array.isArray(data.messages) ? data.messages : [];
+            this.currentData.settings = data.settings || {};
 
             console.log(`✅ Загружено пользователей: ${this.currentData.users.length}`);
             console.log(`✅ Загружено товаров: ${this.currentData.products.length}`);
             console.log(`✅ Загружено заказов: ${this.currentData.orders.length}`);
 
-            // Сохраняем в localStorage для совместимости
-            this.saveToLocalStorage();
-
             return this.currentData;
 
         } catch (error) {
-            console.error('❌ Ошибка загрузки:', error);
-            this.loadFromLocalStorage();
+            console.error('❌ Ошибка загрузки с JSONBin:', error);
+            // Если сервер недоступен, создаем пустые массивы
+            this.currentData = {
+                users: [],
+                products: [],
+                orders: [],
+                messages: [],
+                settings: {}
+            };
             return this.currentData;
         }
     },
 
-    // Сохранение данных на сервер (исправленная версия)
-async saveToServer() {
-    console.log('💾 Сохранение данных...', this.currentData);
+    // Сохранение данных на сервер
+    async saveToServer() {
+        console.log('💾 Сохранение данных на JSONBin...');
 
-    try {
-        const response = await fetch(`${this.BASE_URL}/b/${this.BIN_ID}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Master-Key': this.API_KEY,
-                'X-Bin-Versioning': 'false' // Добавляем для отключения версионирования
-            },
-            body: JSON.stringify(this.currentData)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-        }
-
-        const result = await response.json();
-        console.log('✅ Данные сохранены на JSONBin:', result);
-        this.saveToLocalStorage();
-        return true;
-
-    } catch (error) {
-        console.error('❌ Ошибка сохранения на JSONBin:', error);
-        
-        // Сохраняем локально как резервную копию
-        this.saveToLocalStorage();
-        
-        // Показываем уведомление пользователю
-        if (window.showNotification) {
-            window.showNotification('Заказ сохранен локально. Проблема с соединением с сервером.', 'warning');
-        }
-        
-        return false;
-    }
-}
-
-    // Сохранение в localStorage (для совместимости со старым кодом)
-    saveToLocalStorage() {
         try {
-            // Сохраняем полный бэкап
-            localStorage.setItem('db_backup', JSON.stringify(this.currentData));
-
-            // Конвертируем пользователей в объект для старого формата
-            const usersObj = {};
-            this.currentData.users.forEach(user => {
-                usersObj[user.email] = {
-                    name: user.name,
-                    password: user.password,
-                    role: user.role,
-                    registered: user.registered
-                };
+            const response = await fetch(`${this.BASE_URL}/b/${this.BIN_ID}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': this.API_KEY,
+                    'X-Bin-Versioning': 'false'
+                },
+                body: JSON.stringify(this.currentData)
             });
 
-            // Конвертируем товары в объект для старого формата
-            const productsObj = {};
-            this.currentData.products.forEach(product => {
-                productsObj[product.id] = {
-                    name: product.name,
-                    price: product.price,
-                    category: product.category,
-                    description: product.description
-                };
-            });
-
-            localStorage.setItem('users', JSON.stringify(usersObj));
-            localStorage.setItem('products', JSON.stringify(productsObj));
-            localStorage.setItem('orders', JSON.stringify(this.currentData.orders));
-            localStorage.setItem('messages', JSON.stringify(this.currentData.messages));
-
-        } catch (error) {
-            console.error('Ошибка сохранения в localStorage:', error);
-        }
-    },
-
-    // Загрузка из localStorage
-    loadFromLocalStorage() {
-        try {
-            const backup = localStorage.getItem('db_backup');
-            if (backup) {
-                this.currentData = JSON.parse(backup);
-                console.log('📁 Данные загружены из localStorage');
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
+
+            console.log('✅ Данные сохранены на JSONBin');
+            return true;
+
         } catch (error) {
-            console.error('Ошибка загрузки из localStorage:', error);
+            console.error('❌ Ошибка сохранения на JSONBin:', error);
+            
+            if (window.showNotification) {
+                window.showNotification('Ошибка соединения с сервером. Данные не сохранены.', 'error');
+            }
+            
+            return false;
         }
     },
 
@@ -179,7 +126,12 @@ async saveToServer() {
         };
 
         this.currentData.users.push(newUser);
-        await this.saveToServer();
+        const saved = await this.saveToServer();
+        
+        if (saved) {
+            console.log('✅ Пользователь добавлен:', userData.email);
+        }
+        
         return newUser;
     },
 
@@ -250,31 +202,29 @@ async saveToServer() {
     // МЕТОДЫ ДЛЯ ЗАКАЗОВ
     // ============================================
 
-    // Добавление заказа (исправленная версия)
-async addOrder(orderData) {
-    // Создаем копию данных заказа с уникальным ID
-    const newOrder = {
-        ...orderData,
-        id: Date.now().toString(), // Уникальный ID заказа
-        date: orderData.date || new Date().toISOString(),
-        status: 'new' // Добавляем статус заказа
-    };
-    
-    // Убеждаемся, что у каждого товара есть все необходимые поля
-    if (newOrder.items) {
-        newOrder.items = newOrder.items.map(item => ({
-            id: item.id || Date.now() + Math.random(),
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity || 1
-        }));
-    }
-    
-    this.currentData.orders.push(newOrder);
-    await this.saveToServer();
-    console.log('✅ Заказ добавлен в базу данных:', newOrder);
-    return newOrder;
-}
+    // Добавление заказа
+    async addOrder(orderData) {
+        const newOrder = {
+            ...orderData,
+            id: Date.now().toString(),
+            date: orderData.date || new Date().toISOString(),
+            status: 'new'
+        };
+        
+        if (newOrder.items) {
+            newOrder.items = newOrder.items.map(item => ({
+                id: item.id || Date.now() + Math.random(),
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity || 1
+            }));
+        }
+        
+        this.currentData.orders.push(newOrder);
+        await this.saveToServer();
+        console.log('✅ Заказ добавлен:', newOrder.orderNumber);
+        return newOrder;
+    },
 
     // Удаление заказа
     async deleteOrder(orderId) {
@@ -368,88 +318,12 @@ async addOrder(orderData) {
             averageOrderValue: totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0,
             productsByCategory
         };
-    },
-
-    // ============================================
-    // МЕТОДЫ ДЛЯ РЕЗЕРВНОГО КОПИРОВАНИЯ
-    // ============================================
-
-    // Создание резервной копии
-    createBackup() {
-        const backup = {
-            id: Date.now(),
-            date: new Date().toISOString(),
-            name: `Backup ${new Date().toLocaleString()}`,
-            data: {
-                users: this.currentData.users,
-                products: this.currentData.products,
-                orders: this.currentData.orders,
-                messages: this.currentData.messages,
-                settings: this.currentData.settings
-            },
-            stats: this.getStats()
-        };
-
-        // Сохраняем в историю бэкапов
-        let backups = JSON.parse(localStorage.getItem('backups')) || [];
-        backups.push(backup);
-
-        // Оставляем только последние 10 бэкапов
-        if (backups.length > 10) {
-            backups = backups.slice(-10);
-        }
-
-        localStorage.setItem('backups', JSON.stringify(backups));
-        return backup;
-    },
-
-    // Восстановление из бэкапа
-    async restoreFromBackup(backupData) {
-        try {
-            if (backupData.data) {
-                this.currentData = backupData.data;
-            } else {
-                this.currentData = backupData;
-            }
-
-            await this.saveToServer();
-            this.saveToLocalStorage();
-            return true;
-
-        } catch (error) {
-            console.error('Ошибка восстановления:', error);
-            return false;
-        }
-    },
-
-    // Сброс до начальных данных
-    async resetToDefault() {
-        this.currentData = {
-            users: [
-                {
-                    id: "admin@vetclinic.ru",
-                    email: "admin@vetclinic.ru",
-                    name: "Admin",
-                    password: "admin123",
-                    role: "admin",
-                    registered: new Date().toISOString()
-                }
-            ],
-            products: [],
-            orders: [],
-            messages: [],
-            settings: {}
-        };
-
-        await this.saveToServer();
-        this.createBackup();
-        return this.currentData;
     }
 };
 
 // Делаем глобальным
 window.DB_MANAGER = DB_MANAGER;
-console.log('✅ DB_MANAGER готов (полная версия)');
+console.log('✅ DB_MANAGER готов (только JSONBin)');
 
 // Автоматическая загрузка данных
 DB_MANAGER.loadDatabase();
