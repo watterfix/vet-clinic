@@ -6,9 +6,9 @@
       "role": "admin",
       "registered": "2024-01-01T00:00:00.000Z"
     },
-    "artem@mail.ru": {
-      "name": "Артём",
-      "password": "25052005",
+    "user@example.com": {
+      "name": "Иван Петров",
+      "password": "user123",
       "role": "user",
       "registered": "2024-01-15T10:30:00.000Z"
     }
