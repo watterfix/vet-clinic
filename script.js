@@ -1,3 +1,6 @@
+const SCRIPT_VERSION = '2';
+
+console.log('📜 script.js загружен (версия', SCRIPT_VERSION + ')');
 // Делаем функции глобальными для доступа из других скриптов
 window.showNotification = showNotification;
 window.showStyledAlert = showStyledAlert;
@@ -225,6 +228,11 @@ function showNotification(message, type = 'success') {
         notification.remove();
     }, 3000);
 }
+// Принудительное обновление интерфейса (для отладки)
+window.refreshUI = function() {
+    console.log('🔄 Принудительное обновление интерфейса');
+    updateUI();
+};
 
 // Создать блок авторизации
 function createAuthCorner() {
@@ -232,7 +240,9 @@ function createAuthCorner() {
         const authCorner = document.createElement('div');
         authCorner.id = 'authCorner';
         authCorner.className = 'auth-corner';
+        authCorner.style.cssText = 'position: fixed; top: 10px; left: 10px; z-index: 1000; max-width: 300px;';
         document.body.prepend(authCorner);
+        console.log('✅ Блок авторизации создан');
     }
 }
 
@@ -256,10 +266,13 @@ function createCartButton() {
 function updateUI() {
     console.log('Обновление интерфейса, пользователь:', currentUser);
 
+    // Создаем блок авторизации, если его нет
     createAuthCorner();
     createCartButton();
 
     const authCorner = document.getElementById('authCorner');
+    if (!authCorner) return;
+
     const isCharacteristicsPage = window.location.pathname.includes('characteristics.html');
     const isCartPage = window.location.pathname.includes('cart.html');
     const isAdminPage = window.location.pathname.includes('db-viewer.html');
@@ -268,14 +281,17 @@ function updateUI() {
         // Пользователь авторизован
         let adminLink = '';
         if (currentUser.role === 'admin' && !isAdminPage) {
-            adminLink = `<a href="db-viewer.html" class="admin-link" style="margin-left: 10px; color: #ffd700;">📁 Управление БД</a>`;
+            adminLink = `<a href="db-viewer.html" style="margin-left: 10px; color: #ffd700; text-decoration: none; font-size: 12px;">📁 Управление БД</a>`;
         }
-
+        
         authCorner.innerHTML = `
-            <div class="user-info-corner">
-                <span>👤 ${currentUser.name} ${currentUser.role === 'admin' ? '👑' : ''}</span>
+            <div class="user-info-corner" style="background: linear-gradient(135deg, #2c6e49, #1e4d2f); color: white; padding: 8px 15px; border-radius: 30px; display: flex; align-items: center; gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-weight: bold;">${currentUser.name} ${currentUser.role === 'admin' ? '👑' : ''}</span>
+                    <span style="font-size: 11px; color: #ffd700;">${currentUser.email}</span>
+                </div>
                 ${adminLink}
-                <button onclick="logout()" class="button-small">Выйти</button>
+                <button onclick="logout()" style="background-color: #ffd700; color: #1e4d2f; border: none; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer;">Выйти</button>
             </div>
         `;
 
@@ -291,11 +307,11 @@ function updateUI() {
         // Обновляем счетчик корзины
         updateCartCount();
     } else {
-        // Пользователь не авторизован
+        // Пользователь не авторизован - ПОКАЗЫВАЕМ КНОПКИ ВХОДА И РЕГИСТРАЦИИ
         authCorner.innerHTML = `
-            <div class="auth-buttons-corner">
-                <button onclick="openAuthModal('login')" class="button-small">Вход</button>
-                <button onclick="openAuthModal('register')" class="button-small">Регистрация</button>
+            <div class="auth-buttons-corner" style="display: flex; gap: 8px; background-color: white; padding: 5px; border-radius: 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 2px solid #2c6e49;">
+                <button onclick="openAuthModal('login')" style="background-color: #2c6e49; color: white; border: none; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer;">Вход</button>
+                <button onclick="openAuthModal('register')" style="background-color: #2c6e49; color: white; border: none; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer;">Регистрация</button>
             </div>
         `;
 
@@ -541,8 +557,14 @@ function toggleDeliveryForm() {
     }
 }
 
-// Обработка заказа с сохранением в файл
-function processOrder() {
+// Обработка заказа с сохранением на сервер
+async function processOrder() {
+    if (!currentUser) {
+        showNotification('Необходимо войти в систему!', 'error');
+        openAuthModal('login');
+        return;
+    }
+
     if (cart.length === 0) {
         showNotification('Корзина пуста!', 'error');
         return;
@@ -572,7 +594,7 @@ function processOrder() {
 
         let isValid = true;
 
-        if (!address || !validateAddress(address)) {
+        if (!address || address.trim().length < 10) {
             if (addressError) addressError.textContent = 'Введите корректный адрес (минимум 10 символов)';
             isValid = false;
         }
@@ -593,9 +615,77 @@ function processOrder() {
     const finalTotal = total + deliveryCost;
     const orderNumber = generateOrderNumber();
 
+    // Исправленная функция создания заказа
+async function processOrder() {
+    if (!currentUser) {
+        showNotification('Необходимо войти в систему!', 'error');
+        openAuthModal('login');
+        return;
+    }
+
+    if (cart.length === 0) {
+        showNotification('Корзина пуста!', 'error');
+        return;
+    }
+
+    // Показываем индикатор загрузки
+    const checkoutBtn = document.querySelector('.checkout-btn');
+    if (checkoutBtn) {
+        checkoutBtn.textContent = 'Оформление...';
+        checkoutBtn.disabled = true;
+    }
+
+    const pickupMethod = document.getElementById('pickupMethod');
+    const deliveryMethod = document.getElementById('deliveryMethod');
+
+    let deliveryValue = 'pickup';
+    let deliveryCost = 0;
+
+    const total = cart.reduce((sum, item) => sum + item.price, 0);
+    const freeDelivery = total >= 3000;
+
+    if (deliveryMethod && deliveryMethod.checked) {
+        deliveryValue = 'delivery';
+        deliveryCost = freeDelivery ? 0 : 300;
+
+        const addressError = document.getElementById('deliveryAddressError');
+        const phoneError = document.getElementById('deliveryPhoneError');
+        
+        if (addressError) addressError.textContent = '';
+        if (phoneError) phoneError.textContent = '';
+        
+        const address = document.getElementById('deliveryAddress')?.value;
+        const phone = document.getElementById('deliveryPhone')?.value;
+        
+        let isValid = true;
+
+        if (!address || address.trim().length < 10) {
+            if (addressError) addressError.textContent = 'Введите корректный адрес (минимум 10 символов)';
+            isValid = false;
+        }
+
+        if (!phone) {
+            if (phoneError) phoneError.textContent = 'Введите номер телефона';
+            isValid = false;
+        } else if (!validatePhone(phone)) {
+            if (phoneError) phoneError.textContent = 'Введите корректный номер телефона';
+            isValid = false;
+        }
+
+        if (!isValid) {
+            if (checkoutBtn) {
+                checkoutBtn.textContent = 'Оформить заказ';
+                checkoutBtn.disabled = false;
+            }
+            return;
+        }
+    }
+
+    const finalTotal = total + deliveryCost;
+    const orderNumber = generateOrderNumber();
+
     // Создаем заказ
     const order = {
-        id: Date.now(),
         orderNumber: orderNumber,
         user: currentUser.email,
         userName: currentUser.name,
@@ -618,71 +708,85 @@ function processOrder() {
         order.deliveryComment = document.getElementById('deliveryComment').value || '';
     }
 
-    // Сохраняем заказ
-    let orders = JSON.parse(localStorage.getItem('orders')) || [];
-    orders.push(order);
-    localStorage.setItem('orders', JSON.stringify(orders));
+    try {
+        // Сохраняем заказ
+        await DB_MANAGER.addOrder(order);
+        
+        // Очищаем корзину
+        cart = [];
+        localStorage.setItem('cart', JSON.stringify(cart));
+        
+        // Обновляем счетчик корзины
+        updateCartCount();
 
-    // Сохраняем в файл базы данных
-    if (window.DB_MANAGER) {
-        DB_MANAGER.exportDatabase();
-    }
-
-    // Очищаем корзину
-    cart = [];
-    localStorage.setItem('cart', JSON.stringify(cart));
-
-    // Показываем подтверждение
-    let deliveryInfo = '';
-    if (deliveryValue === 'pickup') {
-        deliveryInfo = `
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
-                <p><strong>📍 Адрес самовывоза:</strong> г. Воронеж, ул. Ветеринарная, д. 15</p>
-                <p><strong>🕒 Режим работы:</strong> круглосуточно</p>
-                <p><strong>📞 Телефон:</strong> 222-22-22</p>
-            </div>
-        `;
-    } else {
-        deliveryInfo = `
-            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
-                <p><strong>🚚 Адрес доставки:</strong> ${order.deliveryAddress}</p>
-                <p><strong>📞 Телефон:</strong> ${order.deliveryPhone}</p>
-                ${order.deliveryComment ? `<p><strong>💬 Комментарий:</strong> ${order.deliveryComment}</p>` : ''}
-            </div>
-        `;
-    }
-
-    showStyledAlert(`
-        <div style="text-align: center;">
-            <div style="font-size: 48px; margin-bottom: 15px;">🎉</div>
-            <h2 style="color: #2c6e49; margin-bottom: 15px;">ЗАКАЗ ОФОРМЛЕН!</h2>
-            <div style="background: linear-gradient(135deg, #2c6e49, #1e4d2f); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <strong style="font-size: 24px;">#${orderNumber}</strong>
-            </div>
-            
-            ${deliveryInfo}
-            
-            <div style="background-color: #e8f4e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <h3 style="color: #2c6e49; margin-bottom: 10px;">Ваш заказ:</h3>
-                ${order.items.map(item => `
-                    <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #2c6e49;">
-                        <span>${item.name}</span>
-                        <span style="font-weight: bold;">${item.price} руб.</span>
-                    </div>
-                `).join('')}
-                <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 2px solid #2c6e49; font-weight: bold;">
-                    <span>ИТОГО:</span>
-                    <span>${finalTotal} руб.</span>
+        // Показываем подтверждение
+        let deliveryInfo = '';
+        if (deliveryValue === 'pickup') {
+            deliveryInfo = `
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
+                    <p><strong>📍 Адрес самовывоза:</strong> г. Воронеж, ул. Ветеринарная, д. 15</p>
+                    <p><strong>🕒 Режим работы:</strong> круглосуточно</p>
+                    <p><strong>📞 Телефон:</strong> 222-22-22</p>
                 </div>
-            </div>
-            
-            <p>✅ Заказ сохранен в базе данных</p>
-        </div>
-    `);
+            `;
+        } else {
+            deliveryInfo = `
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
+                    <p><strong>🚚 Адрес доставки:</strong> ${order.deliveryAddress}</p>
+                    <p><strong>📞 Телефон:</strong> ${order.deliveryPhone}</p>
+                    ${order.deliveryComment ? `<p><strong>💬 Комментарий:</strong> ${order.deliveryComment}</p>` : ''}
+                </div>
+            `;
+        }
 
-    displayCart();
-    updateCartCount();
-    broadcastUpdate();
+        showStyledAlert(`
+            <div style="text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 15px;">🎉</div>
+                <h2 style="color: #2c6e49; margin-bottom: 15px;">ЗАКАЗ ОФОРМЛЕН!</h2>
+                <div style="background: linear-gradient(135deg, #2c6e49, #1e4d2f); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong style="font-size: 24px;">#${orderNumber}</strong>
+                </div>
+                
+                ${deliveryInfo}
+                
+                <div style="background-color: #e8f4e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #2c6e49; margin-bottom: 10px;">Ваш заказ:</h3>
+                    ${order.items.map(item => `
+                        <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #2c6e49;">
+                            <span>${item.name}</span>
+                            <span style="font-weight: bold;">${item.price} ₽</span>
+                        </div>
+                    `).join('')}
+                    <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 2px solid #2c6e49; font-weight: bold;">
+                        <span>ИТОГО:</span>
+                        <span>${finalTotal} ₽</span>
+                    </div>
+                </div>
+                
+                <p>✅ Заказ сохранен в базе данных</p>
+            </div>
+        `);
+
+        // Обновляем отображение корзины
+        if (typeof displayCart === 'function') {
+            displayCart();
+        }
+        
+        // Оповещаем другие вкладки
+        broadcastUpdate();
+        
+        console.log('✅ Заказ создан:', orderNumber);
+        
+    } catch (error) {
+        console.error('❌ Ошибка при оформлении заказа:', error);
+        showNotification('Ошибка при оформлении заказа', 'error');
+    } finally {
+        // Возвращаем кнопку в исходное состояние
+        if (checkoutBtn) {
+            checkoutBtn.textContent = 'Оформить заказ';
+            checkoutBtn.disabled = false;
+        }
+    }
 }
 
 // Восстановить кнопки покупки
@@ -753,7 +857,7 @@ function openAuthModal(tab = 'login') {
     switchAuthTab(tab);
 }
 
-// Закрыть модальное окно авторизации
+// Функция закрытия модального окна
 function closeAuthModal() {
     const modal = document.getElementById('authModal');
     if (modal) {
@@ -883,114 +987,135 @@ function updatePrice(productId) {
     }
 }
 
-// Регистрация с валидацией и сохранением в файл
-function register(event) {
+// Исправленная функция регистрации
+async function register(event) {
     event.preventDefault();
 
     const name = document.getElementById('regName').value;
     const email = document.getElementById('regEmail').value;
     const password = document.getElementById('regPassword').value;
-
+    
     // Валидация
     if (!validateName(name)) {
-        showNotification('Имя должно содержать от 2 до 30 символов (буквы, пробелы и дефисы)', 'error');
+        showNotification('Имя должно содержать от 2 до 30 символов', 'error');
         return;
     }
-
+    
     if (!validateEmail(email)) {
-        showNotification('Введите корректный email адрес', 'error');
+        showNotification('Введите корректный email', 'error');
         return;
     }
-
+    
     if (password.length < 6) {
         showNotification('Пароль должен содержать не менее 6 символов', 'error');
         return;
     }
 
-    // Используем DB_MANAGER для добавления пользователя
-    if (window.DB_MANAGER) {
-        // Проверяем, существует ли уже пользователь
-        const users = JSON.parse(localStorage.getItem('users')) || {};
-
-        if (users[email]) {
+    try {
+        // Показываем индикатор загрузки
+        const registerBtn = event.target.querySelector('button[type="submit"]');
+        const originalText = registerBtn.textContent;
+        registerBtn.textContent = 'Регистрация...';
+        registerBtn.disabled = true;
+        
+        // Загружаем свежие данные
+        await DB_MANAGER.loadDatabase();
+        
+        // Проверяем существование пользователя
+        if (DB_MANAGER.userExists(email)) {
             showNotification('Пользователь с таким email уже существует!', 'error');
             return;
         }
 
-        // Добавляем через DB_MANAGER
-        const result = DB_MANAGER.addUser({
+        // Добавляем пользователя
+        await DB_MANAGER.addUser({
             name: name,
             email: email,
             password: password,
             role: 'user'
         });
 
-        if (result) {
-            showNotification('Регистрация успешна! Теперь вы можете войти.', 'success');
-            switchAuthTab('login');
-
-            // Очищаем форму
-            document.getElementById('regName').value = '';
-            document.getElementById('regEmail').value = '';
-            document.getElementById('regPassword').value = '';
-        } else {
-            showNotification('Ошибка при регистрации', 'error');
-        }
-    } else {
-        // Fallback на старый метод
-        let users = JSON.parse(localStorage.getItem('users')) || {};
-
-        if (users[email]) {
-            showNotification('Пользователь с таким email уже существует!', 'error');
-            return;
-        }
-
-        users[email] = {
-            name: name,
-            password: password,
-            role: 'user',
-            registered: new Date().toISOString()
-        };
-
-        localStorage.setItem('users', JSON.stringify(users));
-
-        showNotification('Регистрация успешна! Теперь вы можете войти.', 'success');
-        switchAuthTab('login');
-
+        showNotification('Регистрация успешна!', 'success');
+        
+        // Очищаем форму
         document.getElementById('regName').value = '';
         document.getElementById('regEmail').value = '';
         document.getElementById('regPassword').value = '';
+        
+        // Переключаем на вкладку входа
+        switchAuthTab('login');
+        
+    } catch (error) {
+        console.error('❌ Ошибка регистрации:', error);
+        showNotification('Ошибка при регистрации', 'error');
+    } finally {
+        // Возвращаем кнопку в исходное состояние
+        const registerBtn = event.target.querySelector('button[type="submit"]');
+        if (registerBtn) {
+            registerBtn.textContent = 'Зарегистрироваться';
+            registerBtn.disabled = false;
+        }
     }
 }
-
-// Вход
-function login(event) {
+// Исправленная функция входа
+async function login(event) {
     event.preventDefault();
 
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
+    
+    console.log('🔐 Попытка входа:', email);
+    
+    try {
+        // Показываем индикатор загрузки
+        const loginBtn = event.target.querySelector('button[type="submit"]');
+        const originalText = loginBtn.textContent;
+        loginBtn.textContent = 'Вход...';
+        loginBtn.disabled = true;
+        
+        // Загружаем свежие данные
+        await DB_MANAGER.loadDatabase();
+        
+        const user = DB_MANAGER.getUserByEmail(email);
+        
+        if (user && user.password === password) {
+            currentUser = {
+                email: user.email,
+                name: user.name,
+                role: user.role
+            };
 
-    // Загружаем актуальных пользователей
-    let users = JSON.parse(localStorage.getItem('users')) || {};
-
-    if (users[email] && users[email].password === password) {
-        currentUser = {
-            email: email,
-            name: users[email].name,
-            role: users[email].role
-        };
-
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        showNotification('Вход выполнен успешно!');
-
-        closeAuthModal();
-        updateUI();
-        broadcastUpdate();
-    } else {
-        showNotification('Неверный email или пароль!', 'error');
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // Обновляем интерфейс
+            updateUI();
+            
+            // Закрываем модальное окно
+            closeAuthModal();
+            
+            // Показываем уведомление
+            showNotification(`Добро пожаловать, ${user.name}!`, 'success');
+            
+            // Очищаем форму
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+            
+            console.log('✅ Вход выполнен');
+        } else {
+            showNotification('Неверный email или пароль!', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка входа:', error);
+        showNotification('Ошибка при входе', 'error');
+    } finally {
+        // Возвращаем кнопку в исходное состояние
+        const loginBtn = event.target.querySelector('button[type="submit"]');
+        if (loginBtn) {
+            loginBtn.textContent = 'Войти';
+            loginBtn.disabled = false;
+        }
     }
 }
-
 // Выход
 function logout() {
     currentUser = null;
