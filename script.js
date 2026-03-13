@@ -515,68 +515,45 @@ async function register(event) {
         return;
     }
 
-    // Показываем индикатор загрузки на кнопке
     const registerBtn = event.target.querySelector('button[type="submit"]');
     const originalText = registerBtn.textContent;
     registerBtn.textContent = 'Регистрация...';
     registerBtn.disabled = true;
 
     try {
-        // Ждем инициализацию DB_MANAGER
+        // Проверяем наличие DB_MANAGER
+        if (!window.DB_MANAGER) {
+            throw new Error('База данных не доступна');
+        }
+        
         await DB_MANAGER.waitForInit();
         
-        // Проверяем, существует ли пользователь
         const exists = await DB_MANAGER.userExists(email);
         
         if (exists) {
             showNotification('Пользователь с таким email уже существует', 'error');
-            registerBtn.textContent = originalText;
-            registerBtn.disabled = false;
             return;
         }
         
-        // Регистрируем нового пользователя
-        const newUser = await DB_MANAGER.addUser({
+        await DB_MANAGER.addUser({
             name: name,
             email: email,
             password: password,
             role: 'user'
         });
         
-        console.log('✅ Новый пользователь зарегистрирован:', newUser);
-        
-        // ПОЛНОЕ ОБНОВЛЕНИЕ ДАННЫХ
-        await DB_MANAGER.loadDatabase(); // Принудительно перезагружаем данные с сервера
-        
         showNotification('Регистрация успешна! Теперь можно войти.', 'success');
         
-        // Очищаем форму
         document.getElementById('regName').value = '';
         document.getElementById('regEmail').value = '';
         document.getElementById('regPassword').value = '';
         
-        // Переключаем на вкладку входа
         switchAuthTab('login');
-        
-        // ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ АДМИН-ПАНЕЛИ (если открыта)
-        if (window.location.pathname.includes('db-viewer.html')) {
-            console.log('🔄 Обновление админ-панели...');
-            setTimeout(async () => {
-                await DB_MANAGER.loadDatabase();
-                if (typeof loadUsers === 'function') loadUsers();
-                if (typeof updateStats === 'function') updateStats();
-                showDbNotification('Данные пользователей обновлены', 'success');
-            }, 500);
-        }
-        
-        // ОБНОВЛЕНИЕ ДАННЫХ В ДРУГИХ ВКЛАДКАХ
-        broadcastUpdate();
         
     } catch (error) {
         console.error('❌ Ошибка регистрации:', error);
         showNotification('Ошибка при регистрации: ' + error.message, 'error');
     } finally {
-        // Возвращаем кнопку в исходное состояние
         registerBtn.textContent = originalText;
         registerBtn.disabled = false;
     }
