@@ -1,6 +1,41 @@
 // ============================================
 // СКРИПТ ДЛЯ УПРАВЛЕНИЯ БАЗОЙ ДАННЫХ (db-viewer)
 // ============================================
+// В начало файла добавьте:
+console.log('📊 db-viewer.js загружен');
+
+// Функция ожидания DB_MANAGER
+function waitForDBManager() {
+    return new Promise((resolve) => {
+        if (window.DB_MANAGER && DB_MANAGER.isInitialized) {
+            resolve();
+        } else {
+            let attempts = 0;
+            const interval = setInterval(() => {
+                attempts++;
+                if (window.DB_MANAGER && DB_MANAGER.isInitialized) {
+                    clearInterval(interval);
+                    resolve();
+                } else if (attempts > 50) {
+                    clearInterval(interval);
+                    console.error('❌ DB_MANAGER не инициализирован');
+                    resolve();
+                }
+            }, 100);
+        }
+    });
+}
+
+// Ждем загрузки DOM и всех скриптов
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('DOM загружен, ожидание DB_MANAGER...');
+    
+    // Ждем DB_MANAGER
+    await waitForDBManager();
+    
+    // Даем еще немного времени
+    setTimeout(initAdminPage, 500);
+});
 
 console.log('📊 db-viewer.js загружен');
 
