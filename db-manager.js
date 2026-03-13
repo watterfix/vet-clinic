@@ -289,6 +289,13 @@ async function updateProduct(id, productData) {
         return true;
     },
 
+    // Добавьте эту функцию в DB_MANAGER (после других методов)
+broadcastPriceUpdate() {
+    // Сохраняем временную метку для обновления цен
+    localStorage.setItem('price_update_timestamp', Date.now().toString());
+    console.log('💰 Отправлен сигнал обновления цен');
+}
+
     // ============================================
     // ЗАКАЗЫ
     // ============================================
