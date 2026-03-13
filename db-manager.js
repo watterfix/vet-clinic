@@ -3,8 +3,8 @@
 // ============================================
 
 // ВСТАВЬТЕ СВОИ ДАННЫЕ ИЗ SUPABASE
-const SUPABASE_URL = 'https://ehksdceuihjnzbqdztog.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_K1dDdxBKQ_04yOqwkfCxsw_JyiHlkxW';
+const SUPABASE_URL = 'https://ваш-проект.supabase.co';
+const SUPABASE_KEY = 'ваш-anon-ключ';
 
 const DB_MANAGER = {
     supabase: null,
@@ -29,10 +29,7 @@ const DB_MANAGER = {
             try {
                 // Проверяем наличие Supabase SDK
                 if (typeof supabase === 'undefined') {
-                    console.error('❌ Supabase SDK не загружен!');
-                    this.initError = 'Supabase SDK не загружен';
-                    resolve(false);
-                    return;
+                    throw new Error('Supabase SDK не загружен');
                 }
                 
                 // Создаем клиент Supabase
@@ -43,10 +40,8 @@ const DB_MANAGER = {
                 const { error } = await this.supabase.from('users').select('count', { count: 'exact', head: true });
                 
                 if (error) {
-                    console.error('❌ Ошибка подключения к Supabase:', error);
+                    console.warn('⚠️ Ошибка подключения к Supabase, работаем в офлайн режиме');
                     this.initError = error.message;
-                    resolve(false);
-                    return;
                 }
                 
                 // Загружаем данные
@@ -72,8 +67,8 @@ const DB_MANAGER = {
         console.log('📦 Загрузка данных из Supabase...');
         
         if (!this.supabase) {
-            console.error('❌ Supabase не инициализирован');
-            return null;
+            console.warn('⚠️ Supabase не инициализирован, используем кэш');
+            return this.currentData;
         }
 
         try {
@@ -85,7 +80,6 @@ const DB_MANAGER = {
                 this.supabase.from('messages').select('*').order('date', { ascending: false })
             ]);
 
-            // Проверяем ошибки
             if (users.error) throw users.error;
             if (products.error) throw products.error;
             if (orders.error) throw orders.error;
@@ -100,20 +94,19 @@ const DB_MANAGER = {
 
             console.log(`✅ Загружено пользователей: ${this.currentData.users.length}`);
             console.log(`✅ Загружено товаров: ${this.currentData.products.length}`);
-            console.log(`✅ Загружено заказов: ${this.currentData.orders.length}`);
             
             return this.currentData;
             
         } catch (error) {
             console.error('❌ Ошибка загрузки:', error);
-            return null;
+            return this.currentData;
         }
     },
 
     // Дождаться инициализации
     async waitForInit() {
         if (this.isInitialized) return true;
-        if (this.initError) throw new Error(this.initError);
+        if (this.initError) console.warn('⚠️ Ошибка инициализации:', this.initError);
         
         await this.init();
         return this.isInitialized;
@@ -134,87 +127,72 @@ const DB_MANAGER = {
 
     async getUserByEmail(email) {
         await this.waitForInit();
-        
-        const { data, error } = await this.supabase
-            .from('users')
-            .select('*')
-            .eq('email', email)
-            .maybeSingle();
-
-        if (error) console.error('Ошибка getUserByEmail:', error);
-        return data;
+        return this.currentData.users.find(u => u.email === email);
     },
 
     async userExists(email) {
         await this.waitForInit();
-        
-        const { data, error } = await this.supabase
-            .from('users')
-            .select('email')
-            .eq('email', email);
-
-        if (error) console.error('Ошибка userExists:', error);
-        return data && data.length > 0;
+        return this.currentData.users.some(u => u.email === email);
     },
 
     async addUser(userData) {
         await this.waitForInit();
         
-        const { data, error } = await this.supabase
-            .from('users')
-            .insert([{
-                email: userData.email,
-                name: userData.name,
-                password: userData.password,
-                role: userData.role || 'user',
-                registered: new Date().toISOString()
-            }])
-            .select();
+        const newUser = {
+            id: userData.email,
+            email: userData.email,
+            name: userData.name,
+            password: userData.password,
+            role: userData.role || 'user',
+            registered: new Date().toISOString()
+        };
 
-        if (error) throw error;
+        this.currentData.users.push(newUser);
         
-        if (data && data[0]) {
-            this.currentData.users.push(data[0]);
-            return data[0];
+        if (this.supabase) {
+            try {
+                await this.supabase.from('users').insert([newUser]);
+            } catch (error) {
+                console.error('Ошибка сохранения в Supabase:', error);
+            }
         }
-        return null;
+        
+        return newUser;
     },
 
     async updateUser(email, userData) {
-        await this.waitForInit();
-        
-        const { data, error } = await this.supabase
-            .from('users')
-            .update(userData)
-            .eq('email', email)
-            .select();
-
-        if (error) throw error;
-        
         const index = this.currentData.users.findIndex(u => u.email === email);
-        if (index !== -1 && data && data[0]) {
-            this.currentData.users[index] = data[0];
+        if (index === -1) return null;
+
+        this.currentData.users[index] = {
+            ...this.currentData.users[index],
+            ...userData
+        };
+
+        if (this.supabase) {
+            try {
+                await this.supabase.from('users').update(userData).eq('email', email);
+            } catch (error) {
+                console.error('Ошибка обновления в Supabase:', error);
+            }
         }
-        
-        return data ? data[0] : null;
+
+        return this.currentData.users[index];
     },
 
     async deleteUser(email) {
-        if (email === 'admin@vetclinic.ru') {
-            console.warn('Нельзя удалить администратора');
-            return false;
+        if (email === 'admin@vetclinic.ru') return false;
+
+        this.currentData.users = this.currentData.users.filter(u => u.email !== email);
+
+        if (this.supabase) {
+            try {
+                await this.supabase.from('users').delete().eq('email', email);
+            } catch (error) {
+                console.error('Ошибка удаления из Supabase:', error);
+            }
         }
 
-        await this.waitForInit();
-
-        const { error } = await this.supabase
-            .from('users')
-            .delete()
-            .eq('email', email);
-
-        if (error) throw error;
-        
-        this.currentData.users = this.currentData.users.filter(u => u.email !== email);
         return true;
     },
 
@@ -222,129 +200,61 @@ const DB_MANAGER = {
     // ТОВАРЫ
     // ============================================
 
-async getProduct(id) {
-    await this.waitForInit();
-    
-    const { data, error } = await this.supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-
-    if (error) console.error('Ошибка getProduct:', error);
-    return data;
-},
-
-async addProduct(productData) {
-    await this.waitForInit();
-    
-    const { data, error } = await this.supabase
-        .from('products')
-        .insert([productData])
-        .select();
-
-    if (error) throw error;
-    
-    if (data && data[0]) {
-        this.currentData.products.push(data[0]);
-        return data[0];
-    }
-    return null;
-},
-
-async updateProduct(id, productData) {
-    await this.waitForInit();
-    
-    const { data, error } = await this.supabase
-        .from('products')
-        .update(productData)
-        .eq('id', id)
-        .select();
-
-    if (error) throw error;
-    
-    const index = this.currentData.products.findIndex(p => p.id === id);
-    if (index !== -1 && data && data[0]) {
-        this.currentData.products[index] = data[0];
-    }
-    
-    // Отправляем сигнал об обновлении цен
-    this.broadcastPriceUpdate();
-    
-    return data ? data[0] : null;
-},
-
-async deleteProduct(id) {
-    await this.waitForInit();
-    
-    const { error } = await this.supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
-
-    if (error) throw error;
-    
-    this.currentData.products = this.currentData.products.filter(p => p.id !== id);
-    
-    // Отправляем сигнал об обновлении цен (при удалении тоже)
-    this.broadcastPriceUpdate();
-    
-    return true;
-},
-
-// Добавьте этот метод после всех методов для товаров
-broadcastPriceUpdate() {
-    // Сохраняем временную метку для обновления цен
-    localStorage.setItem('price_update_timestamp', Date.now().toString());
-    console.log('💰 Сигнал обновления цен отправлен');
-},
-
-    // ============================================
-// МЕТОДЫ ДЛЯ ТОВАРОВ
-// ============================================
-
-async updateProduct(id, productData) {
-    await this.waitForInit();
-    
-    const { data, error } = await this.supabase
-        .from('products')
-        .update(productData)
-        .eq('id', id)
-        .select();
-
-    if (error) throw error;
-    
-    const index = this.currentData.products.findIndex(p => p.id === id);
-    if (index !== -1 && data && data[0]) {
-        this.currentData.products[index] = data[0];
-    }
-    
-    // Отправляем сигнал об обновлении цен
-    this.broadcastPriceUpdate();
-    
-    return data ? data[0] : null;
-}
-
-    async deleteProduct(id) {
+    async getProduct(id) {
         await this.waitForInit();
-        
-        const { error } = await this.supabase
-            .from('products')
-            .delete()
-            .eq('id', id);
-
-        if (error) throw error;
-        
-        this.currentData.products = this.currentData.products.filter(p => p.id !== id);
-        return true;
+        return this.currentData.products.find(p => p.id === id);
     },
 
-    // Добавьте эту функцию в DB_MANAGER (после других методов)
-broadcastPriceUpdate() {
-    // Сохраняем временную метку для обновления цен
-    localStorage.setItem('price_update_timestamp', Date.now().toString());
-    console.log('💰 Отправлен сигнал обновления цен');
-}
+    async addProduct(productData) {
+        this.currentData.products.push(productData);
+        
+        if (this.supabase) {
+            try {
+                await this.supabase.from('products').insert([productData]);
+            } catch (error) {
+                console.error('Ошибка сохранения в Supabase:', error);
+            }
+        }
+        
+        this.broadcastPriceUpdate();
+        return productData;
+    },
+
+    async updateProduct(id, productData) {
+        const index = this.currentData.products.findIndex(p => p.id === id);
+        if (index === -1) return null;
+
+        this.currentData.products[index] = {
+            ...this.currentData.products[index],
+            ...productData
+        };
+
+        if (this.supabase) {
+            try {
+                await this.supabase.from('products').update(productData).eq('id', id);
+            } catch (error) {
+                console.error('Ошибка обновления в Supabase:', error);
+            }
+        }
+
+        this.broadcastPriceUpdate();
+        return this.currentData.products[index];
+    },
+
+    async deleteProduct(id) {
+        this.currentData.products = this.currentData.products.filter(p => p.id !== id);
+
+        if (this.supabase) {
+            try {
+                await this.supabase.from('products').delete().eq('id', id);
+            } catch (error) {
+                console.error('Ошибка удаления из Supabase:', error);
+            }
+        }
+
+        this.broadcastPriceUpdate();
+        return true;
+    },
 
     // ============================================
     // ЗАКАЗЫ
@@ -353,79 +263,38 @@ broadcastPriceUpdate() {
     async addOrder(orderData) {
         await this.waitForInit();
 
-        const { data, error } = await this.supabase
-            .from('orders')
-            .insert([{
-                order_number: orderData.orderNumber,
-                user_email: orderData.user,
-                user_name: orderData.userName,
-                items: orderData.items,
-                delivery: orderData.delivery,
-                delivery_address: orderData.deliveryAddress || null,
-                delivery_phone: orderData.deliveryPhone || null,
-                delivery_cost: orderData.deliveryCost || 0,
-                total: orderData.total,
-                date: orderData.date || new Date().toISOString()
-            }])
-            .select();
+        const newOrder = {
+            ...orderData,
+            id: Date.now(),
+            date: new Date().toISOString()
+        };
 
-        if (error) throw error;
-        
-        if (data && data[0]) {
-            this.currentData.orders.unshift(data[0]);
-            return data[0];
+        this.currentData.orders.unshift(newOrder);
+
+        if (this.supabase) {
+            try {
+                await this.supabase.from('orders').insert([newOrder]);
+            } catch (error) {
+                console.error('Ошибка сохранения в Supabase:', error);
+            }
         }
-        return null;
+
+        return newOrder;
     },
 
     async deleteOrder(orderId) {
-        await this.waitForInit();
-        
-        const { error } = await this.supabase
-            .from('orders')
-            .delete()
-            .eq('id', orderId);
-
-        if (error) throw error;
-        
         this.currentData.orders = this.currentData.orders.filter(o => o.id !== orderId);
+
+        if (this.supabase) {
+            try {
+                await this.supabase.from('orders').delete().eq('id', orderId);
+            } catch (error) {
+                console.error('Ошибка удаления из Supabase:', error);
+            }
+        }
+
         return true;
     },
-
-// ============================================
-// МЕТОДЫ ДЛЯ СООБЩЕНИЙ
-// ============================================
-
-async addMessage(messageData) {
-    await this.waitForInit();
-    
-    console.log('💾 Сохранение сообщения:', messageData);
-    
-    const { data, error } = await this.supabase
-        .from('messages')
-        .insert([{
-            name: messageData.name,
-            email: messageData.email,
-            phone: messageData.phone || '',
-            message: messageData.message,
-            status: 'new',
-            date: new Date().toISOString()
-        }])
-        .select();
-
-    if (error) {
-        console.error('❌ Ошибка сохранения сообщения:', error);
-        throw error;
-    }
-    
-    if (data && data[0]) {
-        this.currentData.messages.unshift(data[0]);
-        console.log('✅ Сообщение сохранено:', data[0]);
-        return data[0];
-    }
-    
-    return null;
-},
 
     // ============================================
     // СООБЩЕНИЯ
@@ -433,60 +302,59 @@ async addMessage(messageData) {
 
     async addMessage(messageData) {
         await this.waitForInit();
-        
-        const { data, error } = await this.supabase
-            .from('messages')
-            .insert([{
-                name: messageData.name,
-                email: messageData.email,
-                phone: messageData.phone || '',
-                message: messageData.message,
-                status: 'new',
-                date: new Date().toISOString()
-            }])
-            .select();
 
-        if (error) throw error;
-        
-        if (data && data[0]) {
-            this.currentData.messages.unshift(data[0]);
-            return data[0];
+        const newMessage = {
+            ...messageData,
+            id: Date.now(),
+            date: new Date().toISOString(),
+            status: 'new'
+        };
+
+        this.currentData.messages.unshift(newMessage);
+
+        if (this.supabase) {
+            try {
+                await this.supabase.from('messages').insert([newMessage]);
+            } catch (error) {
+                console.error('Ошибка сохранения в Supabase:', error);
+            }
         }
-        return null;
+
+        return newMessage;
     },
 
     async markMessageAsRead(messageId) {
-        await this.waitForInit();
-        
-        const { error } = await this.supabase
-            .from('messages')
-            .update({ status: 'read' })
-            .eq('id', messageId);
-
-        if (error) throw error;
-        
         const message = this.currentData.messages.find(m => m.id === messageId);
-        if (message) message.status = 'read';
-        
+        if (message) {
+            message.status = 'read';
+            
+            if (this.supabase) {
+                try {
+                    await this.supabase.from('messages').update({ status: 'read' }).eq('id', messageId);
+                } catch (error) {
+                    console.error('Ошибка обновления в Supabase:', error);
+                }
+            }
+        }
         return true;
     },
 
     async deleteMessage(messageId) {
-        await this.waitForInit();
-        
-        const { error } = await this.supabase
-            .from('messages')
-            .delete()
-            .eq('id', messageId);
-
-        if (error) throw error;
-        
         this.currentData.messages = this.currentData.messages.filter(m => m.id !== messageId);
+
+        if (this.supabase) {
+            try {
+                await this.supabase.from('messages').delete().eq('id', messageId);
+            } catch (error) {
+                console.error('Ошибка удаления из Supabase:', error);
+            }
+        }
+
         return true;
     },
 
     // ============================================
-    // СТАТИСТИКА
+    // СТАТИСТИКА И УВЕДОМЛЕНИЯ
     // ============================================
 
     getStats() {
@@ -520,6 +388,11 @@ async addMessage(messageData) {
             averageOrderValue: totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0,
             productsByCategory
         };
+    },
+
+    broadcastPriceUpdate() {
+        localStorage.setItem('price_update_timestamp', Date.now().toString());
+        console.log('💰 Сигнал обновления цен отправлен');
     }
 };
 
@@ -528,3 +401,4 @@ window.DB_MANAGER = DB_MANAGER;
 
 // Автоматически запускаем инициализацию
 console.log('📦 DB_MANAGER загружен');
+DB_MANAGER.init();
